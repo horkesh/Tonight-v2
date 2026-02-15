@@ -1,0 +1,7 @@
+{
+  "name": "Tonight v2",
+  "description": "A premium, synchronized two-person virtual date experience emphasizing presence and connection.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
