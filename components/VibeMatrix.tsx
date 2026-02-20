@@ -11,16 +11,18 @@ interface VibeMatrixProps {
 
 export const VibeMatrix: React.FC<VibeMatrixProps> = ({ vibe }) => {
   // Convert vibe stats into 4 cardinal points of a blob
-  // Center is 50, 50. Radius is ~40.
+  // Center is 50, 50. 
+  // Old Radius: Base 20 + 25 (Max 45) -> Looked like 40% full at 0.
+  // New Radius: Base 5 + 40 (Max 45) -> Looks empty at 0.
   const points = useMemo(() => {
     // Top (Playful)
-    const pY = 50 - (20 + (vibe.playful / 100) * 25);
+    const pY = 50 - (5 + (vibe.playful / 100) * 40);
     // Right (Flirty)
-    const fX = 50 + (20 + (vibe.flirty / 100) * 25);
+    const fX = 50 + (5 + (vibe.flirty / 100) * 40);
     // Bottom (Deep)
-    const dY = 50 + (20 + (vibe.deep / 100) * 25);
+    const dY = 50 + (5 + (vibe.deep / 100) * 40);
     // Left (Comfort)
-    const cX = 50 - (20 + (vibe.comfortable / 100) * 25);
+    const cX = 50 - (5 + (vibe.comfortable / 100) * 40);
 
     // Create a smooth closed curve path (Blob)
     return `M 50 ${pY} Q ${fX} 50 ${fX} 50 T 50 ${dY} T ${cX} 50 T 50 ${pY}`;

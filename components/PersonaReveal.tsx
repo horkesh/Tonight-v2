@@ -16,18 +16,65 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [activeTraitIndex, setActiveTraitIndex] = useState<number | null>(null);
+  const [isGlitching, setIsGlitching] = useState(false);
+  const [isTakingTooLong, setIsTakingTooLong] = useState(false);
+  const [forceShowPlaceholder, setForceShowPlaceholder] = useState(false);
   
   const { imageUrl, traits, memories, secrets, revealProgress, chemistry, isGenerating } = persona;
   
   const lastProgress = useRef(revealProgress);
+  const lastSecretCount = useRef(secrets.length);
+  const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pulse, setPulse] = useState(0);
 
+  const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop";
+
+  // Watch for stalled image sync
   useEffect(() => {
+    if (!imageUrl && !forceShowPlaceholder) {
+        const t = setTimeout(() => {
+            setForceShowPlaceholder(true);
+        }, 8000); // 8 second timeout before forcing placeholder
+        return () => clearTimeout(t);
+    }
+  }, [imageUrl, forceShowPlaceholder]);
+
+  // Watch generating state for stalls
+  useEffect(() => {
+      if (isGenerating && !imageUrl) {
+          setIsTakingTooLong(false);
+          if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+          loadingTimerRef.current = setTimeout(() => {
+              setIsTakingTooLong(true);
+          }, 15000); // 15s UI timeout
+      } else {
+          setIsTakingTooLong(false);
+          if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+      }
+      return () => { if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current); };
+  }, [isGenerating, imageUrl]);
+
+  // Trigger Glitch Effect on updates
+  useEffect(() => {
+    let shouldGlitch = false;
     if (revealProgress > lastProgress.current) {
       setPulse(p => p + 1);
+      if (revealProgress % 10 === 0) shouldGlitch = true;
     }
+    if (secrets.length > lastSecretCount.current) {
+        shouldGlitch = true;
+    }
+
+    if (shouldGlitch) {
+        setIsGlitching(true);
+        // Haptic buzz
+        if (navigator.vibrate) navigator.vibrate([30, 30, 30]);
+        setTimeout(() => setIsGlitching(false), 600);
+    }
+
     lastProgress.current = revealProgress;
-  }, [revealProgress]);
+    lastSecretCount.current = secrets.length;
+  }, [revealProgress, secrets.length]);
 
   // Derived styles for better performance
   const cardFilters = useMemo(() => {
@@ -47,6 +94,8 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
     return match || pool[0] || "No associated data found.";
   };
 
+  const displayImage = imageUrl || (forceShowPlaceholder ? DEFAULT_PLACEHOLDER : null);
+
   return (
     <div className="relative w-full h-[460px] [perspective:1500px] z-10 select-none">
       <motion.div
@@ -64,20 +113,21 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
           style={{ transform: 'rotateY(0deg)', WebkitBackfaceVisibility: 'hidden' }}
         >
           <AnimatePresence mode="wait">
-            {imageUrl ? (
+            {displayImage && !isTakingTooLong ? (
               <motion.div
                 key="image-content"
-                className="absolute inset-0 w-full h-full"
+                className={`absolute inset-0 w-full h-full ${isGlitching ? 'glitch-active' : ''}`}
                 animate={{ 
                   scale: [1, 1.02, 1],
-                  filter: cardFilters
+                  filter: isGlitching ? 'contrast(2) brightness(1.5)' : cardFilters
                 }}
                 transition={{ 
                     scale: { duration: 15, repeat: Infinity, repeatType: "mirror" },
-                    filter: { duration: 1 }
+                    filter: { duration: 0.2 } // Fast snap for glitch
                 }}
+                data-text={name} // Used by CSS glitch pseudo-elements
               >
-                <img src={imageUrl} className="w-full h-full object-cover" alt={name} />
+                <img src={displayImage} className="w-full h-full object-cover" alt={name} />
                 
                 {/* Reveal Spark Glow */}
                 <motion.div 
@@ -93,16 +143,28 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
             ) : (
               <div key="placeholder-content" className="absolute inset-0 w-full h-full bg-slate-950 flex flex-col items-center justify-center gap-8">
                  <div className="relative">
-                    <div className="w-20 h-20 border-2 border-white/5 rounded-full" />
-                    <motion.div 
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 w-20 h-20 border-t-2 border-rose-500 rounded-full" 
-                    />
+                    {isTakingTooLong ? (
+                        <div className="w-20 h-20 border-2 border-white/10 rounded-full flex items-center justify-center">
+                            <span className="text-2xl">⚠️</span>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="w-20 h-20 border-2 border-white/5 rounded-full" />
+                            <motion.div 
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                            className="absolute inset-0 w-20 h-20 border-t-2 border-rose-500 rounded-full" 
+                            />
+                        </>
+                    )}
                  </div>
                  <div className="text-center">
-                    <span className="text-[10px] tracking-[0.6em] text-rose-500 uppercase font-black block mb-3">Syncing...</span>
-                    <p className="text-[9px] text-white/10 uppercase tracking-widest">Compiling digital identity</p>
+                    <span className="text-[10px] tracking-[0.6em] text-rose-500 uppercase font-black block mb-3">
+                        {isTakingTooLong ? "Signal Lost" : "Syncing..."}
+                    </span>
+                    <p className="text-[9px] text-white/10 uppercase tracking-widest">
+                        {isTakingTooLong ? "Visual Feed Interrupted" : "Compiling digital identity"}
+                    </p>
                  </div>
               </div>
             )}
@@ -114,11 +176,11 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
               <span className="text-[9px] tracking-[0.5em] text-white/30 uppercase font-black">
                 {isSelf ? "Your Projection" : "Digital Ghost"}
               </span>
-              <h3 className="text-4xl font-serif text-white italic drop-shadow-2xl">
+              <h3 className={`text-4xl font-serif text-white italic drop-shadow-2xl ${isGlitching ? 'text-rose-400 translate-x-[2px]' : ''}`}>
                 {isSelf ? "You" : name}
               </h3>
             </div>
-            <div className="bg-rose-500/10 backdrop-blur-3xl border border-rose-500/30 px-4 py-2 rounded-full shadow-2xl">
+            <div className={`bg-rose-500/10 backdrop-blur-3xl border border-rose-500/30 px-4 py-2 rounded-full shadow-2xl transition-transform ${isGlitching ? 'scale-110 bg-rose-500 text-white' : ''}`}>
               <span className="text-[11px] text-rose-400 font-bold uppercase tracking-widest">{chemistry}%</span>
             </div>
           </div>
@@ -178,19 +240,21 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
              </div>
           </div>
 
-          {/* Hover Hint */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500 bg-black/60 backdrop-blur-3xl px-8 py-3.5 rounded-full border border-white/20 scale-90 group-hover:scale-100 z-30 shadow-2xl">
-            <span className="text-[10px] text-white uppercase tracking-[0.5em] font-black">Intel Dossier</span>
-          </div>
-
-          {/* Generating Filter */}
+          {/* Generating Indicator (Non-Blocking if image exists) */}
           <AnimatePresence>
-            {isGenerating && (
+            {isGenerating && !displayImage && !isTakingTooLong && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-40">
                 <div className="text-center">
                    <div className="w-12 h-12 border-t-2 border-rose-500 rounded-full animate-spin mb-4 mx-auto" />
                    <span className="text-[10px] tracking-[0.6em] text-rose-500 uppercase font-black">Decrypting...</span>
                 </div>
+              </motion.div>
+            )}
+            
+            {/* Subtle refreshing indicator if image DOES exist */}
+            {isGenerating && displayImage && (
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="absolute top-10 right-10 z-50">
+                   <div className="w-5 h-5 border-2 border-white/10 border-t-rose-500 rounded-full animate-spin" />
               </motion.div>
             )}
           </AnimatePresence>

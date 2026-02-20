@@ -1,17 +1,17 @@
 
 import React from 'react';
-import { User } from '../types';
 import { motion } from 'framer-motion';
+import { useSession } from '../context/SessionContext';
 
 interface PresenceBarProps {
-  users: User[];
-  round: number;
   onHome: () => void;
   onEditSelf?: () => void;
-  isConnected?: boolean;
 }
 
-export const PresenceBar: React.FC<PresenceBarProps> = ({ users, round, onHome, onEditSelf, isConnected = false }) => {
+export const PresenceBar: React.FC<PresenceBarProps> = ({ onHome, onEditSelf }) => {
+  const { state } = useSession();
+  const { users, round, isConnected } = state;
+  
   const self = users.find(u => u.isSelf);
   const partner = users.find(u => !u.isSelf);
 

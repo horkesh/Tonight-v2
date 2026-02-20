@@ -20,6 +20,8 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ state, actions, qSta
     actions.setUsers(prev => prev.map(u => u.isSelf ? { ...u, status: 'online' } : u));
   };
 
+  const isDesireLocked = state.round < 3;
+
   return (
     <motion.div key="q-view" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col pt-16 gap-10">
         
@@ -27,11 +29,40 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ state, actions, qSta
         {!qState.activeQuestion && !qState.selectedCategory && (
         <div className="grid grid-cols-1 gap-4">
             <span className="text-[10px] text-white/20 uppercase tracking-[0.5em] text-center font-black mb-4">Intel Sector</span>
+            
             {['Style', 'Escape', 'Preferences', 'Deep', 'Intimate'].map(cat => (
                 <button key={cat} onClick={() => qActions.handleCategorySelect(cat as any)} className="p-8 bg-white/[0.03] border border-white/5 rounded-[40px] hover:bg-rose-950/20 transition-all text-center">
                     <span className="text-2xl font-serif text-white/80">{cat}</span>
                 </button>
             ))}
+
+            {/* Locked "Desire" Category */}
+            <button 
+                onClick={() => !isDesireLocked && qActions.handleCategorySelect('Desire')} 
+                disabled={isDesireLocked}
+                className={`p-8 rounded-[40px] border transition-all text-center relative overflow-hidden group ${
+                    isDesireLocked 
+                    ? 'bg-black/40 border-white/5 opacity-50 cursor-not-allowed grayscale' 
+                    : 'bg-rose-950/20 border-rose-500/40 hover:bg-rose-900/30'
+                }`}
+            >
+                {isDesireLocked && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10 backdrop-blur-[1px]">
+                         <span className="text-[9px] uppercase tracking-widest font-black text-white/50 flex items-center gap-2">
+                            <span>🔒</span> Round 3
+                         </span>
+                    </div>
+                )}
+                <span className={`text-2xl font-serif italic ${isDesireLocked ? 'text-white/20' : 'text-rose-200'}`}>
+                    Desire
+                </span>
+                {!isDesireLocked && (
+                    <span className="text-[9px] uppercase tracking-widest text-rose-500 font-black block mt-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                        Let's talk about sex
+                    </span>
+                )}
+            </button>
+
             <button onClick={handleBackToHub} className="mt-8 text-white/10 text-[11px] tracking-[0.6em] uppercase font-black">Back to Hub</button>
         </div>
         )}
@@ -62,7 +93,7 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ state, actions, qSta
         {/* Active Question: Show to BOTH users once selected */}
         {qState.activeQuestion && (
         <div className="flex flex-col gap-12">
-            <div className="p-12 bg-rose-950/20 rounded-[72px] border border-rose-500/20 text-center">
+            <div className={`p-12 rounded-[72px] border text-center ${qState.activeQuestion.category === 'Desire' ? 'bg-rose-950/40 border-rose-500/40 shadow-[0_0_50px_rgba(225,29,72,0.2)]' : 'bg-rose-950/20 border-rose-500/20'}`}>
                 <span className="text-[11px] tracking-[0.8em] text-rose-500 uppercase font-black mb-8 block">{qState.activeQuestion.category}</span>
                 <p className="text-4xl font-serif text-white italic leading-tight">"{qState.activeQuestion.text}"</p>
             </div>

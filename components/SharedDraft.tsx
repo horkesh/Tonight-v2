@@ -223,7 +223,7 @@ export const SharedDraft: React.FC<SharedDraftProps> = ({ isOpen, onClose }) => 
             className="relative w-full h-[80vh] max-w-lg bg-transparent rounded-[32px] overflow-hidden shadow-2xl border border-white/10"
             ref={containerRef}
           >
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517865288-978fcbf97022?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-60 blur-sm" />
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1516541196182-6bdb59c538d3?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-60 blur-sm" />
             
             <canvas 
                 ref={canvasRef}

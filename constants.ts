@@ -52,44 +52,49 @@ export const DATE_LOCATIONS: DateLocation[] = [
     title: 'Velvet Jazz Lounge',
     description: 'Dim lighting, saxophone in the distance, stiff drinks.',
     icon: 'sax',
-    environmentPrompt: 'A dimly lit jazz lounge with velvet booths and smoke in the air.'
+    environmentPrompt: 'A dimly lit jazz lounge with velvet booths and smoke in the air.',
+    image: 'https://images.unsplash.com/photo-1514525253440-b393452e8d26?q=80&w=1000&auto=format&fit=crop'
   },
   {
     id: 'rooftop',
     title: 'Private Rooftop',
     description: 'Wind in hair, city lights below, feeling infinite.',
     icon: 'city',
-    environmentPrompt: 'A private rooftop garden overlooking a glowing metropolis at midnight.'
+    environmentPrompt: 'A private rooftop garden overlooking a glowing metropolis at midnight.',
+    image: 'https://images.unsplash.com/photo-1486334803289-1623f249dd1e?q=80&w=1000&auto=format&fit=crop'
   },
   {
     id: 'study',
     title: 'The Library',
     description: 'Crackling fire, smell of old books and whiskey.',
     icon: 'book',
-    environmentPrompt: 'An antique library with a fireplace, leather chairs, and rain against the window.'
+    environmentPrompt: 'An antique library with a fireplace, leather chairs, and rain against the window.',
+    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=1000&auto=format&fit=crop'
   },
   {
     id: 'beach',
     title: 'Midnight Coast',
     description: 'Sound of waves, moon reflection, isolation.',
     icon: 'wave',
-    environmentPrompt: 'A secluded beach at night, only lit by the moon and distant stars.'
+    environmentPrompt: 'A secluded beach at night, only lit by the moon and distant stars.',
+    image: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?q=80&w=1000&auto=format&fit=crop'
   },
   {
     id: 'car',
     title: 'Parked Car',
     description: 'Rain on the windshield, dashboard glow, proximity.',
     icon: 'car',
-    environmentPrompt: 'Inside a parked luxury car watching the rain, dashboard lights glowing, intimate proximity.'
+    environmentPrompt: 'Inside a parked luxury car watching the rain, dashboard lights glowing, intimate proximity.',
+    image: 'https://images.unsplash.com/photo-1494905998402-395d579af90f?q=80&w=1000&auto=format&fit=crop'
   }
 ];
 
 export const ACTIVITIES = [
   {
-    id: 'Standard',
-    title: 'Conversation',
-    description: 'Exchange words in the quiet of the night.',
-    icon: '🌙'
+    id: 'twoTruths',
+    title: 'Two Truths & A Lie',
+    description: 'Separate the truth from the fiction.',
+    icon: '🎭'
   },
   {
     id: 'truth',
@@ -98,10 +103,10 @@ export const ACTIVITIES = [
     icon: '🥃'
   },
   {
-    id: 'narrative',
-    title: 'Noir Narration',
-    description: 'Co-write the story of this encounter.',
-    icon: '🖋️'
+    id: 'finishSentence',
+    title: 'Finish My Sentence',
+    description: 'How well do you really read me?',
+    icon: '✍️'
   }
 ];
 
@@ -117,7 +122,7 @@ export const TRUTH_SEEDS = [
     "If you could sleep with one celebrity, but your partner would know, would you?",
     "What is the meanest thing you've ever said to someone you love?",
     "Have you ever emotionally cheated?",
-    "What is a fantasy you are too embarrassed to say out loud?"
+    "What is the most embarrassing fantasy you've ever had?"
 ];
 
 export const TWIST_SEEDS = [

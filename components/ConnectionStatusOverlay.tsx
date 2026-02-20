@@ -1,12 +1,14 @@
+
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ConnectionStatusOverlayProps {
   isConnected: boolean;
   isActive: boolean; // Only show if not in setup
+  onRetry?: () => void;
 }
 
-export const ConnectionStatusOverlay: React.FC<ConnectionStatusOverlayProps> = ({ isConnected, isActive }) => {
+export const ConnectionStatusOverlay: React.FC<ConnectionStatusOverlayProps> = ({ isConnected, isActive, onRetry }) => {
   const [showOverlay, setShowOverlay] = useState(false);
 
   useEffect(() => {
@@ -73,9 +75,18 @@ export const ConnectionStatusOverlay: React.FC<ConnectionStatusOverlayProps> = (
                     <p className="text-[10px] uppercase tracking-[0.3em] font-black text-rose-500 animate-pulse">
                         Re-triangulating...
                     </p>
-                    <p className="text-[9px] text-white/30 mt-6 font-mono">
+                    <p className="text-[9px] text-white/30 mt-6 font-mono mb-8">
                         Searching for partner frequency
                     </p>
+                    
+                    {onRetry && (
+                        <button 
+                            onClick={onRetry}
+                            className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs uppercase tracking-widest font-bold shadow-lg shadow-rose-900/40 transition-all active:scale-95"
+                        >
+                            Reconnect Now
+                        </button>
+                    )}
                 </div>
             </motion.div>
         )}

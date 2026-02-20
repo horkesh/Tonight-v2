@@ -15,9 +15,13 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [streaming, setStreaming] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isDeveloping, setIsDeveloping] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setCapturedImage(null);
+      setIsDeveloping(false);
       startCamera();
     }
     return () => stopCamera();
@@ -39,7 +43,6 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
       }
     } catch (err) {
       console.error("Camera error:", err);
-      // Fail gracefully without closing, allowing retry or flip
     }
   };
 
@@ -64,20 +67,26 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
         
-        // Mirror image if user facing to match the preview expectation
         if (facingMode === 'user') {
             context.translate(canvasRef.current.width, 0);
             context.scale(-1, 1);
         }
 
         context.drawImage(videoRef.current, 0, 0);
-        
-        // Reset transform
         context.setTransform(1, 0, 0, 1, 0, 0);
 
         const data = canvasRef.current.toDataURL('image/jpeg', 0.8);
-        onCapture(data.split(',')[1]); // Send only base64 data
+        const base64 = data.split(',')[1];
+        
+        // Start Developing Sequence
+        setCapturedImage(data);
+        setIsDeveloping(true);
         stopCamera();
+
+        // Delay closing to show the "Developing" animation
+        setTimeout(() => {
+            onCapture(base64);
+        }, 3000); 
       }
     }
   };
@@ -90,7 +99,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={!isDeveloping ? onClose : undefined}
             className="absolute inset-0 bg-black/90 backdrop-blur-md"
           />
           
@@ -102,33 +111,50 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
             className="relative w-full max-w-md"
           >
             <GlassCard className="p-4 flex flex-col items-center gap-4 bg-obsidian-900/50 border-white/5 shadow-2xl">
-              <h3 className="text-xl font-serif text-white">{instruction}</h3>
+              <h3 className="text-xl font-serif text-white">
+                 {isDeveloping ? "Developing..." : instruction}
+              </h3>
+              
               <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-black border border-white/10">
-                <video 
-                    ref={videoRef} 
-                    className={`absolute inset-0 w-full h-full object-cover transition-transform ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`} 
-                    playsInline 
-                    muted 
-                />
+                {!capturedImage ? (
+                    <>
+                        <video 
+                            ref={videoRef} 
+                            className={`absolute inset-0 w-full h-full object-cover transition-transform ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`} 
+                            playsInline 
+                            muted 
+                        />
+                        <button 
+                            onClick={toggleCamera}
+                            className="absolute top-4 right-4 w-12 h-12 rounded-full bg-black/40 border border-white/10 text-white flex items-center justify-center backdrop-blur-md hover:bg-rose-500/20 active:scale-95 transition-all z-20 shadow-lg"
+                            title="Flip Camera"
+                        >
+                            <span className="text-xl">↻</span>
+                        </button>
+                    </>
+                ) : (
+                    <motion.div 
+                        initial={{ filter: "invert(1) grayscale(1) contrast(200%)" }}
+                        animate={{ filter: "invert(0) grayscale(0) contrast(100%)" }}
+                        transition={{ duration: 3, ease: "easeInOut" }}
+                        className="absolute inset-0 w-full h-full"
+                    >
+                         <img src={capturedImage} className="w-full h-full object-cover" alt="Captured" />
+                    </motion.div>
+                )}
                 <canvas ref={canvasRef} className="hidden" />
-                
-                {/* Flip Camera Button */}
-                <button 
-                    onClick={toggleCamera}
-                    className="absolute top-4 right-4 w-12 h-12 rounded-full bg-black/40 border border-white/10 text-white flex items-center justify-center backdrop-blur-md hover:bg-rose-500/20 active:scale-95 transition-all z-20 shadow-lg"
-                    title="Flip Camera"
-                >
-                    <span className="text-xl">↻</span>
-                </button>
               </div>
-              <div className="flex gap-4 w-full">
-                <button onClick={onClose} className="flex-1 py-3 rounded-xl font-semibold bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors">
-                  Cancel
-                </button>
-                <button onClick={capture} className="flex-1 py-3 rounded-xl font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors shadow-lg shadow-rose-900/40">
-                  Capture
-                </button>
-              </div>
+
+              {!isDeveloping && (
+                <div className="flex gap-4 w-full">
+                    <button onClick={onClose} className="flex-1 py-3 rounded-xl font-semibold bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+                    Cancel
+                    </button>
+                    <button onClick={capture} className="flex-1 py-3 rounded-xl font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors shadow-lg shadow-rose-900/40">
+                    Capture
+                    </button>
+                </div>
+              )}
             </GlassCard>
           </motion.div>
         </div>

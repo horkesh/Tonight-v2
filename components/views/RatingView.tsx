@@ -1,17 +1,18 @@
 
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
-import { useSessionState } from '../../hooks/useSessionState';
 
 interface RatingViewProps {
   onFinalize: (rating: number) => void;
   onCancel: () => void;
+  myRating: number | null;
+  partnerRating: number | null;
+  submitRating: (r: number) => void;
 }
 
-export const RatingView: React.FC<RatingViewProps> = ({ onFinalize, onCancel }) => {
-  const { state: s, actions: a } = useSessionState();
-  const [localRating, setLocalRating] = useState<number | null>(s.myRating);
+export const RatingView: React.FC<RatingViewProps> = ({ onFinalize, onCancel, myRating, partnerRating, submitRating }) => {
+  const [localRating, setLocalRating] = useState<number | null>(myRating);
   const [isWaiting, setIsWaiting] = useState(false);
 
   // If I have rated, but partner hasn't, I am waiting.
@@ -19,17 +20,17 @@ export const RatingView: React.FC<RatingViewProps> = ({ onFinalize, onCancel }) 
 
   const handleRate = (r: number) => {
       setLocalRating(r);
-      a.submitRating(r);
+      submitRating(r);
   };
 
   useEffect(() => {
-    if (s.myRating !== null && s.partnerRating === null) {
+    if (myRating !== null && partnerRating === null) {
         setIsWaiting(true);
-    } else if (s.myRating !== null && s.partnerRating !== null) {
+    } else if (myRating !== null && partnerRating !== null) {
         // Both done.
-        onFinalize(s.myRating);
+        onFinalize(myRating);
     }
-  }, [s.myRating, s.partnerRating, onFinalize]);
+  }, [myRating, partnerRating, onFinalize]);
 
   return (
     <motion.div key="rating" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col items-center justify-center pt-24 gap-12 text-center">

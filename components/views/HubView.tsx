@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { PAGE_VARIANTS, ACTIVITIES } from '../../constants';
 import { PersonaReveal } from '../PersonaReveal';
 import { VibeMatrix } from '../VibeMatrix';
+import { LocationWindow } from '../LocationWindow';
 import { useSessionState } from '../../hooks/useSessionState';
 import { useQuestionFlow } from '../../hooks/useQuestionFlow';
 import { useAiActions } from '../../hooks/useAiActions';
@@ -37,6 +38,15 @@ export const HubView: React.FC<HubViewProps> = ({ state, actions, qActions, aiAc
 
   return (
     <motion.div key="hub" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-10">
+        
+        {/* Date Location Visualizer */}
+        <section>
+             <LocationWindow
+                location={state.dateContext?.location || null}
+                generatedImage={state.dateContext?.generatedImage}
+             />
+        </section>
+
         <section className="flex flex-col gap-6">
             <motion.div layoutId="persona-card">
                 <PersonaReveal persona={state.activePersonaTab === 'partner' ? state.partnerPersona : state.userPersona} name={state.activePersonaTab === 'partner' ? actions.getPartner()?.name || "Partner" : "You"} isSelf={state.activePersonaTab === 'self'} />

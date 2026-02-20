@@ -19,57 +19,68 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
     onComplete(age, height, style);
   };
 
-  const steps = [
+  const stepsInfo = [
     {
       id: 'age',
       label: 'Years',
       question: "How many years have you lived?",
-      input: (
-        <input 
-          type="number" 
-          autoFocus
-          value={age}
-          onChange={(e) => setAge(e.target.value)}
-          className="w-full bg-transparent border-b border-white/20 text-center text-6xl font-serif text-white focus:outline-none focus:border-rose-500 transition-colors pb-4"
-          placeholder="25"
-        />
-      ),
       isValid: age.length > 0
     },
     {
       id: 'height',
       label: 'Stature',
       question: "How do you stand in the world?",
-      input: (
-        <input 
-          type="text" 
-          autoFocus
-          value={height}
-          onChange={(e) => setHeight(e.target.value)}
-          className="w-full bg-transparent border-b border-white/20 text-center text-4xl font-serif text-white focus:outline-none focus:border-rose-500 transition-colors pb-4"
-          placeholder="5'10 / 178cm"
-        />
-      ),
       isValid: height.length > 1
     },
     {
       id: 'style',
       label: 'Aesthetic',
       question: "How do you present yourself to the darkness?",
-      input: (
-        <textarea 
-          autoFocus
-          value={style}
-          onChange={(e) => setStyle(e.target.value)}
-          className="w-full bg-white/5 rounded-2xl border border-white/10 p-6 text-xl font-serif italic text-white focus:outline-none focus:border-rose-500 transition-colors min-h-[160px] resize-none"
-          placeholder="e.g. Sharp suit, messy hair, elegant red dress, tattoos..."
-        />
-      ),
       isValid: style.length > 3
     }
   ];
 
-  const currentStep = steps[step];
+  const currentStepInfo = stepsInfo[step];
+
+  // Render input based on active step to preserve DOM/focus
+  const renderInput = () => {
+      switch(step) {
+          case 0:
+              return (
+                <input 
+                  type="number" 
+                  autoFocus
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  className="w-full bg-transparent border-b border-white/20 text-center text-6xl font-serif text-white focus:outline-none focus:border-rose-500 transition-colors pb-4"
+                  placeholder="25"
+                />
+              );
+          case 1:
+              return (
+                <input 
+                  type="text" 
+                  autoFocus
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  className="w-full bg-transparent border-b border-white/20 text-center text-4xl font-serif text-white focus:outline-none focus:border-rose-500 transition-colors pb-4"
+                  placeholder="5'10 / 178cm"
+                />
+              );
+          case 2:
+              return (
+                <textarea 
+                  autoFocus
+                  value={style}
+                  onChange={(e) => setStyle(e.target.value)}
+                  className="w-full bg-white/5 rounded-2xl border border-white/10 p-6 text-xl font-serif italic text-white focus:outline-none focus:border-rose-500 transition-colors min-h-[160px] resize-none"
+                  placeholder="e.g. Sharp suit, messy hair, elegant red dress, tattoos..."
+                />
+              );
+          default:
+              return null;
+      }
+  };
 
   return (
     <motion.div 
@@ -82,7 +93,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
     >
         <div className="w-full max-w-sm">
             <span className="text-[9px] text-rose-500 uppercase tracking-[0.5em] font-black block mb-12">
-                Identity Sequence {step + 1}/{steps.length}
+                Identity Sequence {step + 1}/{stepsInfo.length}
             </span>
 
             <AnimatePresence mode="wait">
@@ -94,22 +105,22 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
                     className="flex flex-col gap-10"
                 >
                     <h2 className="text-3xl font-serif text-white leading-tight">
-                        {currentStep.question}
+                        {currentStepInfo.question}
                     </h2>
                     
                     <div>
-                        {currentStep.input}
+                        {renderInput()}
                     </div>
                 </motion.div>
             </AnimatePresence>
 
             <div className="mt-20 flex justify-center">
                 <button
-                    onClick={step === steps.length - 1 ? handleSubmit : nextStep}
-                    disabled={!currentStep.isValid}
+                    onClick={step === stepsInfo.length - 1 ? handleSubmit : nextStep}
+                    disabled={!currentStepInfo.isValid}
                     className="px-10 py-4 bg-white/10 border border-white/10 rounded-full text-[10px] uppercase tracking-[0.3em] font-black hover:bg-rose-600 hover:border-rose-500 transition-all disabled:opacity-20 disabled:pointer-events-none"
                 >
-                    {step === steps.length - 1 ? "Manifest Identity" : "Next"}
+                    {step === stepsInfo.length - 1 ? "Manifest Identity" : "Next"}
                 </button>
             </div>
         </div>

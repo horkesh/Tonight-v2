@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tonight | Virtual Connection</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -17,8 +16,12 @@
             --color-primary: #e11d48;   /* Default: Rose 600 */
             --color-primary-light: #f43f5e; /* Default: Rose 500 */
             
-            --color-obsidian: var(--color-bg-base); /* Legacy support if needed */
+            --color-obsidian: var(--color-bg-base);
             --color-rose: var(--color-primary);
+
+            /* Atmospheric Bleed */
+            --shadow-tint: 0px 0px 0px rgba(0,0,0,0);
+            --highlight-tint: 0px 0px 0px rgba(255,255,255,0);
 
             /* Atmosphere */
             --haze-blur: 0px;
@@ -53,6 +56,18 @@
             overflow: hidden;
             transition: background-color 1.5s ease;
         }
+        /* Cinematic Vignette & Grain */
+        .cinematic-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.4) 100%);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
+        }
         .noise {
             position: fixed;
             top: 0;
@@ -60,9 +75,10 @@
             width: 100vw;
             height: 100vh;
             z-index: -1;
-            opacity: 0.05;
+            opacity: 0.07;
             pointer-events: none;
             background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+            mix-blend-mode: overlay;
         }
         .blob {
             position: absolute;
@@ -88,19 +104,56 @@
             background: var(--color-blob-2);
             animation-delay: -7s;
         }
+        
+        /* Glitch Effect Classes */
+        .glitch-active {
+            animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+        }
+        .glitch-active::before, .glitch-active::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--color-bg-base);
+        }
+        .glitch-active::before {
+            left: 2px;
+            text-shadow: -1px 0 #ff00c1;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 2s infinite linear alternate-reverse;
+        }
+        .glitch-active::after {
+            left: -2px;
+            text-shadow: -1px 0 #00fff9;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 2s infinite linear alternate-reverse;
+        }
+
         @keyframes float {
             0% { transform: translate(0, 0) rotate(0deg) scale(1); }
             33% { transform: translate(5vw, -10vh) rotate(5deg) scale(1.1); }
             66% { transform: translate(-5vw, 5vh) rotate(-5deg) scale(0.9); }
             100% { transform: translate(0, 0) rotate(0deg) scale(1); }
         }
-        ::-webkit-scrollbar { width: 0px; }
-        
-        @keyframes scan {
-            0% { transform: scaleY(0); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: scaleY(1); opacity: 0; }
+        @keyframes glitch-anim {
+            0% { clip: rect(12px, 9999px, 82px, 0); }
+            20% { clip: rect(84px, 9999px, 9px, 0); }
+            40% { clip: rect(32px, 9999px, 5px, 0); }
+            60% { clip: rect(12px, 9999px, 2px, 0); }
+            80% { clip: rect(66px, 9999px, 33px, 0); }
+            100% { clip: rect(91px, 9999px, 96px, 0); }
         }
+        @keyframes glitch-skew {
+            0% { transform: skew(1deg); }
+            20% { transform: skew(-1deg); }
+            40% { transform: skew(2deg); }
+            60% { transform: skew(0deg); }
+            80% { transform: skew(-2deg); }
+            100% { transform: skew(0deg); }
+        }
+        ::-webkit-scrollbar { width: 0px; }
     </style>
     <script>
         tailwind.config = {
@@ -134,10 +187,12 @@
     "framer-motion": "https://esm.sh/framer-motion@^12.34.0",
     "recharts": "https://esm.sh/recharts@^3.7.0",
     "html2canvas": "https://esm.sh/html2canvas@1.4.1",
-    "peerjs": "https://esm.sh/peerjs@1.5.4?bundle-deps"
+    "peerjs": "https://esm.sh/peerjs@1.5.4?bundle-deps",
+    "@/": "./"
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
     <div id="root"></div>
@@ -145,6 +200,8 @@
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
     </div>
+    <div class="cinematic-overlay"></div>
     <div class="noise"></div>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
