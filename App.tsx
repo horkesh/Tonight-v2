@@ -16,6 +16,7 @@ import { ConnectionStatusOverlay } from './components/ConnectionStatusOverlay';
 import { Soundscape } from './components/Soundscape';
 import { GuestProfileOverlay } from './components/GuestProfileOverlay';
 import { ArrivalOverlay } from './components/ArrivalOverlay';
+import { FlashMessage } from './components/FlashMessage';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useSession } from './context/SessionContext';
@@ -39,53 +40,9 @@ import { ActivityView } from './components/views/ActivityView';
 import { TwoTruthsView } from './components/views/TwoTruthsView';
 import { FinishSentenceView } from './components/views/FinishSentenceView';
 import { LoadingView } from './components/views/LoadingView';
+import { SyncWaitScreen } from './components/views/SyncWaitScreen';
 
-// Sync Wait Screen — clean loading with delayed escape hatches
-const SyncWaitScreen: React.FC<{ onRetry: () => void; onCancel: () => void; status?: string; isConnected?: boolean }> = ({ onRetry, onCancel, status, isConnected }) => {
-  const [showEscape, setShowEscape] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setShowEscape(true), 12000); // Show buttons after 12s
-    return () => clearTimeout(t);
-  }, []);
-
-  const displayStatus = isConnected ? 'Syncing with Host...' : (status || 'Connecting...');
-
-  return (
-    <motion.div key="syncing" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col items-center justify-center pt-32 gap-6">
-      <div className="relative">
-        <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
-        <div className="absolute inset-0 border-t-2 border-rose-500 rounded-full animate-spin" />
-      </div>
-      <div className="text-center">
-        <h3 className="text-xl font-serif text-white">Connecting</h3>
-        <p className="text-[10px] uppercase tracking-widest text-rose-500/80 font-black mt-2">{displayStatus}</p>
-
-        <AnimatePresence>
-          {showEscape && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col gap-3 mt-8"
-            >
-              <button
-                onClick={onRetry}
-                className="text-[9px] uppercase tracking-widest text-white/30 border border-white/10 px-6 py-3 rounded-full hover:bg-white/10 transition-colors"
-              >
-                Retry Connection
-              </button>
-              <button
-                onClick={onCancel}
-                className="text-[9px] uppercase tracking-widest text-rose-500/80 px-6 py-2 hover:text-rose-400 transition-colors"
-              >
-                Cancel & Restart
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  );
-};
+import { useAssetLoader } from './hooks/useAssetLoader';
 
 function AppContent() {
   const session = useSession();
@@ -118,15 +75,15 @@ function AppContent() {
   // Effect: Handle Shared Reactions (Text/Emoji or Images)
   useEffect(() => {
     if (s.latestReaction) {
-        const { content } = s.latestReaction;
+        const { content, duration } = s.latestReaction;
         if (content.startsWith('http') || content.startsWith('data:image')) {
             // It's an image reaction
             setActiveReaction(content);
             if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
-            reactionTimerRef.current = setTimeout(() => setActiveReaction(null), 5000);
+            reactionTimerRef.current = setTimeout(() => setActiveReaction(null), duration || 5000);
         } else {
             // It's a text/emoji flash
-            qa.showFlash(content, 2000);
+            qa.showFlash(content, duration || 2000);
         }
     }
     return () => {
@@ -312,14 +269,12 @@ function AppContent() {
 
             {s.view === 'hub' && s.isSynced && (
                 <HubView 
-                    state={s} actions={a} qActions={qa} aiActions={aa} 
                     onOpenReactionPicker={() => setReactionPickerOpen(true)} 
                 />
             )}
 
             {s.view === 'question' && s.isSynced && (
                 <QuestionView 
-                    state={s} actions={a} qState={qs} qActions={qa} 
                     selfId={a.getSelf()?.id} 
                 />
             )}
@@ -328,48 +283,21 @@ function AppContent() {
                 <RatingView 
                     onFinalize={async (n) => { if(await aa.finalizeReport(n)) setReportOpen(true); }}
                     onCancel={() => a.setView('hub')}
-                    myRating={s.myRating}
-                    partnerRating={s.partnerRating}
-                    submitRating={a.submitRating}
                 />
             )}
 
             {s.view === 'activity' && as.currentScene && s.isSynced && (
                 <ActivityView
-                    scene={as.currentScene}
-                    drunkFactor={s.partnerPersona.drunkFactor}
-                    onChoice={handleSceneChoice}
-                    onSilentChoice={(id) => aa.handleSilentChoice(id, qa.showFlash)}
-                    users={s.users}
-                    sceneChoices={s.sceneChoices}
                     onTwistComplete={handleSceneFlowComplete}
-                    isConnected={s.isConnected}
-                    onSimulatePartner={a.simulatePartnerChoice}
                 />
             )}
 
             {s.view === 'twoTruths' && as.twoTruthsData && s.isSynced && (
-                <TwoTruthsView
-                    data={as.twoTruthsData}
-                    users={s.users}
-                    activityChoices={as.activityChoices}
-                    onGuess={aa.submitActivityChoice}
-                    onComplete={aa.handleTwoTruthsComplete}
-                    isConnected={s.isConnected}
-                    onSimulatePartner={aa.simulateActivityPartner}
-                />
+                <TwoTruthsView />
             )}
 
             {s.view === 'finishSentence' && as.finishSentenceData && s.isSynced && (
-                <FinishSentenceView
-                    data={as.finishSentenceData}
-                    users={s.users}
-                    activityChoices={as.activityChoices}
-                    onPick={aa.submitActivityChoice}
-                    onComplete={aa.handleFinishSentenceComplete}
-                    isConnected={s.isConnected}
-                    onSimulatePartner={aa.simulateActivityPartner}
-                />
+                <FinishSentenceView />
             )}
 
             {s.view === 'loading' && s.isSynced && (
@@ -403,7 +331,7 @@ function AppContent() {
       <ToastOverlay isOpen={toastOpen} onClose={() => setToastOpen(false)} onClink={handleToastComplete} />
 
       {/* Guest profile enhancement — shown once after first sync */}
-      {s.isSynced && !s.isHost && !s.guestProfileConfirmed && (
+      {s.isSynced && !s.isHost && !s.guestProfileConfirmed && s.hasSeenArrivalOverlay && (
         <GuestProfileOverlay
           persona={s.userPersona}
           currentName={a.getSelf()?.name || 'Guest'}
@@ -431,6 +359,19 @@ function AppContent() {
 }
 
 export default function App() {
+  const assetsLoaded = useAssetLoader();
+
+  if (!assetsLoaded) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="relative">
+          <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
+          <div className="absolute inset-0 border-t-2 border-rose-500 rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <SessionProvider>
       <AppContent />

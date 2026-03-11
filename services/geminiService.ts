@@ -230,7 +230,7 @@ export const generateDynamicQuestions = async (
     };
     const locTitle = dateContext?.location?.title || '';
     const locationSubjects = locationSubjectMap[locTitle] || '';
-    const locationAtmosphere = dateContext
+    const locationAtmosphere = dateContext && dateContext.location
       ? `Setting: ${dateContext.location.title}. ${dateContext.location.environmentPrompt}`
       : "";
 
@@ -450,7 +450,7 @@ export const generateTwoTruthsOneLie = async (
     conversationBlock = `\nCONVERSATION HISTORY:\n${formatted}`;
   }
 
-  const locationCtx = dateContext ? `Setting: ${dateContext.location.title}. ${dateContext.location.environmentPrompt}` : '';
+  const locationCtx = dateContext && dateContext.location ? `Setting: ${dateContext.location.title}. ${dateContext.location.environmentPrompt}` : '';
 
   const prompt = `
 You are generating content for "Two Truths & A Lie" — a dating game activity.
@@ -556,7 +556,7 @@ export const generateFinishSentence = async (
     conversationBlock = `\nCONVERSATION HISTORY:\n${formatted}`;
   }
 
-  const locationCtx = dateContext ? `Setting: ${dateContext.location.title}. ${dateContext.location.environmentPrompt}` : '';
+  const locationCtx = dateContext && dateContext.location ? `Setting: ${dateContext.location.title}. ${dateContext.location.environmentPrompt}` : '';
 
   const prompt = `
 You are generating content for "Finish My Sentence" — a dating game where one person's incomplete sentence is guessed by the other.
@@ -822,13 +822,26 @@ export const analyzeUserPhotoForAvatar = async (base64Image: string, hint?: stri
 
   try {
     const response = await callWithRetry(() => ai.models.generateContent({
-      model: MODEL_COMPLEX, 
+      model: MODEL_COMPLEX,
       contents: {
         parts: [
-          { inlineData: { mimeType: "image/jpeg", data: base64Image } }, 
+          { inlineData: { mimeType: "image/jpeg", data: base64Image } },
           { text: prompt }
-        ] 
+        ]
       },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            estimatedAge: { type: Type.STRING },
+            gender: { type: Type.STRING },
+            appearance: { type: Type.STRING },
+            traits: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["estimatedAge", "gender", "appearance", "traits"]
+        }
+      }
     }));
     
     const data = cleanAndParseJSON(response.text, {});

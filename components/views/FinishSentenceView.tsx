@@ -2,24 +2,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
-import { FinishSentenceData, User } from '../../types';
+import { useSession } from '../../context/SessionContext';
 
-interface FinishSentenceViewProps {
-  data: FinishSentenceData;
-  users: User[];
-  // P2P synced choices: userId -> index of their pick (0-2 for options, 3 for "None of these")
-  activityChoices: Record<string, number>;
-  onPick: (index: number) => void;
-  onComplete: (matched: boolean) => void;
-  isConnected: boolean;
-  onSimulatePartner: () => void;
-}
+export const FinishSentenceView: React.FC = () => {
+  const { state, aiState, aiActions } = useSession();
+  const { users, isConnected } = state;
+  const { finishSentenceData: data, activityChoices } = aiState;
+  const { submitActivityChoice: onPick, handleFinishSentenceComplete: onComplete, simulateActivityPartner: onSimulatePartner } = aiActions;
 
-export const FinishSentenceView: React.FC<FinishSentenceViewProps> = ({
-  data, users, activityChoices, onPick, onComplete, isConnected, onSimulatePartner
-}) => {
   const [reveal, setReveal] = useState(false);
   const completedRef = useRef(false);
+
+  if (!data) return null;
 
   const self = users.find(u => u.isSelf);
   const partner = users.find(u => !u.isSelf);

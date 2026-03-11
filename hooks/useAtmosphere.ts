@@ -21,7 +21,7 @@ export function useAtmosphere(vibe: VibeStats, context: DateContext | null) {
     let highlightTint = 'rgba(255,255,255,0.05)';
 
     // 1. LOCATION (Sets the Stage / Base Colors)
-    if (context) {
+    if (context && context.location && context.vibe) {
         switch (context.location.id) {
             case 'lounge': // Velvet Jazz - Warm, dark reds/browns
                 bgBase = '#1a0505'; 
@@ -67,38 +67,49 @@ export function useAtmosphere(vibe: VibeStats, context: DateContext | null) {
 
         // 2. VIBE (Sets the Atmosphere / Blobs & Bleed Modifiers)
         // We subtly shift the highlight tint based on the current vibe dominance
-        if (vibe.flirty > 50) {
-            highlightTint = 'rgba(255, 100, 150, 0.15)'; // Blush highlight
-        } else if (vibe.deep > 50) {
-            shadowTint = 'rgba(10, 10, 30, 0.7)'; // Deep shadow
-        }
-
-        switch (context.vibe.id) {
-            case 'electric':
-                blob1 = '#ec4899'; // Pink
-                blob2 = '#3b82f6'; // Blue
-                speed = '10s'; // High energy
-                break;
-            case 'noir':
-                blob1 = '#3f3f46'; // Zinc
-                blob2 = '#000000'; // Black
-                speed = '60s'; // Very slow smoke
-                break;
-            case 'cozy':
-                blob1 = '#7c2d12'; // Orange
-                blob2 = '#78350f'; // Amber
-                speed = '40s'; // Slow warmth
-                break;
-            case 'playful':
-                blob1 = '#f59e0b'; // Amber
-                blob2 = '#10b981'; // Emerald
-                speed = '15s'; // Fast fun
-                break;
-            case 'elegant':
-                blob1 = '#4c0519'; // Rose
-                blob2 = '#312e81'; // Indigo
-                speed = '35s'; // Steady
-                break;
+        if (vibe.flirty > 60) {
+            highlightTint = 'rgba(255, 100, 150, 0.2)'; // Blush highlight
+            blob1 = '#be185d'; // Pinkish red
+            speed = '15s'; // Faster heartbeat
+        } else if (vibe.deep > 60) {
+            shadowTint = 'rgba(10, 10, 40, 0.8)'; // Deep shadow
+            blob2 = '#1e1b4b'; // Deep indigo
+            speed = '45s'; // Slow, contemplative
+        } else if (vibe.playful > 60) {
+            blob1 = '#d97706'; // Amber
+            speed = '10s'; // Energetic
+        } else if (vibe.comfortable > 60) {
+            blob2 = '#064e3b'; // Emerald/Forest
+            speed = '60s'; // Very relaxed
+        } else {
+            // Fallback to initial context vibe if no live stat is dominant
+            switch (context.vibe.id) {
+                case 'electric':
+                    blob1 = '#ec4899'; // Pink
+                    blob2 = '#3b82f6'; // Blue
+                    speed = '10s'; // High energy
+                    break;
+                case 'noir':
+                    blob1 = '#3f3f46'; // Zinc
+                    blob2 = '#000000'; // Black
+                    speed = '60s'; // Very slow smoke
+                    break;
+                case 'cozy':
+                    blob1 = '#7c2d12'; // Orange
+                    blob2 = '#78350f'; // Amber
+                    speed = '40s'; // Slow warmth
+                    break;
+                case 'playful':
+                    blob1 = '#f59e0b'; // Amber
+                    blob2 = '#10b981'; // Emerald
+                    speed = '15s'; // Fast fun
+                    break;
+                case 'elegant':
+                    blob1 = '#4c0519'; // Rose
+                    blob2 = '#312e81'; // Indigo
+                    speed = '35s'; // Steady
+                    break;
+            }
         }
     }
 

@@ -146,15 +146,8 @@ export const buildFinishSentencePrompt = (
 };
 
 export const buildAvatarPrompt = (traits: string[], context: string): string => {
-  return `
-    Create a prompt for an AI image generator to create an abstract, artistic avatar for a user.
-    
-    User Context: ${context}
-    Traits: ${traits.join(", ")}
-    Style: Minimalist, cinematic lighting, moody, high-end digital art.
-    
-    Output ONLY the raw prompt string.
-  `;
+  const traitList = traits.length > 0 ? traits.join(", ") : "mysterious, enigmatic";
+  return `Abstract artistic portrait avatar. Subject: ${context}. Personality: ${traitList}. Style: Minimalist geometric forms, cinematic noir lighting, moody desaturated color palette, high-end digital art, dramatic shadows and highlights, sophisticated composition. No text or words.`;
 };
 
 export const buildLocationImagePrompt = (
@@ -163,18 +156,5 @@ export const buildLocationImagePrompt = (
   userAppearance: string,
   partnerAppearance: string
 ): string => {
-  return `
-    Create a prompt for an AI image generator.
-    Scene: ${location.title} - ${location.description}.
-    Atmosphere: ${location.environmentPrompt}.
-    Vibe: ${vibe.title} - ${vibe.description}.
-    Characters: Two people.
-    1. ${userAppearance}
-    2. ${partnerAppearance}
-    
-    Style: Cinematic, photorealistic, 8k, atmospheric lighting.
-    View: First-person perspective or over-the-shoulder shot, intimate.
-    
-    Output ONLY the raw prompt string.
-  `;
+  return `Cinematic scene at ${location.title} - ${location.description}. ${location.environmentPrompt}. Atmosphere: ${vibe.title} - ${vibe.description}. Two people: 1) ${userAppearance} 2) ${partnerAppearance}. Style: Cinematic, photorealistic, 8k, atmospheric lighting, first-person or over-the-shoulder perspective, intimate. No text or words.`;
 };

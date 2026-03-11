@@ -46,11 +46,15 @@ export const ArrivalOverlay: React.FC<ArrivalOverlayProps> = ({ event, dateConte
     <AnimatePresence>
       {event && (
         <motion.div
+          key="arrival-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8 }}
-          onClick={onDismiss}
+          onClick={() => {
+            console.log("ArrivalOverlay clicked, dismissing...");
+            onDismiss();
+          }}
           className="fixed inset-0 z-[130] flex flex-col items-center justify-center cursor-pointer overflow-hidden"
         >
           {/* Background: location image */}

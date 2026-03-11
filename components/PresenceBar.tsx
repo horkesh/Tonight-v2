@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../context/SessionContext';
 
 interface PresenceBarProps {
@@ -12,8 +12,8 @@ export const PresenceBar: React.FC<PresenceBarProps> = ({ onHome, onEditSelf }) 
   const { state } = useSession();
   const { users, round, isConnected } = state;
   
-  const self = users.find(u => u.isSelf);
-  const partner = users.find(u => !u.isSelf);
+  const self = users.find(u => u && u.isSelf);
+  const partner = users.find(u => u && !u.isSelf);
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 p-6 pointer-events-none">
@@ -52,12 +52,26 @@ export const PresenceBar: React.FC<PresenceBarProps> = ({ onHome, onEditSelf }) 
         </div>
 
         {/* Center Home Button */}
-        <button 
-          onClick={onHome}
-          className="px-4 py-2"
-        >
-          <span className="font-serif italic text-xl text-white/90 hover:text-white transition-colors">Tonight</span>
-        </button>
+        <div className="flex flex-col items-center">
+          <button 
+            onClick={onHome}
+            className="px-4 py-1"
+          >
+            <span className="font-serif italic text-xl text-white/90 hover:text-white transition-colors">Tonight</span>
+          </button>
+          <AnimatePresence>
+            {partner?.status === 'choosing' && (
+              <motion.span 
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="text-[8px] uppercase tracking-widest text-amber-400/80 font-black absolute -bottom-4 whitespace-nowrap"
+              >
+                Partner is choosing...
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Partner Avatar (How you see them) */}
         <div className="flex items-center gap-3 text-right">

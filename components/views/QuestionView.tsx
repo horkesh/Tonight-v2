@@ -2,18 +2,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
-import { useSessionState } from '../../hooks/useSessionState';
-import { useQuestionFlow } from '../../hooks/useQuestionFlow';
+import { useSession } from '../../context/SessionContext';
 
 interface QuestionViewProps {
-  state: ReturnType<typeof useSessionState>['state'];
-  actions: ReturnType<typeof useSessionState>['actions'];
-  qState: ReturnType<typeof useQuestionFlow>['qState'];
-  qActions: ReturnType<typeof useQuestionFlow>['qActions'];
   selfId?: string;
 }
 
-export const QuestionView: React.FC<QuestionViewProps> = ({ state, actions, qState, qActions, selfId }) => {
+export const QuestionView: React.FC<QuestionViewProps> = ({ selfId }) => {
+  const { state, actions, qState, qActions } = useSession();
+
   const handleBackToHub = () => {
     actions.setView('hub');
     // Reset status to online since we stopped choosing
@@ -21,6 +18,21 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ state, actions, qSta
   };
 
   const isDesireLocked = state.round < 3;
+
+  // Synchronized Haptics for Waiting State
+  React.useEffect(() => {
+      let interval: NodeJS.Timeout;
+      const isWaiting = qState.activeQuestion && qState.questionOwnerId === selfId;
+      if (isWaiting && navigator.vibrate) {
+          // Subtle heartbeat vibration every 2 seconds
+          interval = setInterval(() => {
+              navigator.vibrate([10, 1000]);
+          }, 2000);
+      }
+      return () => {
+          if (interval) clearInterval(interval);
+      };
+  }, [qState.activeQuestion, qState.questionOwnerId, selfId]);
 
   return (
     <motion.div key="q-view" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col pt-16 gap-10">

@@ -1,8 +1,9 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Question, User, VibeStats, ConversationEntry } from '../types';
 import { useSessionState } from './useSessionState';
 import { generateDynamicQuestions, extractTraitFromInteraction } from '../services/geminiService';
+import { useQuestionStore } from '../store/aiState';
 
 const VIBE_WEIGHTS: Record<string, Partial<VibeStats>> = {
   'Style': { playful: 10, flirty: 5 },
@@ -17,10 +18,12 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
   const { state: s, actions: a } = session;
 
   // Local UI state
-  const [selectedCategory, setSelectedCategory] = useState<Question['category'] | null>(null);
-  const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
-  const [askedQuestionIds, setAskedQuestionIds] = useState<string[]>([]);
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const {
+    selectedCategory, setSelectedCategory,
+    availableQuestions, setAvailableQuestions,
+    askedQuestionIds, setAskedQuestionIds,
+    isGeneratingQuestions, setIsGeneratingQuestions
+  } = useQuestionStore();
 
   // Wrapper for session flash to maintain API
   const showFlash = (msg: string, duration = 2500) => {
@@ -134,12 +137,17 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     }
 
     // If I refused, I take a sip.
-    if (!isBot) a.takeSip(30);
+    if (!isBot) {
+        a.takeSip(30);
+        a.sendFlash("Refused to answer. Took a sip.", 4000);
+        showFlash("Respecting the boundary.");
+    } else {
+        showFlash("Partner refused to answer. Took a sip.", 4000);
+    }
 
     a.setQuestionState(null, null); // Clear shared state
     resetCategory();
     a.setView('hub');
-    showFlash("Respecting the boundary.");
   };
 
   const handleAnswerSelect = (opt: string, isBot = false) => {
@@ -200,7 +208,7 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
              const updatedTraits = [...new Set([...current.traits, trait])].slice(0, 6);
 
              if (s.round % 2 === 0 || !current.imageUrl) {
-                 a.updatePersonaImage(imageTarget, updatedTraits, current.revealProgress);
+                 a.updatePersonaImage(imageTarget, updatedTraits, current.revealProgress, s.round);
              }
 
              return { ...current, traits: updatedTraits };
@@ -237,6 +245,13 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
             deep: Math.min(100, v.deep + (delta.deep || 0)),
             comfortable: Math.min(100, v.comfortable + (delta.comfortable || 0)),
         }));
+    }
+
+    if (!isBot) {
+        a.setLastChoiceText(opt);
+        a.sendFlash(`Answered: "${opt}"`, 4000);
+    } else {
+        showFlash(`Answered: "${opt}"`, 4000);
     }
 
     a.setQuestionState(null, null);

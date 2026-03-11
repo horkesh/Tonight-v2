@@ -11,6 +11,22 @@ interface SetupViewProps {
   onStart: (hostData: any, guestData: any, vibe: DateVibe | null, location: DateLocation | null, roomId: string, isHost: boolean, avatar?: string, partnerAvatar?: string, hostTraits?: string[], partnerTraits?: string[]) => void;
 }
 
+const IntroStep: React.FC<{ handleHostStart: () => void; handleGuestJoin: () => void }> = ({ handleHostStart, handleGuestJoin }) => (
+  <div className="flex flex-col items-center gap-6 w-full">
+    <h1 className="text-6xl font-serif text-white tracking-tighter mb-4">Tonight</h1>
+    <button onClick={handleHostStart} className="w-full p-6 bg-rose-600 rounded-[32px] border border-rose-500/30 hover:bg-rose-500 transition-all text-left group relative overflow-hidden">
+      <span className="relative z-10 text-[10px] uppercase tracking-[0.4em] font-black text-white/80 block mb-2">Host</span>
+      <span className="relative z-10 text-2xl font-serif italic text-white">Create Experience</span>
+      <div className="absolute right-6 top-1/2 -translate-y-1/2 text-4xl opacity-50 group-hover:scale-110 transition-transform">🍷</div>
+    </button>
+    <button onClick={handleGuestJoin} className="w-full p-6 bg-white/5 rounded-[32px] border border-white/10 hover:bg-white/10 transition-all text-left group">
+      <span className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40 block mb-2">Guest</span>
+      <span className="text-2xl font-serif italic text-white/80">Enter Room Code</span>
+      <div className="ml-auto float-right -mt-6 text-3xl opacity-30 group-hover:opacity-100 transition-opacity">🗝️</div>
+    </button>
+  </div>
+);
+
 export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
   const [step, setStep] = useState<number>(0); // 0=Intro, 1=HostDossier, 2=PartnerDossier, 3=Config, 4=Final
   const [isHost, setIsHost] = useState(false);
@@ -218,7 +234,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
           const reader = new FileReader();
           reader.onloadend = async () => {
               const result = reader.result as string;
-              const compressed = await compressImage(result, 0.7, 600);
+              const compressed = await compressImage(result, 0.5, 400);
               await processAndGeneratePersona(compressed, target);
           };
           reader.readAsDataURL(file);
@@ -230,22 +246,6 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
       navigator.clipboard.writeText(url);
       alert("Link copied! Send it to your date.");
   };
-
-  const renderIntro = () => (
-    <div className="flex flex-col items-center gap-6 w-full">
-        <h1 className="text-6xl font-serif text-white tracking-tighter mb-4">Tonight</h1>
-        <button onClick={handleHostStart} className="w-full p-6 bg-rose-600 rounded-[32px] border border-rose-500/30 hover:bg-rose-500 transition-all text-left group relative overflow-hidden">
-            <span className="relative z-10 text-[10px] uppercase tracking-[0.4em] font-black text-white/80 block mb-2">Host</span>
-            <span className="relative z-10 text-2xl font-serif italic text-white">Create Experience</span>
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 text-4xl opacity-50 group-hover:scale-110 transition-transform">🍷</div>
-        </button>
-        <button onClick={handleGuestJoin} className="w-full p-6 bg-white/5 rounded-[32px] border border-white/10 hover:bg-white/10 transition-all text-left group">
-            <span className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40 block mb-2">Guest</span>
-            <span className="text-2xl font-serif italic text-white/80">Enter Room Code</span>
-            <div className="ml-auto float-right -mt-6 text-3xl opacity-30 group-hover:opacity-100 transition-opacity">🗝️</div>
-        </button>
-    </div>
-  );
 
   const renderIdentityForm = (
       title: string, 
@@ -451,7 +451,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
         {/* Intro */}
         {step === 0 && (
           <motion.div key="intro" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
-            {renderIntro()}
+            <IntroStep handleHostStart={handleHostStart} handleGuestJoin={handleGuestJoin} />
           </motion.div>
         )}
 

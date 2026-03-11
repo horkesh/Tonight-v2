@@ -2,16 +2,18 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
+import { useSession } from '../../context/SessionContext';
 
 interface RatingViewProps {
   onFinalize: (rating: number) => void;
   onCancel: () => void;
-  myRating: number | null;
-  partnerRating: number | null;
-  submitRating: (r: number) => void;
 }
 
-export const RatingView: React.FC<RatingViewProps> = ({ onFinalize, onCancel, myRating, partnerRating, submitRating }) => {
+export const RatingView: React.FC<RatingViewProps> = ({ onFinalize, onCancel }) => {
+  const { state, actions } = useSession();
+  const { myRating, partnerRating } = state;
+  const { submitRating } = actions;
+
   const [localRating, setLocalRating] = useState<number | null>(myRating);
   const [isWaiting, setIsWaiting] = useState(false);
 

@@ -2,32 +2,26 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
-import { TwoTruthsData, User } from '../../types';
+import { useSession } from '../../context/SessionContext';
 
-interface TwoTruthsViewProps {
-  data: TwoTruthsData;
-  users: User[];
-  // P2P synced choices: userId -> index of their guess
-  activityChoices: Record<string, number>;
-  onGuess: (index: number) => void;
-  onComplete: (correct: boolean) => void;
-  isConnected: boolean;
-  onSimulatePartner: () => void;
-}
+export const TwoTruthsView: React.FC = () => {
+  const { state, aiState, aiActions } = useSession();
+  const { users, isConnected } = state;
+  const { twoTruthsData: data, activityChoices } = aiState;
+  const { submitActivityChoice: onGuess, handleTwoTruthsComplete: onComplete, simulateActivityPartner: onSimulatePartner } = aiActions;
 
-export const TwoTruthsView: React.FC<TwoTruthsViewProps> = ({
-  data, users, activityChoices, onGuess, onComplete, isConnected, onSimulatePartner
-}) => {
   const [reveal, setReveal] = useState(false);
   const [phase, setPhase] = useState<'guess' | 'waiting' | 'reveal'>('guess');
   const completedRef = useRef(false);
+
+  if (!data) return null;
 
   const self = users.find(u => u.isSelf);
   const partner = users.find(u => !u.isSelf);
 
   const myGuess = self ? activityChoices[self.id] : undefined;
   const partnerGuess = partner ? activityChoices[partner.id] : undefined;
-
+  
   const isBothChosen = myGuess !== undefined && partnerGuess !== undefined;
   const lieIndex = data.statements.findIndex(s => s.isLie);
 

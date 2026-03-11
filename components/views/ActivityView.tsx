@@ -4,31 +4,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
 import { TextRenderer } from '../ui/TextRenderer';
 import { ChoiceButton } from '../ChoiceButton';
-import { Scene, User } from '../../types';
+import { useSession } from '../../context/SessionContext';
 
 interface ActivityViewProps {
-  scene: Scene;
-  drunkFactor: number;
-  onChoice: (id: string) => void;
-  onSilentChoice: (id: string) => void;
-  users?: User[];
-  sceneChoices?: Record<string, string>;
   onTwistComplete?: () => void;
-  isConnected: boolean;
-  onSimulatePartner: (choiceId: string) => void;
 }
 
 export const ActivityView: React.FC<ActivityViewProps> = ({ 
-    scene, 
-    drunkFactor, 
-    onChoice, 
-    onSilentChoice, 
-    users = [], 
-    sceneChoices = {},
-    onTwistComplete,
-    isConnected,
-    onSimulatePartner
+    onTwistComplete
 }) => {
+  const { state, actions, aiState, aiActions, qActions } = useSession();
+  const { currentScene: scene, activityChoices } = aiState;
+  const { currentScene, partnerPersona, users, sceneChoices, isConnected } = state;
+  const { submitSceneChoice, simulatePartnerChoice } = actions;
+  const { handleSilentChoice } = aiActions;
+  
+  const drunkFactor = partnerPersona.drunkFactor;
+
   const [reveal, setReveal] = useState(false);
   const [outcome, setOutcome] = useState<'match' | 'mismatch' | null>(null);
   const [rippleEffect, setRippleEffect] = useState<{x: number, y: number, id: number}[]>([]);
@@ -63,14 +55,29 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
 
   // 3. Auto-Simulate Partner if Disconnected (Debug/Single Player)
   useEffect(() => {
-    if (!isConnected && myChoiceId && !partnerChoiceId) {
+    if (!isConnected && myChoiceId && !partnerChoiceId && scene) {
         const timer = setTimeout(() => {
             const random = scene.choices[Math.floor(Math.random() * scene.choices.length)];
-            onSimulatePartner(random.id);
+            simulatePartnerChoice(random.id);
         }, 2000);
         return () => clearTimeout(timer);
     }
-  }, [isConnected, myChoiceId, partnerChoiceId, scene.choices, onSimulatePartner]);
+  }, [isConnected, myChoiceId, partnerChoiceId, scene, simulatePartnerChoice]);
+
+  // 4. Synchronized Haptics for Waiting State
+  useEffect(() => {
+      let interval: NodeJS.Timeout;
+      const isWaiting = isSyncRequired && myChoiceId && !partnerChoiceId;
+      if (isWaiting && navigator.vibrate) {
+          // Subtle heartbeat vibration every 2 seconds
+          interval = setInterval(() => {
+              navigator.vibrate([10, 1000]);
+          }, 2000);
+      }
+      return () => {
+          if (interval) clearInterval(interval);
+      };
+  }, [isSyncRequired, myChoiceId, partnerChoiceId]);
 
   // If match, play a sound effect or vibrate
   useEffect(() => {
@@ -87,6 +94,8 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
           if (navigator.vibrate) navigator.vibrate(5);
       }
   };
+
+  if (!scene) return null;
 
   return (
     <motion.div 
@@ -114,8 +123,8 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
                     <ChoiceButton 
                         key={c.id} 
                         choice={c} 
-                        onSelect={() => !myChoiceId && onChoice(c.id)} 
-                        onSilent={onSilentChoice}
+                        onSelect={() => !myChoiceId && submitSceneChoice(c.id)} 
+                        onSilent={(id) => handleSilentChoice(id, qActions.showFlash)}
                         drunkFactor={drunkFactor}
                     />
                 ))}

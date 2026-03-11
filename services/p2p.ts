@@ -2,14 +2,12 @@
 import { Peer } from 'peerjs';
 import { NetworkMessage } from '../types';
 
-const ICE_SERVERS = [
+const ICE_SERVERS: any[] = [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:global.stun.twilio.com:3478' },
-    { urls: 'stun:stun.stunprotocol.org:3478' },
-    // Free TURN servers for NAT traversal when STUN fails
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
 ];
 
 export class P2PService {
@@ -36,6 +34,19 @@ export class P2PService {
   private isDestroyed: boolean = false;
   private initRetryCount: number = 0;
 
+  // Signaling reconnection backoff
+  private signalingRetryCount: number = 0;
+  private signalingRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private onErrorCallback: ((err: string) => void) | null = null;
+
+  // Guest connection loop backoff
+  private connectionAttemptCount: number = 0;
+
+  private static MAX_SIGNALING_RETRIES = 10;
+  private static MAX_CONNECTION_ATTEMPTS = 15;
+  private static SIGNALING_BASE_DELAY = 2000;   // 2s → 4s → 8s → ... → cap 30s
+  private static CONNECTION_BASE_DELAY = 3000;   // 3s → 4.5s → 6.75s → ... → cap 30s
+
   constructor() {
       // Ensure cleanup on page unload to release Peer ID
       if (typeof window !== 'undefined') {
@@ -59,6 +70,7 @@ export class P2PService {
     }
 
     this.isDestroyed = false;
+    this.onErrorCallback = onError || null;
     const sanitizedRoom = roomId.replace(/[^a-z0-9]/gi, '').toLowerCase();
     
     // Host uses a fixed ID based on room. Guest uses random or user-based ID.
@@ -84,7 +96,7 @@ export class P2PService {
         }
 
         const peer = new Peer(peerId, {
-            debug: 3, 
+            debug: 2, 
             config: {
                 iceServers: ICE_SERVERS
             }
@@ -100,6 +112,7 @@ export class P2PService {
           if (this.isDestroyed) { peer.destroy(); return; }
           console.log(`P2P: Registered as ${isHostMode ? 'HOST' : 'GUEST'} with ID: ${id}`);
           this.initRetryCount = 0; 
+          this.signalingRetryCount = 0;
           this.emitStatus(isHostMode ? 'Waiting for Guest...' : 'Searching for Host...');
           this.isHost = isHostMode;
           this.myId = id;
@@ -113,7 +126,11 @@ export class P2PService {
         });
 
         peer.on('error', (err: any) => {
-          clearTimeout(initTimeout);
+          // If we haven't opened yet, handle init errors specifically
+          if (!this.peer?.open) {
+              clearTimeout(initTimeout);
+          }
+          
           console.error('P2P Error:', err.type, err.message || '');
 
           if (err.type === 'unavailable-id' && isHostMode) {
@@ -143,7 +160,23 @@ export class P2PService {
               console.warn("P2P: Disconnected from signaling. Attempting reconnect...");
               if (this.peer && !this.peer.destroyed) this.peer.reconnect();
           }
-          else if (err.type === 'network' || err.type === 'socket-error' || err.type === 'socket-closed' || err.type === 'server-error') {
+          else if (err.type === 'network' || err.type === 'socket-error' || err.type === 'socket-closed' || err.type === 'server-error' || err.type === 'webrtc') {
+              if (!this.peer?.open) {
+                  // Init failed due to network
+                  console.warn(`P2P: Init network error (${err.type}). Retrying...`);
+                  this.initRetryCount++;
+                  if (this.initRetryCount <= 3) {
+                      peer.destroy();
+                      setTimeout(() => {
+                          if (!this.isDestroyed) this.init(userId, roomId, isHostMode, onError);
+                      }, 2000);
+                      return;
+                  } else {
+                      if (onError) onError(`Connection failed (${err.type}). Check network/firewall.`);
+                      return;
+                  }
+              }
+
               console.warn(`P2P: Network-level error (${err.type}). Will auto-recover.`);
               // Don't call onError for transient network issues
           }
@@ -171,9 +204,27 @@ export class P2PService {
 
       peer.on('disconnected', () => {
           console.log('P2P: Signaling disconnected');
-          // PeerJS auto-reconnects usually, but we can force check
-          if (this.peer && !this.peer.destroyed) {
-              this.peer.reconnect();
+          if (this.peer && !this.peer.destroyed && !this.isDestroyed) {
+              this.signalingRetryCount++;
+              if (this.signalingRetryCount > P2PService.MAX_SIGNALING_RETRIES) {
+                  console.error('P2P: Max signaling retries reached.');
+                  this.emitStatus('Server unreachable');
+                  if (this.onErrorCallback) {
+                      this.onErrorCallback("Signaling server unreachable. Check your connection.");
+                  }
+                  return;
+              }
+              const delay = Math.min(
+                  P2PService.SIGNALING_BASE_DELAY * Math.pow(2, this.signalingRetryCount - 1),
+                  30000
+              );
+              console.log(`P2P: Signaling retry ${this.signalingRetryCount}/${P2PService.MAX_SIGNALING_RETRIES} in ${delay}ms`);
+              this.emitStatus(`Reconnecting (${this.signalingRetryCount}/${P2PService.MAX_SIGNALING_RETRIES})...`);
+              this.signalingRetryTimer = setTimeout(() => {
+                  if (this.peer && !this.peer.destroyed && !this.isDestroyed) {
+                      this.peer.reconnect();
+                  }
+              }, delay);
           }
       });
       
@@ -186,8 +237,9 @@ export class P2PService {
   }
 
   private startConnectionLoop(targetId: string) {
-      if (this.connectionRetryInterval) clearInterval(this.connectionRetryInterval);
-      
+      if (this.connectionRetryInterval) { clearTimeout(this.connectionRetryInterval); }
+      this.connectionRetryInterval = null;
+      this.connectionAttemptCount = 0;
       this.isConnecting = false;
 
       const attempt = () => {
@@ -196,8 +248,15 @@ export class P2PService {
           if (this.conn && this.conn.open) return; 
           if (this.isConnecting) return; 
 
-          console.log(`P2P: Dialing Host (${targetId})...`);
-          this.emitStatus('Searching for Host...');
+          this.connectionAttemptCount++;
+          if (this.connectionAttemptCount > P2PService.MAX_CONNECTION_ATTEMPTS) {
+              console.error('P2P: Max connection attempts reached.');
+              this.emitStatus('Host not found');
+              return;
+          }
+
+          console.log(`P2P: Dialing Host (${targetId}) attempt ${this.connectionAttemptCount}/${P2PService.MAX_CONNECTION_ATTEMPTS}...`);
+          this.emitStatus(`Searching for Host (${this.connectionAttemptCount})...`);
 
           if (this.conn) {
               this.conn.close();
@@ -224,10 +283,16 @@ export class P2PService {
               console.error("P2P Connect Exception", e);
               this.isConnecting = false;
           }
+
+          // Schedule next attempt with escalating backoff (3s → 4.5s → 6.75s → ... → cap 30s)
+          const delay = Math.min(
+              P2PService.CONNECTION_BASE_DELAY * Math.pow(1.5, this.connectionAttemptCount - 1),
+              30000
+          );
+          this.connectionRetryInterval = setTimeout(attempt, delay);
       };
 
       attempt();
-      this.connectionRetryInterval = setInterval(attempt, 4000); 
   }
 
   private handleConnection(conn: any) {
@@ -244,8 +309,9 @@ export class P2PService {
       console.log(`P2P: Data Channel Open with ${conn.peer}`);
       this.emitStatus('Connected');
       this.isConnecting = false;
+      this.connectionAttemptCount = 0;
       if (this.connectionRetryInterval) {
-          clearInterval(this.connectionRetryInterval);
+          clearTimeout(this.connectionRetryInterval);
           this.connectionRetryInterval = null;
       }
       
@@ -263,14 +329,10 @@ export class P2PService {
           this.lastPongTime = Date.now();
           return;
       }
-      // Log large or image-bearing messages
+      // Log large or image-bearing messages without stringifying the whole payload
       if (data?.type === 'SYNC_PERSONA' || data?.type === 'SYNC_DATE_CONTEXT' || data?.type === 'SYNC_USER') {
-          try {
-              const json = JSON.stringify(data);
-              const sizeKB = Math.round(json.length / 1024);
-              const hasImage = json.includes('data:image') || json.includes('unsplash');
-              console.log(`P2P: Received ${data.type} (${sizeKB}KB, hasImage: ${hasImage})`);
-          } catch (_) { console.log(`P2P: Received ${data.type}`); }
+          const hasImage = data.payload?.data?.imageUrl || data.payload?.generatedImage;
+          console.log(`P2P: Received ${data.type} (hasImage: ${!!hasImage})`);
       }
       this.listeners.forEach(cb => cb(data));
     });
@@ -333,33 +395,37 @@ export class P2PService {
   send(data: NetworkMessage) {
     if (this.conn && this.conn.open) {
       try {
-        // Log large messages for debugging
-        try {
-            const json = JSON.stringify(data);
-            const sizeKB = Math.round(json.length / 1024);
-            if (sizeKB > 10) {
-                console.log(`P2P: Sending ${data.type} (${sizeKB}KB)`);
-            }
-        } catch (_) { /* logging only */ }
+        // Log large messages for debugging without stringifying
+        const hasImage = data.payload?.data?.imageUrl || data.payload?.generatedImage;
+        if (hasImage) {
+            console.log(`P2P: Sending ${data.type} with image payload`);
+        }
         this.conn.send(data);
       } catch (e) {
           console.error("P2P Send Error", e);
+          this.bufferMessage(data);
       }
     } else {
-        // Buffer if attempting to send before open
-        if (this.msgQueue.length < 50) { // Limit buffer size
-            this.msgQueue.push(data);
-        } else {
-            console.warn("P2P: Message buffer full, dropping message:", data.type);
-        }
+        this.bufferMessage(data);
     }
+  }
+  
+  private bufferMessage(data: NetworkMessage) {
+      // Buffer if attempting to send before open or during disconnection
+      if (this.msgQueue.length < 100) { // Increased buffer size for brief interruptions
+          this.msgQueue.push(data);
+          console.log(`P2P: Buffered message ${data.type} for later delivery.`);
+      } else {
+          console.warn("P2P: Message buffer full, dropping message:", data.type);
+      }
   }
   
   private flushQueue() {
       if (!this.conn || !this.conn.open) return;
-      while (this.msgQueue.length > 0) {
-          const msg = this.msgQueue.shift();
-          this.send(msg);
+      const queueCopy = [...this.msgQueue];
+      this.msgQueue = [];
+      for (const msg of queueCopy) {
+          if (msg) this.send(msg);
       }
   }
 
@@ -399,8 +465,13 @@ export class P2PService {
   teardown() {
       this.isDestroyed = true;
       this.stopHeartbeat();
-      if (this.connectionRetryInterval) clearInterval(this.connectionRetryInterval);
+      if (this.connectionRetryInterval) clearTimeout(this.connectionRetryInterval);
       this.connectionRetryInterval = null;
+      if (this.signalingRetryTimer) clearTimeout(this.signalingRetryTimer);
+      this.signalingRetryTimer = null;
+      this.signalingRetryCount = 0;
+      this.connectionAttemptCount = 0;
+      this.onErrorCallback = null;
       this.msgQueue = [];
       this.isConnecting = false;
       

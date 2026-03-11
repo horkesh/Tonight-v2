@@ -5,19 +5,15 @@ import { PAGE_VARIANTS, ACTIVITIES } from '../../constants';
 import { PersonaReveal } from '../PersonaReveal';
 import { VibeMatrix } from '../VibeMatrix';
 import { LocationWindow } from '../LocationWindow';
-import { useSessionState } from '../../hooks/useSessionState';
-import { useQuestionFlow } from '../../hooks/useQuestionFlow';
-import { useAiActions } from '../../hooks/useAiActions';
+import { useSession } from '../../context/SessionContext';
 
 interface HubViewProps {
-  state: ReturnType<typeof useSessionState>['state'];
-  actions: ReturnType<typeof useSessionState>['actions'];
-  qActions: ReturnType<typeof useQuestionFlow>['qActions'];
-  aiActions: ReturnType<typeof useAiActions>['aiActions'];
   onOpenReactionPicker: () => void;
 }
 
-export const HubView: React.FC<HubViewProps> = ({ state, actions, qActions, aiActions, onOpenReactionPicker }) => {
+export const HubView: React.FC<HubViewProps> = ({ onOpenReactionPicker }) => {
+  const { state, actions, qActions, aiActions } = useSession();
+
   const handleAskQuestion = () => {
     // 1. Switch view locally only (do not pull partner to selection screen)
     actions.setView('question', false);
@@ -63,11 +59,11 @@ export const HubView: React.FC<HubViewProps> = ({ state, actions, qActions, aiAc
         <VibeMatrix vibe={state.vibe} sipLevel={state.sipLevel} drunkFactor={state.partnerPersona.drunkFactor} />
 
         <section className="grid grid-cols-2 gap-4">
-            <button onClick={handleAskQuestion} className="p-8 bg-rose-600 border border-rose-400/30 rounded-[48px] hover:bg-rose-500 transition-all text-center flex flex-col items-center gap-4 shadow-[0_15px_35px_rgba(225,29,72,0.3)] group">
+            <button onClick={handleAskQuestion} className="p-8 bg-rose-600 border border-rose-400/30 rounded-[48px] hover:bg-rose-500 transition-all active:scale-95 text-center flex flex-col items-center gap-4 shadow-[0_15px_35px_rgba(225,29,72,0.3)] group">
                 <span className="text-4xl group-hover:scale-110 transition-transform">✨</span>
                 <h4 className="text-lg font-serif text-white">Ask Question</h4>
             </button>
-            <button onClick={onOpenReactionPicker} className="p-8 bg-white/[0.03] border border-white/5 rounded-[48px] hover:bg-white/[0.06] transition-all text-center flex flex-col items-center gap-4 group">
+            <button onClick={onOpenReactionPicker} className="p-8 bg-white/[0.03] border border-white/5 rounded-[48px] hover:bg-white/[0.06] transition-all active:scale-95 text-center flex flex-col items-center gap-4 group">
                 <span className="text-4xl group-hover:scale-110 transition-transform">🎭</span>
                 <h4 className="text-lg font-serif text-white/80">Reaction</h4>
             </button>
@@ -76,7 +72,7 @@ export const HubView: React.FC<HubViewProps> = ({ state, actions, qActions, aiAc
         <section className="flex flex-col gap-4">
             <button 
                 onClick={handleMorningEdition} 
-                className={`w-full p-8 bg-white/[0.03] border border-white/5 rounded-[48px] flex items-center justify-between group overflow-hidden relative ${state.round < 3 ? 'opacity-50 grayscale' : ''}`}
+                className={`w-full p-8 bg-white/[0.03] border border-white/5 rounded-[48px] flex items-center justify-between group overflow-hidden relative transition-all active:scale-95 ${state.round < 3 ? 'opacity-50 grayscale' : ''}`}
             >
                 <div className="relative z-10 text-left">
                     <span className="text-[9px] text-rose-500 tracking-[0.4em] uppercase font-black">Narration PERSISTENCE</span>
@@ -94,7 +90,7 @@ export const HubView: React.FC<HubViewProps> = ({ state, actions, qActions, aiAc
 
         <section className="grid grid-cols-1 gap-4 pb-24">
             {ACTIVITIES.map((act) => (
-            <button key={act.id} onClick={() => aiActions.handleActivitySelect(act.id)} className="p-6 bg-white/[0.02] border border-white/5 rounded-[48px] hover:bg-rose-950/20 transition-all text-left flex items-center gap-7 group">
+            <button key={act.id} onClick={() => aiActions.handleActivitySelect(act.id)} className="p-6 bg-white/[0.02] border border-white/5 rounded-[48px] hover:bg-rose-950/20 transition-all active:scale-95 text-left flex items-center gap-7 group">
                 <div className="w-16 h-16 rounded-[28px] bg-white/5 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">{act.icon}</div>
                 <div>
                     <h4 className="text-xl font-serif text-white/80 group-hover:text-white">{act.title}</h4>

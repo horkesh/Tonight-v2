@@ -21,7 +21,7 @@ export function useNetworkSync(
   actions: {
     setUsers: (users: User[] | ((prev: User[]) => User[])) => void;
     setVibe: (vibe: VibeStats) => void;
-    setDateContext: (ctx: DateContext | null) => void;
+    setDateContext: (ctx: DateContext | null | ((prev: DateContext | null) => DateContext | null)) => void;
     setCurrentScene: (scene: Scene | null) => void;
     setPartnerPersona: (updater: (prev: PersonaState) => PersonaState) => void;
     setUserPersona: (updater: (prev: PersonaState) => PersonaState) => void;
@@ -51,6 +51,7 @@ export function useNetworkSync(
 
   const hasSeenArrival = useRef(false);
   const handlersRef = useRef<any>({});
+  const sentAssetsCache = useRef<{ hostAvatar?: string; partnerAvatar?: string; generatedImage?: string }>({});
   
   // Ref to hold latest state for event listeners
   const stateRef = useRef(state);
@@ -60,19 +61,38 @@ export function useNetworkSync(
     const fresh = stateRef.current;
     const hostAvatar = fresh.userPersona.imageUrl || DEFAULT_AVATAR;
     const partnerAvatar = fresh.partnerPersona.imageUrl || DEFAULT_AVATAR;
+    const generatedImage = fresh.dateContext?.generatedImage;
+
+    let delay = 0;
 
     // Role-swapped: host self image → guest partner, host partner image → guest self
-    p2p.send({ type: 'SYNC_PERSONA', payload: { type: 'partner', data: { imageUrl: hostAvatar } } });
-    setTimeout(() => {
-        p2p.send({ type: 'SYNC_PERSONA', payload: { type: 'user', data: { imageUrl: partnerAvatar } } });
-    }, 200);
+    if (sentAssetsCache.current.hostAvatar !== hostAvatar) {
+        sentAssetsCache.current.hostAvatar = hostAvatar;
+        setTimeout(() => {
+            p2p.send({ type: 'SYNC_PERSONA', payload: { type: 'partner', data: { imageUrl: hostAvatar } } });
+        }, delay);
+        delay += 200;
+    }
+
+    if (sentAssetsCache.current.partnerAvatar !== partnerAvatar) {
+        sentAssetsCache.current.partnerAvatar = partnerAvatar;
+        setTimeout(() => {
+            p2p.send({ type: 'SYNC_PERSONA', payload: { type: 'user', data: { imageUrl: partnerAvatar } } });
+        }, delay);
+        delay += 200;
+    }
+
+    if (generatedImage && sentAssetsCache.current.generatedImage !== generatedImage) {
+        sentAssetsCache.current.generatedImage = generatedImage;
+        setTimeout(() => {
+            p2p.send({ type: 'SYNC_DATE_CONTEXT', payload: { generatedImage: generatedImage } });
+        }, delay);
+        delay += 200;
+    }
 
     setTimeout(() => {
-        if (fresh.dateContext?.generatedImage) {
-            p2p.send({ type: 'SYNC_DATE_CONTEXT', payload: { generatedImage: fresh.dateContext.generatedImage } });
-        }
         p2p.send({ type: 'SYNC_VIEW', payload: fresh.view });
-    }, 400);
+    }, delay + 100);
   }, []);
 
   const sendFullState = useCallback(() => {
@@ -107,8 +127,7 @@ export function useNetworkSync(
 
     p2p.send({ type: 'SYNC_FINISHED', payload: true });
 
-    setTimeout(() => sendHeavyAssets(), 800);
-    setTimeout(() => sendHeavyAssets(), 3000);
+    setTimeout(() => sendHeavyAssets(), 500);
   }, [sendHeavyAssets]);
 
   const sendHello = useCallback(() => {
@@ -125,108 +144,30 @@ export function useNetworkSync(
 
   // Keep handlers fresh
   useEffect(() => {
-    handlersRef.current = {
-      SYNC_USERS: (payload: User[]) => {
-          actions.setUsers((prev: User[]) => {
-              const myId = sessionInfo?.userId;
-              return payload.map((u: User) => {
-                  const isSelf = u.id === myId
-                      || (u.id === 'guest-placeholder' && !sessionInfo?.isHost)
-                      || (u.id === 'partner-placeholder' && !sessionInfo?.isHost);
-                  const existingUser = prev.find(p => p.id === u.id || (p.isSelf === isSelf));
-                  const avatar = u.avatar || existingUser?.avatar || DEFAULT_AVATAR;
-                  return { ...u, isSelf, avatar };
-              });
-          });
-      },
-      SYNC_VIBE: (payload: VibeStats) => actions.setVibe(payload),
-      SYNC_DATE_CONTEXT: (payload: DateContext) => actions.setDateContext(payload), // Simplified merge logic
-      SYNC_SCENE: (payload: Scene | null) => { actions.setCurrentScene(payload); actions.setSceneChoices(() => ({})); },
-      SYNC_PERSONA: (payload: { type: string; data: any }) => {
-          const { type, data } = payload;
-          if (type === 'partner') actions.setPartnerPersona((prev: PersonaState) => ({ ...prev, ...data }));
-          if (type === 'user') actions.setUserPersona((prev: PersonaState) => ({ ...prev, ...data }));
-      },
-      SYNC_QUESTION_STATE: (payload: { question: Question | null; ownerId: string | null }) => {
-        actions.setActiveQuestion(payload.question);
-        actions.setQuestionOwnerId(payload.ownerId);
-        if (payload.question) actions.setView('question');
-      },
-      SYNC_RATING: (payload: number) => actions.setPartnerRating(payload),
-      SYNC_VIEW: (payload: AppView) => actions.setView(payload),
-      SYNC_CONVERSATION_LOG: (payload: ConversationEntry[]) => actions.setConversationLog(payload),
-      SYNC_TOAST_INVITE: () => actions.setIncomingToastRequest(true),
-      TRIGGER_CLINK: () => {
-        actions.setClinkActive(true);
-        actions.setLatestReaction({ content: "SYNCHRONIZED 🥂", timestamp: Date.now() });
-        setTimeout(() => actions.setClinkActive(false), 1000);
-        if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
-      },
-      TRIGGER_REACTION: (payload: string) => actions.setLatestReaction({ content: payload, timestamp: Date.now() }),
-      TRIGGER_FLASH: (payload: string) => actions.setLatestReaction({ content: payload, timestamp: Date.now() }), // Flash handled as reaction or separate?
-      SYNC_LAST_CHOICE: (payload: string) => actions.setLastChoiceText(payload),
-      SYNC_SCENE_CHOICE: (payload: { userId: string; choiceId: string }) => {
-        actions.setSceneChoices((prev: Record<string, string>) => ({ ...prev, [payload.userId]: payload.choiceId }));
-      },
-      SYNC_ACTIVITY_DATA: (payload: { type: string; data: any }) => {
-        if (activityCallbacksRef.current.onData) activityCallbacksRef.current.onData(payload);
-      },
-      SYNC_ACTIVITY_CHOICE: (payload: { userId: string; choice: number }) => {
-        if (activityCallbacksRef.current.onChoice) activityCallbacksRef.current.onChoice(payload);
-      },
-      SYNC_FINISHED: () => {
-        setIsSynced(true);
-        if (!sessionInfo?.isHost) {
-            actions.setView((prev: AppView) => (prev === 'setup' || prev === 'loading') ? 'hub' : prev);
-            setTimeout(() => {
-                if (hasSeenArrival.current) return;
-                const host = stateRef.current.users.find((u: User) => !u.isSelf);
-                if (host) {
-                    hasSeenArrival.current = true;
-                    actions.setArrivalEvent({ name: host.name, avatar: host.avatar || DEFAULT_AVATAR, type: 'welcome' });
-                }
-            }, 500);
-        }
-      },
-      SYNC_HELLO: (payload: any) => {
-          if (sessionInfo?.isHost) {
-              const { id, name, avatar } = payload;
-              const currentPartner = stateRef.current.partnerPersona;
-              const isGuestGeneric = name === "Guest";
-              const isGuestAvatarDefault = !avatar || avatar === DEFAULT_AVATAR;
-              const hasCustomDossier = currentPartner.appearance && currentPartner.appearance.length > 20;
-
-              const effectiveName = (isGuestGeneric && hasCustomDossier) ? (stateRef.current.users.find((u: User) => !u.isSelf)?.name || "Partner") : name;
-              const effectiveAvatar = (isGuestAvatarDefault && hasCustomDossier) ? (currentPartner.imageUrl || DEFAULT_AVATAR) : (avatar || DEFAULT_AVATAR);
-
-              actions.setUsers((prev: User[]) => prev.map((u: User) => {
-                  if (!u.isSelf) {
-                      return { ...u, id, status: 'online', name: effectiveName, avatar: effectiveAvatar };
-                  }
-                  return u;
-              }));
-              
-              actions.setPartnerPersona((p: PersonaState) => ({ ...p, imageUrl: effectiveAvatar }));
-              
-              if (!hasSeenArrival.current) {
-                  hasSeenArrival.current = true;
-                  actions.setArrivalEvent({ name: effectiveName, avatar: effectiveAvatar, type: 'arrival' });
-              }
-              
-              requestAnimationFrame(() => setTimeout(() => sendFullState(), 200));
-              setTimeout(() => sendFullState(), 1500);
-          }
-      },
-      REQUEST_SYNC: () => {
-          if (sessionInfo?.isHost) {
-              sendFullState();
-          }
-      }
-    };
+    handlersRef.current = createSyncHandlers({
+        actions,
+        sessionInfo,
+        stateRef,
+        activityCallbacksRef,
+        hasSeenArrival,
+        setIsSynced,
+        sendFullState
+    });
   }, [actions, activityCallbacksRef, sessionInfo, sendFullState]);
 
   // P2P Listeners
   useEffect(() => {
+    handlersRef.current = createSyncHandlers({
+        actions,
+        sessionInfo,
+        stateRef,
+        activityCallbacksRef,
+        hasSeenArrival,
+        setIsSynced,
+        sendFullState,
+        sentAssetsCache
+    });
+
     const unsubscribeData = p2p.onData((msg: NetworkMessage) => {
       const handler = handlersRef.current[msg.type];
       if (handler) handler(msg.payload);
@@ -310,4 +251,132 @@ export function useNetworkSync(
     refreshSync,
     initSession
   };
+}
+
+function createSyncHandlers({
+    actions,
+    sessionInfo,
+    stateRef,
+    activityCallbacksRef,
+    hasSeenArrival,
+    setIsSynced,
+    sendFullState
+}: any) {
+    return {
+      SYNC_USER: (payload: User[]) => {
+          actions.setUsers((prev: User[]) => {
+              const myId = sessionInfo?.userId;
+              return payload.map((u: User) => {
+                  const isSelf = u.id === myId
+                      || (u.id === 'guest-placeholder' && !sessionInfo?.isHost)
+                      || (u.id === 'partner-placeholder' && !sessionInfo?.isHost);
+                  const existingUser = prev.find(p => p.id === u.id || (p.isSelf === isSelf));
+                  const avatar = u.avatar || existingUser?.avatar || DEFAULT_AVATAR;
+                  return { ...u, isSelf, avatar };
+              });
+          });
+      },
+      SYNC_VIBE: (payload: VibeStats) => actions.setVibe(payload),
+      SYNC_DATE_CONTEXT: (payload: Partial<DateContext>) => {
+          actions.setDateContext((prev: DateContext | null) => {
+              if (!prev) return payload as DateContext;
+              return { ...prev, ...payload };
+          });
+      },
+      SYNC_SCENE: (payload: Scene | null) => { actions.setCurrentScene(payload); actions.setSceneChoices(() => ({})); },
+      SYNC_PERSONA: (payload: { type: string; data: any }) => {
+          const { type, data } = payload;
+          if (type === 'partner') actions.setPartnerPersona((prev: PersonaState) => ({ ...prev, ...data }));
+          if (type === 'user') actions.setUserPersona((prev: PersonaState) => ({ ...prev, ...data }));
+      },
+      SYNC_QUESTION_STATE: (payload: { question: Question | null; ownerId: string | null }) => {
+        actions.setActiveQuestion(payload.question);
+        actions.setQuestionOwnerId(payload.ownerId);
+        if (payload.question) actions.setView('question');
+      },
+      SYNC_RATING: (payload: number) => actions.setPartnerRating(payload),
+      SYNC_VIEW: (payload: AppView) => actions.setView(payload),
+      SYNC_CONVERSATION_LOG: (payload: ConversationEntry[]) => actions.setConversationLog(payload),
+      SYNC_TOAST_INVITE: () => actions.setIncomingToastRequest(true),
+      TRIGGER_CLINK: () => {
+        actions.setClinkActive(true);
+        actions.setLatestReaction({ content: "SYNCHRONIZED 🥂", timestamp: Date.now() });
+        setTimeout(() => actions.setClinkActive(false), 1000);
+        if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
+      },
+      TRIGGER_REACTION: (payload: string) => actions.setLatestReaction({ content: payload, timestamp: Date.now() }),
+      TRIGGER_FLASH: (payload: any) => {
+          const content = typeof payload === 'string' ? payload : payload.content;
+          const duration = typeof payload === 'string' ? 2000 : (payload.duration || 2000);
+          actions.setLatestReaction({ content, timestamp: Date.now(), duration });
+      },
+      SYNC_LAST_CHOICE: (payload: string) => actions.setLastChoiceText(payload),
+      SYNC_SCENE_CHOICE: (payload: { userId: string; choiceId: string }) => {
+        actions.setSceneChoices((prev: Record<string, string>) => ({ ...prev, [payload.userId]: payload.choiceId }));
+      },
+      SYNC_ACTIVITY_DATA: (payload: { type: string; data: any }) => {
+        if (activityCallbacksRef.current.onData) activityCallbacksRef.current.onData(payload);
+      },
+      SYNC_ACTIVITY_CHOICE: (payload: { userId: string; choice: number }) => {
+        if (activityCallbacksRef.current.onChoice) activityCallbacksRef.current.onChoice(payload);
+      },
+      SYNC_FINISHED: () => {
+        if (!sessionInfo?.isHost) {
+            setTimeout(() => {
+                setIsSynced(true);
+                actions.setView((prev: AppView) => (prev === 'setup' || prev === 'loading') ? 'hub' : prev);
+                if (hasSeenArrival.current) return;
+                const host = stateRef.current.users.find((u: User) => !u.isSelf);
+                const hostAvatar = stateRef.current.partnerPersona.imageUrl || host?.avatar || DEFAULT_AVATAR;
+                if (host) {
+                    hasSeenArrival.current = true;
+                    actions.setArrivalEvent({ name: host.name, avatar: hostAvatar, type: 'welcome' });
+                }
+            }, 1500); // Wait for sendHeavyAssets to complete
+        } else {
+            setIsSynced(true);
+        }
+      },
+      SYNC_HELLO: (payload: any) => {
+          if (sessionInfo?.isHost) {
+              // Prevent rapid re-processing of SYNC_HELLO
+              if ((window as any)._lastHelloTime && Date.now() - (window as any)._lastHelloTime < 5000) return;
+              (window as any)._lastHelloTime = Date.now();
+
+              const { id, name, avatar } = payload;
+              const currentPartner = stateRef.current.partnerPersona;
+              const isGuestGeneric = name === "Guest";
+              const isGuestAvatarDefault = !avatar || avatar === DEFAULT_AVATAR;
+              const hasCustomAvatar = currentPartner.imageUrl && currentPartner.imageUrl !== DEFAULT_AVATAR;
+              const hasCustomDossier = currentPartner.appearance && currentPartner.appearance.length > 5;
+
+              const effectiveName = (isGuestGeneric && hasCustomDossier) ? (stateRef.current.users.find((u: User) => !u.isSelf)?.name || "Partner") : name;
+              const effectiveAvatar = (isGuestAvatarDefault && hasCustomAvatar) ? currentPartner.imageUrl : (avatar || DEFAULT_AVATAR);
+
+              actions.setUsers((prev: User[]) => prev.map((u: User) => {
+                  if (!u.isSelf) {
+                      return { ...u, id, status: 'online', name: effectiveName, avatar: effectiveAvatar };
+                  }
+                  return u;
+              }));
+              
+              actions.setPartnerPersona((p: PersonaState) => ({ ...p, imageUrl: effectiveAvatar }));
+              
+              if (!hasSeenArrival.current) {
+                  hasSeenArrival.current = true;
+                  actions.setArrivalEvent({ name: effectiveName, avatar: effectiveAvatar, type: 'arrival' });
+              }
+              
+              setIsSynced(true);
+              
+              requestAnimationFrame(() => setTimeout(() => sendFullState(), 200));
+              setTimeout(() => sendFullState(), 1500);
+          }
+      },
+      REQUEST_SYNC: () => {
+          if (sessionInfo?.isHost) {
+              sendFullState();
+          }
+      }
+    };
 }

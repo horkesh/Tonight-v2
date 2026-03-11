@@ -22,7 +22,7 @@ export const ChoiceButton: React.FC<ChoiceButtonProps> = ({ choice, onSelect, on
         <div className="relative">
             <button 
                 {...handlers} 
-                className="relative w-full flex items-center justify-between p-7 rounded-[40px] bg-white/[0.02] border border-white/5 overflow-hidden transition-all active:scale-98 group select-none touch-none z-10"
+                className="relative w-full flex items-center justify-between p-7 rounded-[40px] bg-white/[0.02] border border-white/5 overflow-hidden transition-all active:scale-95 group select-none touch-none z-10"
             >
                 <span className="text-4xl grayscale group-hover:grayscale-0 relative z-10">{choice.symbol || "✨"}</span>
                 <span className={`relative z-10 text-[11px] text-white/60 uppercase tracking-[0.3em] font-black group-hover:text-white ml-6 ${drunkFactor > 3 ? 'blur-[1px]' : ''}`}>

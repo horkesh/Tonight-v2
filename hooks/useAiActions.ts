@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { 
   Scene, 
   IntelligenceReport, 
@@ -17,14 +17,17 @@ import {
   generateFinishSentence
 } from '../services/geminiService';
 import { useSessionState } from './useSessionState';
+import { useAiStore } from '../store/aiState';
 
 export function useAiActions(session: ReturnType<typeof useSessionState>) {
   const { state: s, actions: a } = session;
 
-  const [intelligenceReport, setIntelligenceReport] = useState<IntelligenceReport | null>(null);
-  const [twoTruthsData, setTwoTruthsData] = useState<TwoTruthsData | null>(null);
-  const [finishSentenceData, setFinishSentenceData] = useState<FinishSentenceData | null>(null);
-  const [activityChoices, setActivityChoices] = useState<Record<string, number>>({});
+  const {
+    intelligenceReport, setIntelligenceReport,
+    twoTruthsData, setTwoTruthsData,
+    finishSentenceData, setFinishSentenceData,
+    activityChoices, setActivityChoices
+  } = useAiStore();
 
   // --- Activity P2P Handlers ---
   useEffect(() => {
@@ -114,6 +117,7 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
 
     } else {
       // Standard Scene-based Activity (Truth or Drink, etc)
+      a.setView('loading'); // Show loading state immediately
       const scene = await generateScene(
         s.vibe, 
         s.round, 

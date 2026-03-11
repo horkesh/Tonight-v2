@@ -44,7 +44,7 @@ export function usePersonaLogic(
 
       let finalUrl = url;
       if (url.startsWith('data:')) {
-          const compressed = await compressImage(url, 0.6, 600);
+          const compressed = await compressImage(url, 0.5, 400);
           finalUrl = `data:image/jpeg;base64,${compressed}`;
       }
 
@@ -81,7 +81,7 @@ export function usePersonaLogic(
       generateLocationImage(dateContext.location, dateContext.vibe, newAppearance, partnerApp).then(async imgUrl => {
         if (!imgUrl || !imgUrl.startsWith('data:')) return;
         try {
-          const compressed = await compressImage(imgUrl, 0.6, 1024);
+          const compressed = await compressImage(imgUrl, 0.5, 800);
           const finalUrl = `data:image/jpeg;base64,${compressed}`;
           setDateContext({ ...dateContext, generatedImage: finalUrl });
         } catch { /* silently fail */ }
