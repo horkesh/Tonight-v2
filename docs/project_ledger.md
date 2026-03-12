@@ -98,7 +98,28 @@ Verified via Google AI docs: `gemini-3.1-pro-preview` and `gemini-2.5-flash-imag
 - `npx tsc --noEmit`: 0 errors
 - `npm run build`: success (2.35s)
 
+---
+
+## 2026-03-12 — Fix Session 3: Resilience & Edge Cases
+
+### Persona Avatar Retry (hooks/usePersonaLogic.ts)
+1. **Auto-retry on failure** — `updatePersonaImage` now retries up to 2 more times with exponential backoff (3s, 6s) if generation fails or returns null. Previously failed silently with no retry.
+
+### Activity Flow (components/views/ActivityView.tsx)
+2. **Partner choice timeout** — if partner doesn't choose within 30s (connected) or 2s (disconnected), their choice is auto-simulated. Previously would wait forever if connected.
+
+### Arrival Overlay (components/ArrivalOverlay.tsx)
+3. **Stable dismiss timer** — `onDismiss` callback is now ref-stabilized so parent re-renders don't reset the 5.5s auto-dismiss timer.
+
+### SharedDraft (components/SharedDraft.tsx)
+4. **Canvas init delay** — added 100ms delay before initial sizing to let modal animation populate layout dimensions. Prevents 0x0 canvas.
+5. **Remote drawing state reset** — `remoteLastPoint` is cleared when draft reopens, preventing stale strokes from old sessions.
+
+### Verification
+- `npx tsc --noEmit`: 0 errors
+- `npm run build`: success (2.64s)
+
 ### What's Next
-- Fix persona avatar retry on generation failure
-- Consolidate flash message system
-- Consider code-splitting (bundle is 1MB, Vite warns about chunk size)
+- Consider code-splitting (bundle is 1MB)
+- Consolidate flash message system (3 overlapping patterns)
+- Improve Two Truths lie positioning (currently hardcodes middle as lie on validation failure)

@@ -14,17 +14,18 @@ export const ConnectionStatusOverlay: React.FC<ConnectionStatusOverlayProps> = (
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (!isConnected && isActive) {
-        // Wait 5 seconds before showing the scary overlay
         timer = setTimeout(() => {
             setShowOverlay(true);
         }, 5000);
     } else {
+        // Immediately clear overlay when reconnected
         setShowOverlay(false);
     }
     return () => clearTimeout(timer);
   }, [isConnected, isActive]);
 
-  // Non-intrusive indicator for the first 5 seconds
+  // Mini indicator: only when disconnected AND overlay hasn't appeared yet
+  // Derived directly from isConnected so it clears reliably on reconnect
   const showMiniIndicator = !isConnected && isActive && !showOverlay;
 
   return (

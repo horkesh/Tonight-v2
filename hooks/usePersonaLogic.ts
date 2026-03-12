@@ -32,7 +32,7 @@ export function usePersonaLogic(
     return () => clearInterval(decayInterval);
   }, []);
 
-  const updatePersonaImage = async (target: 'self' | 'partner', traits: string[], progress: number, round: number, contextOverride?: string) => {
+  const updatePersonaImage = async (target: 'self' | 'partner', traits: string[], progress: number, round: number, contextOverride?: string, retryCount = 0) => {
     const setter = target === 'self' ? setUserPersona : setPartnerPersona;
     const persona = target === 'self' ? userPersona : partnerPersona;
 
@@ -42,6 +42,8 @@ export function usePersonaLogic(
       const context = contextOverride || persona.appearance || "Cinematic character";
       const url = await generateAbstractAvatar(traits, progress, context);
 
+      if (!url) throw new Error("Avatar generation returned null");
+
       let finalUrl = url;
       if (url.startsWith('data:')) {
           const compressed = await compressImage(url, 0.5, 400);
@@ -50,9 +52,16 @@ export function usePersonaLogic(
 
       setter(p => ({ ...p, imageUrl: finalUrl, lastGeneratedRound: round, isGenerating: false }));
     } catch (e) {
+      console.warn(`Avatar generation failed (attempt ${retryCount + 1}/3)`, e);
       setter(p => ({ ...p, isGenerating: false }));
-    } finally {
-        setter(p => { if (p.isGenerating) return { ...p, isGenerating: false }; return p; });
+
+      // Retry up to 2 more times with exponential backoff
+      if (retryCount < 2) {
+        const delay = (retryCount + 1) * 3000; // 3s, 6s
+        setTimeout(() => {
+          updatePersonaImage(target, traits, progress, round, contextOverride, retryCount + 1);
+        }, delay);
+      }
     }
   };
 

@@ -53,13 +53,14 @@ export const ActivityView: React.FC<ActivityViewProps> = ({
     }
   }, [reveal, onTwistComplete]);
 
-  // 3. Auto-Simulate Partner if Disconnected (Debug/Single Player)
+  // 3. Auto-Simulate Partner if Disconnected (2s) or if connected but no response (30s)
   useEffect(() => {
-    if (!isConnected && myChoiceId && !partnerChoiceId && scene) {
+    if (myChoiceId && !partnerChoiceId && scene) {
+        const delay = isConnected ? 30000 : 2000;
         const timer = setTimeout(() => {
             const random = scene.choices[Math.floor(Math.random() * scene.choices.length)];
             simulatePartnerChoice(random.id);
-        }, 2000);
+        }, delay);
         return () => clearTimeout(timer);
     }
   }, [isConnected, myChoiceId, partnerChoiceId, scene, simulatePartnerChoice]);

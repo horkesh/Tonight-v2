@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateContext } from '../types';
 
@@ -26,12 +26,17 @@ interface ArrivalOverlayProps {
 }
 
 export const ArrivalOverlay: React.FC<ArrivalOverlayProps> = ({ event, dateContext, onDismiss }) => {
+  // Stabilize onDismiss to prevent timer resets when parent re-renders
+  const onDismissRef = useRef(onDismiss);
+  useEffect(() => { onDismissRef.current = onDismiss; }, [onDismiss]);
+  const stableDismiss = useCallback(() => onDismissRef.current(), []);
+
   // Auto-dismiss after 5.5 seconds
   useEffect(() => {
     if (!event) return;
-    const t = setTimeout(onDismiss, 5500);
+    const t = setTimeout(stableDismiss, 5500);
     return () => clearTimeout(t);
-  }, [event, onDismiss]);
+  }, [event, stableDismiss]);
 
   const locationId = dateContext?.location?.id || 'lounge';
   const isWelcome = event?.type === 'welcome';
@@ -51,10 +56,7 @@ export const ArrivalOverlay: React.FC<ArrivalOverlayProps> = ({ event, dateConte
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8 }}
-          onClick={() => {
-            console.log("ArrivalOverlay clicked, dismissing...");
-            onDismiss();
-          }}
+          onClick={stableDismiss}
           className="fixed inset-0 z-[130] flex flex-col items-center justify-center cursor-pointer overflow-hidden"
         >
           {/* Background: location image */}

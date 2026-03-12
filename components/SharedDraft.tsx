@@ -46,18 +46,20 @@ export const SharedDraft: React.FC<SharedDraftProps> = ({ isOpen, onClose }) => 
         }
     };
 
-    // Initial set
-    setCanvasSize();
+    // Delay initial sizing to let the modal animation populate layout dimensions
+    const initTimer = setTimeout(setCanvasSize, 100);
 
-    // Handle window resize only (stable)
+    // Handle window resize (stable)
     const resizeObserver = new ResizeObserver(() => {
-        // We only resize if the actual layout size changes, not the transform
         setCanvasSize();
     });
-    
+
     resizeObserver.observe(container);
 
-    return () => resizeObserver.disconnect();
+    return () => {
+      clearTimeout(initTimer);
+      resizeObserver.disconnect();
+    };
   }, [isOpen]);
 
   // "Evaporation" Effect
@@ -80,6 +82,9 @@ export const SharedDraft: React.FC<SharedDraftProps> = ({ isOpen, onClose }) => 
     if (!isOpen) return;
     
     // Subscribe immediately
+    // Reset remote drawing state when draft reopens
+    remoteLastPoint.current = null;
+
     const unsubscribe = p2p.onData((msg) => {
         const canvas = canvasRef.current;
         if (msg.type === 'SYNC_DRAFT_STROKE' && canvas) {
