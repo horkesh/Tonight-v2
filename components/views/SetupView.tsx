@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 import { PAGE_VARIANTS, DATE_VIBES, DATE_LOCATIONS } from '../../constants';
 import { DateLocation, DateVibe } from '../../types';
 import { CameraModal } from '../CameraModal';
 import { analyzeUserPhotoForAvatar, generateAbstractAvatar } from '../../services/geminiService';
 import { compressImage } from '../../utils/helpers';
+import { PastDates } from '../PastDates';
 
 interface SetupViewProps {
   onStart: (hostData: any, guestData: any, vibe: DateVibe | null, location: DateLocation | null, roomId: string, isHost: boolean, avatar?: string, partnerAvatar?: string, hostTraits?: string[], partnerTraits?: string[]) => void;
@@ -24,6 +26,7 @@ const IntroStep: React.FC<{ handleHostStart: () => void; handleGuestJoin: () => 
       <span className="text-2xl font-serif italic text-white/80">Enter Room Code</span>
       <div className="ml-auto float-right -mt-6 text-3xl opacity-30 group-hover:opacity-100 transition-opacity">🗝️</div>
     </button>
+    <PastDates />
   </div>
 );
 
@@ -480,10 +483,16 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
         {step === 4 && (
             <motion.div key="final" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full text-center">
                 <span className="text-[10px] uppercase tracking-[0.4em] font-black text-rose-500 mb-6 block">Secure Channel Open</span>
-                <div onClick={copyInviteLink} className="p-8 bg-white/5 border border-white/10 rounded-[32px] mb-8 cursor-pointer hover:bg-white/10 transition-colors group">
+                <div onClick={copyInviteLink} className="p-8 bg-white/5 border border-white/10 rounded-[32px] mb-4 cursor-pointer hover:bg-white/10 transition-colors group">
                     <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Access Code</p>
                     <h1 className="text-5xl font-mono text-white tracking-widest">{roomId}</h1>
                     <span className="text-[9px] text-rose-400 mt-4 block opacity-50 group-hover:opacity-100 transition-opacity">Tap to Copy Invite Link</span>
+                </div>
+                <div className="mb-8 flex flex-col items-center">
+                    <div className="p-4 bg-white rounded-2xl">
+                        <QRCodeSVG value={`${window.location.origin}?room=${roomId}`} size={160} bgColor="#ffffff" fgColor="#020617" level="M" />
+                    </div>
+                    <span className="text-[9px] text-white/30 uppercase tracking-widest mt-3">Scan to join</span>
                 </div>
                 
                 {isLoading ? (

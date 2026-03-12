@@ -7,7 +7,7 @@ const INITIAL_PERSONA: PersonaState = {
   isProfileComplete: false
 };
 
-interface PresenceState {
+export interface PresenceState {
   users: User[];
   userPersona: PersonaState;
   partnerPersona: PersonaState;

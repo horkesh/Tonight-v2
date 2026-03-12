@@ -1,6 +1,8 @@
 
 import { VibeStats, DateVibe, DateLocation } from "./types";
 
+export const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop";
+
 export const INITIAL_VIBE: VibeStats = {
   playful: 0,
   flirty: 0,

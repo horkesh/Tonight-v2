@@ -23,6 +23,7 @@ export class P2PService {
   private connectionRetryInterval: ReturnType<typeof setInterval> | null = null;
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private lastPongTime: number = 0;
+  private missedPongs: number = 0;
   
   private myId: string = '';
   private targetId: string = '';
@@ -374,8 +375,6 @@ export class P2PService {
     });
   }
 
-  private missedPongs: number = 0;
-
   private startHeartbeat() {
       this.stopHeartbeat();
       this.lastPongTime = Date.now();
@@ -386,9 +385,9 @@ export class P2PService {
               this.stopHeartbeat();
               return;
           }
-          // If buffered amount is high, skip this ping cycle and don't count it against timeout
+          // If buffered amount is high, skip this ping cycle but don't reset lastPongTime
+          // (resetting would mask genuinely dead connections behind congested buffers)
           if (this.conn.dataChannel?.bufferedAmount > 16000) {
-              this.lastPongTime = Date.now(); // Don't penalize for buffer congestion
               return;
           }
 

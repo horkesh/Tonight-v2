@@ -1,3 +1,18 @@
+import { VibeStats } from '../types';
+
+/** Return the key of the highest vibe stat */
+export const getDominantVibe = (vibe: VibeStats): keyof VibeStats => {
+  const entries = Object.entries(vibe) as [keyof VibeStats, number][];
+  return entries.reduce((a, b) => a[1] >= b[1] ? a : b)[0];
+};
+
+/** Clamp-add vibe deltas onto current stats (max 100 per field) */
+export const applyVibeDeltas = (current: VibeStats, deltas: Partial<VibeStats>): VibeStats => ({
+  playful: Math.min(100, current.playful + (deltas.playful || 0)),
+  flirty: Math.min(100, current.flirty + (deltas.flirty || 0)),
+  deep: Math.min(100, current.deep + (deltas.deep || 0)),
+  comfortable: Math.min(100, current.comfortable + (deltas.comfortable || 0)),
+});
 
 export const compressImage = async (base64: string, quality: number = 0.7, maxWidth: number = 800): Promise<string> => {
   return new Promise((resolve) => {

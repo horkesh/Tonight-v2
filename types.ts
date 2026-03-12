@@ -155,13 +155,24 @@ export type NetworkMessage =
   | { type: 'SYNC_DRAFT_STATE'; payload: boolean }
   | { type: 'SYNC_DATE_CONTEXT'; payload: Partial<DateContext> | null }
   | { type: 'SYNC_RATING'; payload: number }
-  | { type: 'SYNC_FULL_STATE'; payload: any } // Complex payload, maybe define later
+  | { type: 'SYNC_FULL_STATE'; payload: {
+      vibe: VibeStats;
+      round: number;
+      users: User[];
+      dateContext: Partial<DateContext> | null;
+      currentScene: Scene | null;
+      userPersona: Omit<PersonaState, 'imageUrl'>;
+      partnerPersona: Omit<PersonaState, 'imageUrl'>;
+      questionState: { question: Question | null; ownerId: string | null } | null;
+      conversationLog: ConversationEntry[];
+    }
+  }
   | { type: 'SYNC_FINISHED'; payload: boolean }
   | { type: 'SYNC_HELLO'; payload: { id: string; name: string; avatar: string } }
   | { type: 'SYNC_TOUCH'; payload: TouchPoint }
   | { type: 'SYNC_SIP'; payload: number }
   | { type: 'SYNC_CONVERSATION_LOG'; payload: ConversationEntry[] }
-  | { type: 'SYNC_ACTIVITY_DATA'; payload: { type: string; data: any } }
+  | { type: 'SYNC_ACTIVITY_DATA'; payload: ActivityPayload }
   | { type: 'SYNC_ACTIVITY_CHOICE'; payload: { userId: string; choice: number } }
   | { type: 'SYNC_LAST_CHOICE'; payload: string }
   | { type: 'REQUEST_SYNC'; payload?: never }
@@ -169,6 +180,13 @@ export type NetworkMessage =
   | { type: 'PONG'; payload?: never };
 
 export type NetworkMessageType = NetworkMessage['type'];
+
+// --- Activity Types ---
+export type ActivityId = 'twoTruths' | 'finishSentence';
+
+export type ActivityPayload =
+  | { type: 'twoTruths'; data: TwoTruthsData }
+  | { type: 'finishSentence'; data: FinishSentenceData };
 
 // --- Activity: Two Truths & A Lie ---
 export interface TwoTruthsData {

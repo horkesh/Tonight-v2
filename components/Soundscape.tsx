@@ -94,6 +94,7 @@ export const Soundscape: React.FC<SoundscapeProps> = ({ vibe, location }) => {
         gain.connect(audioCtxRef.current.destination);
         osc.start(t);
         osc.stop(t + 0.5);
+        osc.onended = () => { osc.disconnect(); gain.disconnect(); };
     }, beatInterval);
 
     return () => {

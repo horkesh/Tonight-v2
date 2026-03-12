@@ -1,12 +1,13 @@
 
 import { useEffect, useCallback } from 'react';
-import { 
-  Scene, 
-  IntelligenceReport, 
-  TwoTruthsData, 
+import {
+  Scene,
+  IntelligenceReport,
+  TwoTruthsData,
   FinishSentenceData,
   VibeStats,
-  Choice
+  Choice,
+  ActivityPayload
 } from '../types';
 import { 
   generateScene, 
@@ -18,6 +19,8 @@ import {
 } from '../services/geminiService';
 import { useSessionState } from './useSessionState';
 import { useAiStore } from '../store/aiState';
+import { applyVibeDeltas } from '../utils/helpers';
+import { saveDateToHistory, buildHistoryEntry } from '../utils/dateHistory';
 
 export function useAiActions(session: ReturnType<typeof useSessionState>) {
   const { state: s, actions: a } = session;
@@ -152,12 +155,7 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     try {
       const result = await generateSilentReaction(choice.text, s.vibe);
 
-      a.setVibe(prev => ({
-          playful: Math.min(100, prev.playful + (result.vibeUpdate.playful || 0)),
-          flirty: Math.min(100, prev.flirty + (result.vibeUpdate.flirty || 0)),
-          deep: Math.min(100, prev.deep + (result.vibeUpdate.deep || 0)),
-          comfortable: Math.min(100, prev.comfortable + (result.vibeUpdate.comfortable || 0)),
-      }));
+      a.setVibe(prev => applyVibeDeltas(prev, result.vibeUpdate));
 
       showFlash(result.narrative);
     } catch (error) {
@@ -173,12 +171,7 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
   const applyChoiceImpact = (choiceId: string) => {
     const choice = s.currentScene?.choices.find(c => c.id === choiceId);
     if (choice?.vibeEffect) {
-        a.setVibe(v => ({
-            playful: Math.min(100, v.playful + (choice.vibeEffect.playful || 0)),
-            flirty: Math.min(100, v.flirty + (choice.vibeEffect.flirty || 0)),
-            deep: Math.min(100, v.deep + (choice.vibeEffect.deep || 0)),
-            comfortable: Math.min(100, v.comfortable + (choice.vibeEffect.comfortable || 0)),
-        }));
+        a.setVibe(v => applyVibeDeltas(v, choice.vibeEffect));
     }
     
     // Logic for ending date or next round
@@ -193,22 +186,38 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
 
   const finalizeReport = async (rating: number) => {
     a.triggerFlash("Compiling Final Dossier...");
+    const partnerName = a.getPartner()?.name || 'Unknown';
+    const locationTitle = s.dateContext?.location?.title || 'Unknown Location';
+
+    const saveHistory = (report: IntelligenceReport) => {
+      try {
+        saveDateToHistory(buildHistoryEntry(report, partnerName, locationTitle, s.vibe, s.partnerPersona.chemistry));
+      } catch (e) {
+        console.warn('Failed to save date history:', e);
+      }
+    };
+
     try {
       const report = await generateIntelligenceReport(s.vibe, s.partnerPersona, rating, s.dateContext);
       setIntelligenceReport(report);
+      saveHistory(report);
       return true;
     } catch (error) {
       console.error("Intelligence report generation failed:", error);
       a.triggerFlash("Dossier compilation failed");
-      // Return a minimal fallback report so the UI isn't stuck
-      setIntelligenceReport({
+      const fallback = {
+        publicationName: 'Tonight Intelligence',
         headline: "Transmission Lost",
         lede: "The intelligence network experienced interference during compilation.",
         summary: "This session's data was recorded but the final report could not be generated. The connection between agents was real — even if the paperwork wasn't.",
-        vibeAnalysis: s.vibe,
+        vibeAnalysis: JSON.stringify(s.vibe),
+        closingThought: '',
         barTab: [],
-        rating
-      } as any);
+        date: new Date().toISOString(),
+        partnerRating: rating
+      } satisfies IntelligenceReport;
+      setIntelligenceReport(fallback);
+      saveHistory(fallback);
       return true;
     }
   };
@@ -237,9 +246,10 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
   const simulateActivityPartner = () => {
     const partner = a.getPartner();
     if (!partner) return;
-    
-    // Random choice 0-2 (assuming 3 options)
-    const randomChoice = Math.floor(Math.random() * 3);
+
+    // Use actual option count from current activity data
+    const optionCount = twoTruthsData?.statements?.length || finishSentenceData?.options?.length || 3;
+    const randomChoice = Math.floor(Math.random() * optionCount);
     setActivityChoices(prev => ({ ...prev, [partner.id]: randomChoice }));
   };
 

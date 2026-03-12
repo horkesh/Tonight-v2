@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { PersonaState, User } from '../types';
 import { generateAbstractAvatar, analyzeUserPhotoForAvatar, generateLocationImage } from '../services/geminiService';
 import { compressImage } from '../utils/helpers';
 import { DateContext } from '../types';
-
-const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop";
+import { DEFAULT_AVATAR } from '../constants';
 
 const INITIAL_PERSONA: PersonaState = {
   traits: [], memories: [], secrets: [], imageUrl: null, lastGeneratedRound: 0, isGenerating: false, 
@@ -20,6 +19,12 @@ export function usePersonaLogic(
     partnerPersona: PersonaState,
     setPartnerPersona: PersonaSetter
 ) {
+
+  // Track retry timeouts so they can be cancelled on unmount
+  const retryTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => {
+    return () => { retryTimers.current.forEach(clearTimeout); };
+  }, []);
 
   // Drunk factor decay
   useEffect(() => {
@@ -58,9 +63,10 @@ export function usePersonaLogic(
       // Retry up to 2 more times with exponential backoff
       if (retryCount < 2) {
         const delay = (retryCount + 1) * 3000; // 3s, 6s
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           updatePersonaImage(target, traits, progress, round, contextOverride, retryCount + 1);
         }, delay);
+        retryTimers.current.push(timer);
       }
     }
   };

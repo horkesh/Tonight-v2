@@ -28,7 +28,7 @@
 
 ## Frontend Patterns
 1. **[2026-03-12] State updates that need P2P sync must go through the broadcast pattern**
-   Do instead: add a `MessageType` in `types.ts`, handle send in `useSessionState.ts`, and handle receive in `useNetworkSync.ts`.
+   Do instead: add a `MessageType` in `types.ts`, handle send in `useBroadcastingState.ts`, and handle receive in `useNetworkSync.ts`.
 2. **[2026-03-12] New AI features need prompt builders**
    Do instead: add prompt templates in `services/prompts/` and call them from `geminiService.ts` rather than inlining prompts.
 3. **[2026-03-12] Views are selected by state, not by URL routing**
@@ -39,14 +39,20 @@
    Do instead: use `PAGE_VARIANTS` from `constants.ts` for page transitions.
 6. **[2026-03-12] AI failures must show error UI, not silent fallbacks**
    Do instead: when a Gemini call fails, show a retry button or error message instead of returning fake data that looks real.
-7. **[2026-03-12] P2P event listeners must be cleaned up properly**
+7. **[2026-03-12] Use `applyVibeDeltas()` for vibe stat updates**
+   Do instead: import `applyVibeDeltas` from `utils/helpers` instead of writing inline `Math.min(100, ...)` for each vibe field. Keeps the clamping logic in one place.
+8. **[2026-03-12] P2P event listeners must be cleaned up properly**
    Do instead: always call the unsubscribe function returned by `p2p.onData()`, `p2p.onConnect()`, etc. in the useEffect cleanup. Never let handlers accumulate.
-8. **[2026-03-12] Zombie connection check must be in ALL connection event handlers**
+9. **[2026-03-12] Zombie connection check must be in ALL connection event handlers**
    Do instead: check `this.conn === conn` in both `open` and `data` handlers inside `handleConnection()`, not just `open`.
-9. **[2026-03-12] Use React refs for throttle/debounce state, never window globals**
-   Do instead: when throttling message processing (e.g. SYNC_HELLO), use a `useRef` passed into the handler factory — never `(window as any)._something`.
-10. **[2026-03-12] Fix pre-existing type errors before adding new code**
-    Do instead: if `tsc --noEmit` reports errors, fix them as part of the current session to keep the project at zero errors.
+10. **[2026-03-12] Use React refs for throttle/debounce state, never window globals**
+    Do instead: when throttling message processing (e.g. SYNC_HELLO), use a `useRef` passed into the handler factory — never `(window as any)._something`.
+11. **[2026-03-12] All Gemini API calls go through server-side proxy routes**
+    Do instead: use `callProxy('/api/gemini/text|image', ...)` from `services/geminiService.ts`. Never import `@google/genai` in client code. API key lives in Vercel env only.
+12. **[2026-03-12] Shared constants go in `constants.ts`, not duplicated across files**
+    Do instead: before defining a string constant in a hook, check `constants.ts` first. `DEFAULT_AVATAR`, `INITIAL_VIBE`, `PAGE_VARIANTS` etc. are all there.
+13. **[2026-03-12] Use `getDominantVibe()` for vibe stat comparisons**
+    Do instead: import `getDominantVibe` from `utils/helpers` instead of inline `Object.entries(vibe).reduce(...)` or `.sort(...)` patterns.
 
 ## Shell & Environment
 1. **[2026-03-12] This is a Windows machine with bash shell**

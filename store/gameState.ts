@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Scene, Question, VibeStats, DateContext, ConversationEntry } from '../types';
 import { INITIAL_VIBE } from '../constants';
 
-interface GameState {
+export interface GameState {
   round: number;
   currentScene: Scene | null;
   sceneChoices: Record<string, string>;

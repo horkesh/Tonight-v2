@@ -4,6 +4,7 @@ import { Question, User, VibeStats, ConversationEntry } from '../types';
 import { useSessionState } from './useSessionState';
 import { generateDynamicQuestions, extractTraitFromInteraction } from '../services/geminiService';
 import { useQuestionStore } from '../store/aiState';
+import { applyVibeDeltas } from '../utils/helpers';
 
 const VIBE_WEIGHTS: Record<string, Partial<VibeStats>> = {
   'Style': { playful: 10, flirty: 5 },
@@ -239,12 +240,7 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     // Update Vibe based on Question Category
     if (question && VIBE_WEIGHTS[question.category]) {
         const delta = VIBE_WEIGHTS[question.category];
-        a.setVibe(v => ({
-            playful: Math.min(100, v.playful + (delta.playful || 0)),
-            flirty: Math.min(100, v.flirty + (delta.flirty || 0)),
-            deep: Math.min(100, v.deep + (delta.deep || 0)),
-            comfortable: Math.min(100, v.comfortable + (delta.comfortable || 0)),
-        }));
+        a.setVibe(v => applyVibeDeltas(v, delta));
     }
 
     if (!isBot) {

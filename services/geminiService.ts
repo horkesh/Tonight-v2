@@ -1,9 +1,9 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
 import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData } from "../types";
-import { 
+import {
   SYSTEM_INSTRUCTION
 } from "../constants";
+import { getDominantVibe } from "../utils/helpers";
 import {
   buildScenePrompt,
   buildIntelligenceReportPrompt,
@@ -13,25 +13,45 @@ import {
   buildLocationImagePrompt
 } from "./prompts/gamePrompts";
 
-const API_KEY = process.env.API_KEY;
-if (!API_KEY) {
-  console.error("GeminiService: Missing API_KEY in environment variables.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// Schema type constants (replaces @google/genai Type enum — values are identical strings)
+const T = {
+  STRING: "STRING",
+  NUMBER: "NUMBER",
+  INTEGER: "INTEGER",
+  BOOLEAN: "BOOLEAN",
+  ARRAY: "ARRAY",
+  OBJECT: "OBJECT",
+} as const;
 
 const MODEL_TEXT = "gemini-3.1-pro-preview";
-const MODEL_COMPLEX = "gemini-3.1-pro-preview"; 
-const MODEL_IMAGE_GEN = "gemini-2.5-flash-image"; 
+const MODEL_COMPLEX = "gemini-3.1-pro-preview";
+const MODEL_IMAGE_GEN = "gemini-2.5-flash-image";
+
+// ── Proxy helpers ─────────────────────────────────────────────────────────────
+
+const callProxy = async (endpoint: string, body: object): Promise<any> => {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const err: any = new Error(data.error || `API ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+};
 
 const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
   try {
     return await fn();
   } catch (error: any) {
-    const isRateLimit = 
-        error?.status === 429 || 
-        error?.response?.status === 429 || 
-        error?.message?.includes('429') || 
+    const isRateLimit =
+        error?.status === 429 ||
+        error?.response?.status === 429 ||
+        error?.message?.includes('429') ||
         error?.message?.includes('RESOURCE_EXHAUSTED');
 
     if (retries > 0 && isRateLimit) {
@@ -43,13 +63,13 @@ const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000)
   }
 };
 
-const cleanAndParseJSON = (text: string | undefined, fallback: any = {}) => {
+export const cleanAndParseJSON = (text: string | undefined, fallback: any = {}) => {
   if (!text) return fallback;
   try {
     let cleaned = text.trim();
     // Handle code blocks
     cleaned = cleaned.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/, '');
-    
+
     // Attempt to locate JSON structure if there is noise
     const firstBrace = cleaned.indexOf('{');
     const lastBrace = cleaned.lastIndexOf('}');
@@ -70,65 +90,57 @@ const cleanAndParseJSON = (text: string | undefined, fallback: any = {}) => {
 };
 
 const getVibeInstruction = (vibe: VibeStats): string => {
-  const entries = Object.entries(vibe);
-  if (entries.length === 0) return "Neutral noir atmosphere. Cool and detached.";
-  
-  const dominant = entries.reduce((a, b) => a[1] > b[1] ? a : b);
-  const intensity = dominant[1];
+  const dominantKey = getDominantVibe(vibe);
+  const intensity = vibe[dominantKey];
 
   if (intensity < 30) return "The night is young. A cool, detached sophistication hangs in the air.";
 
-  switch (dominant[0]) {
-    case 'flirty': 
+  switch (dominantKey) {
+    case 'flirty':
       return `High Sexual Tension (${intensity}%). Use teasing, double entendres. Focus on physical proximity, lips, eyes.`;
-    case 'deep': 
+    case 'deep':
       return `Introspective and Raw (${intensity}%). Drop the facade. Discuss regrets, secrets, and fears.`;
-    case 'playful': 
+    case 'playful':
       return `Witty Intellectual Sparring (${intensity}%). Fast-paced banter. Amused, challenging intellect.`;
-    case 'comfortable': 
+    case 'comfortable':
       return `Warm and Intimate (${intensity}%). A shared quiet understanding. The guard is down.`;
-    default: 
+    default:
       return "Modern Noir. Shadows and light. A game of cat and mouse.";
   }
 };
 
 const REPORT_SCHEMA = {
-  type: Type.OBJECT,
+  type: T.OBJECT,
   properties: {
-    publicationName: { type: Type.STRING, description: "Creative newspaper name matching location/vibe." },
-    headline: { type: Type.STRING, description: "A punchy, noir newspaper headline. Max 5 words." },
-    lede: { type: Type.STRING, description: "A sharp, journalism-style opening sentence." },
-    summary: { type: Type.STRING, description: "A sophisticated overview of the night's events. Max 30 words." },
-    vibeAnalysis: { type: Type.STRING, description: "A marketing-style analysis of the connection's 'brand'." },
-    closingThought: { type: Type.STRING, description: "A final, cynical yet elegant thought." },
-    date: { type: Type.STRING },
-    barTab: { 
-        type: Type.ARRAY, 
-        items: { type: Type.STRING },
+    publicationName: { type: T.STRING, description: "Creative newspaper name matching location/vibe." },
+    headline: { type: T.STRING, description: "A punchy, noir newspaper headline. Max 5 words." },
+    lede: { type: T.STRING, description: "A sharp, journalism-style opening sentence." },
+    summary: { type: T.STRING, description: "A sophisticated overview of the night's events. Max 30 words." },
+    vibeAnalysis: { type: T.STRING, description: "A marketing-style analysis of the connection's 'brand'." },
+    closingThought: { type: T.STRING, description: "A final, cynical yet elegant thought." },
+    date: { type: T.STRING },
+    barTab: {
+        type: T.ARRAY,
+        items: { type: T.STRING },
         description: "A list of 3-5 'items' consumed."
     }
   },
   required: ["publicationName", "headline", "lede", "summary", "vibeAnalysis", "closingThought", "date", "barTab"],
 };
 
+// ── Image generation ──────────────────────────────────────────────────────────
+
 const generateImageWithGemini = async (prompt: string, aspectRatio: "1:1" | "16:9" | "4:3"): Promise<string | null> => {
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const { imageData } = await callWithRetry(() => callProxy('/api/gemini/image', {
       model: MODEL_IMAGE_GEN,
       contents: prompt,
       config: {
         responseModalities: ["TEXT", "IMAGE"],
-        imageConfig: { aspectRatio: aspectRatio }
+        imageConfig: { aspectRatio }
       }
     }));
-
-    const parts = response.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-        if (part.inlineData && part.inlineData.data) {
-            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        }
-    }
-    return null;
+    return imageData;
   } catch (error) {
     console.error("Gemini Image Gen Error:", error);
     return null;
@@ -143,7 +155,7 @@ export const generateLocationImage = async (
 ): Promise<string> => {
   const userApp = hostAppearance || "A person";
   const partnerApp = partnerAppearance || "A person";
-  
+
   const prompt = buildLocationImagePrompt(location, vibe, userApp, partnerApp);
   const img = await generateImageWithGemini(prompt, "16:9");
   return img || location.image;
@@ -207,7 +219,7 @@ export const generateDynamicQuestions = async (
 
     // --- Chemistry & escalation ---
     const chemistry = partnerPersona.chemistry;
-    const dominantVibe = Object.entries(vibe).reduce((a, b) => a[1] > b[1] ? a : b);
+    const dominantVibe = [getDominantVibe(vibe), vibe[getDominantVibe(vibe)]] as const;
 
     // --- Vibe-driven question style ---
     const vibeStyleMap: Record<string, string> = {
@@ -304,21 +316,21 @@ OUTPUT: JSON array of 3 objects. Each has: id (string), category (string "${cate
 `;
 
     try {
-        const response = await callWithRetry(() => ai.models.generateContent({
+        const response = await callWithRetry(() => callProxy('/api/gemini/text', {
             model: MODEL_TEXT,
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
-                    type: Type.ARRAY,
+                    type: T.ARRAY,
                     items: {
-                        type: Type.OBJECT,
+                        type: T.OBJECT,
                         properties: {
-                            id: { type: Type.STRING },
-                            category: { type: Type.STRING },
-                            text: { type: Type.STRING },
-                            options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            knowledgeTemplate: { type: Type.STRING }
+                            id: { type: T.STRING },
+                            category: { type: T.STRING },
+                            text: { type: T.STRING },
+                            options: { type: T.ARRAY, items: { type: T.STRING } },
+                            knowledgeTemplate: { type: T.STRING }
                         }
                     }
                 }
@@ -341,7 +353,7 @@ export const generateInnerMonologue = async (vibe: VibeStats, activity: string):
     Constraint: Max 6 words. First person. Lowercase. Noir style.
   `;
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
       config: { responseMimeType: 'text/plain' }
@@ -365,18 +377,18 @@ export const generateSilentReaction = async (
     And estimated vibe impact.
   `;
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
         model: MODEL_TEXT,
         contents: prompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: {
-                type: Type.OBJECT,
+                type: T.OBJECT,
                 properties: {
-                    narrative: { type: Type.STRING },
-                    vibeUpdate: { 
-                        type: Type.OBJECT, 
-                        properties: { deep: { type: Type.NUMBER }, flirty: { type: Type.NUMBER } }
+                    narrative: { type: T.STRING },
+                    vibeUpdate: {
+                        type: T.OBJECT,
+                        properties: { deep: { type: T.NUMBER }, flirty: { type: T.NUMBER } }
                     }
                 }
             }
@@ -397,7 +409,7 @@ export const generateIntelligenceReport = async (
   const prompt = buildIntelligenceReportPrompt(vibe, partner, rating, dateContext);
 
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
       config: {
@@ -483,22 +495,22 @@ OUTPUT: JSON with "statements" array of exactly 3 objects, each with "text" (str
 `;
 
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: T.OBJECT,
           properties: {
             statements: {
-              type: Type.ARRAY,
+              type: T.ARRAY,
               items: {
-                type: Type.OBJECT,
+                type: T.OBJECT,
                 properties: {
-                  text: { type: Type.STRING },
-                  isLie: { type: Type.BOOLEAN }
+                  text: { type: T.STRING },
+                  isLie: { type: T.BOOLEAN }
                 },
                 required: ["text", "isLie"]
               }
@@ -602,17 +614,17 @@ OUTPUT: JSON with "sentence" (string ending in "...") and "options" (array of ex
 `;
 
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: T.OBJECT,
           properties: {
-            sentence: { type: Type.STRING },
-            options: { type: Type.ARRAY, items: { type: Type.STRING } }
+            sentence: { type: T.STRING },
+            options: { type: T.ARRAY, items: { type: T.STRING } }
           },
           required: ["sentence", "options"]
         }
@@ -637,7 +649,7 @@ OUTPUT: JSON with "sentence" (string ending in "...") and "options" (array of ex
 export const generateScene = async (
   currentVibe: VibeStats,
   round: number,
-  partnerPersona: PersonaState, 
+  partnerPersona: PersonaState,
   userPersona: PersonaState,
   dateContext: DateContext | null,
   previousChoiceText?: string,
@@ -646,34 +658,34 @@ export const generateScene = async (
   const prompt = buildScenePrompt(currentVibe, round, partnerPersona, userPersona, dateContext, previousChoiceText || "", mode);
 
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: T.OBJECT,
           properties: {
-            id: { type: Type.STRING },
-            type: { type: Type.STRING },
-            narrative: { type: Type.STRING },
+            id: { type: T.STRING },
+            type: { type: T.STRING },
+            narrative: { type: T.STRING },
             choices: {
-              type: Type.ARRAY,
+              type: T.ARRAY,
               items: {
-                type: Type.OBJECT,
+                type: T.OBJECT,
                 properties: {
-                  id: { type: Type.STRING },
-                  text: { type: Type.STRING },
-                  symbol: { type: Type.STRING },
-                  vibeEffect: { 
-                    type: Type.OBJECT, 
-                    properties: { 
-                      playful: { type: Type.NUMBER }, 
-                      flirty: { type: Type.NUMBER }, 
-                      deep: { type: Type.NUMBER }, 
-                      comfortable: { type: Type.NUMBER } 
-                    } 
+                  id: { type: T.STRING },
+                  text: { type: T.STRING },
+                  symbol: { type: T.STRING },
+                  vibeEffect: {
+                    type: T.OBJECT,
+                    properties: {
+                      playful: { type: T.NUMBER },
+                      flirty: { type: T.NUMBER },
+                      deep: { type: T.NUMBER },
+                      comfortable: { type: T.NUMBER }
+                    }
                   }
                 }
               }
@@ -688,16 +700,16 @@ export const generateScene = async (
     return { ...sceneData, round };
   } catch (error) {
     console.error("Scene Gen Error", error);
-    return { 
-        id: `err-${Date.now()}`, 
-        type: "conversation", 
-        narrative: "The signal flickers in the dark... waiting for clarity.", 
+    return {
+        id: `err-${Date.now()}`,
+        type: "conversation",
+        narrative: "The signal flickers in the dark... waiting for clarity.",
         choices: [
             { id: 'retry', text: 'Wait...', vibeEffect: {} },
             { id: 'sip', text: 'Take a sip', symbol: '🥃', vibeEffect: { comfortable: 5 } },
             { id: 'look', text: 'Look away', vibeEffect: { deep: 5 } }
-        ], 
-        round 
+        ],
+        round
     };
   }
 };
@@ -716,14 +728,14 @@ export const extractTraitFromInteraction = async (question: string, answer: stri
   `;
 
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
         model: MODEL_TEXT,
         contents: prompt,
-        config: { 
+        config: {
             responseMimeType: 'application/json',
             responseSchema: {
-                type: Type.OBJECT,
-                properties: { trait: { type: Type.STRING } }
+                type: T.OBJECT,
+                properties: { trait: { type: T.STRING } }
             }
         }
     }));
@@ -742,7 +754,7 @@ export const analyzeImageAction = async (
 ): Promise<{ text: string; vibeUpdate: Partial<VibeStats>; secretUnlocked?: string }> => {
   const vibeInstruction = getVibeInstruction(vibe);
   let prompt = "";
-  
+
   if (actionType === 'drink') {
       prompt = `Partner perspective: Roast their drink choice. 6 words max. Vibe: ${vibeInstruction}.`;
   } else if (actionType === 'selfie') {
@@ -752,25 +764,25 @@ export const analyzeImageAction = async (
   }
 
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
       model: MODEL_COMPLEX,
-      contents: { 
+      contents: {
         parts: [
-          { inlineData: { mimeType: "image/jpeg", data: base64Image } }, 
+          { inlineData: { mimeType: "image/jpeg", data: base64Image } },
           { text: prompt }
-        ] 
+        ]
       },
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: T.OBJECT,
           properties: {
-            text: { type: Type.STRING },
-            vibeUpdate: { 
-              type: Type.OBJECT, 
-              properties: { flirty: { type: Type.INTEGER }, playful: { type: Type.INTEGER } } 
+            text: { type: T.STRING },
+            vibeUpdate: {
+              type: T.OBJECT,
+              properties: { flirty: { type: T.INTEGER }, playful: { type: T.INTEGER } }
             },
-            secretUnlocked: { type: Type.STRING }
+            secretUnlocked: { type: T.STRING }
           },
           required: ["text", "vibeUpdate"]
         }
@@ -790,8 +802,8 @@ export const generateAbstractAvatar = async (traits: string[], revealProgress: n
     const img = await generateImageWithGemini(prompt, "1:1");
     if (img) return img;
     return fallback;
-  } catch (error: any) { 
-    return fallback; 
+  } catch (error: any) {
+    return fallback;
   }
 };
 
@@ -815,14 +827,14 @@ export const analyzeUserPhotoForAvatar = async (base64Image: string, hint?: stri
     Return a JSON object with these 4 fields:
     1. estimatedAge (string)
     2. gender (string)
-    3. appearance (string): A detailed visual description of their face, hair, clothes, and style. 
+    3. appearance (string): A detailed visual description of their face, hair, clothes, and style.
     4. traits (array of strings): 3 personality traits guessed from the photo.
 
     Output PURE JSON.
   `;
 
   try {
-    const response = await callWithRetry(() => ai.models.generateContent({
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
       model: MODEL_COMPLEX,
       contents: {
         parts: [
@@ -833,20 +845,20 @@ export const analyzeUserPhotoForAvatar = async (base64Image: string, hint?: stri
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: T.OBJECT,
           properties: {
-            estimatedAge: { type: Type.STRING },
-            gender: { type: Type.STRING },
-            appearance: { type: Type.STRING },
-            traits: { type: Type.ARRAY, items: { type: Type.STRING } }
+            estimatedAge: { type: T.STRING },
+            gender: { type: T.STRING },
+            appearance: { type: T.STRING },
+            traits: { type: T.ARRAY, items: { type: T.STRING } }
           },
           required: ["estimatedAge", "gender", "appearance", "traits"]
         }
       }
     }));
-    
+
     const data = cleanAndParseJSON(response.text, {});
-    
+
     return {
         estimatedAge: data.estimatedAge || "30",
         gender: data.gender || "Unknown",
@@ -854,11 +866,11 @@ export const analyzeUserPhotoForAvatar = async (base64Image: string, hint?: stri
         traits: data.traits || ["mysterious"]
     };
   } catch (error) {
-    return { 
+    return {
         estimatedAge: "Unknown",
         gender: "Unknown",
-        appearance: "A mysterious figure in the shadows.", 
-        traits: ["mysterious", "guarded", "unknown"] 
+        appearance: "A mysterious figure in the shadows.",
+        traits: ["mysterious", "guarded", "unknown"]
     };
   }
 };

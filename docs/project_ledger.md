@@ -144,3 +144,124 @@ Verified via Google AI docs: `gemini-3.1-pro-preview` and `gemini-2.5-flash-imag
 - Consolidate flash message system (3 overlapping patterns)
 - Clean up dead code (simulateActivityPartner)
 - Consider lazy-loading IntelligenceBriefing and view components
+
+---
+
+## 2026-03-12 — Fix Session 5: Activity Sync Bug, Cleanup
+
+### Flash Message System Review
+Reviewed the 3 flash message patterns. They serve genuinely different communication purposes — **not redundant**:
+1. `triggerFlash` — local-only notification (rose pill banner), for status feedback to self
+2. `sendFlash` — partner-only notification (via reaction display), tells partner what you did
+3. `triggerReaction` — bilateral (shows on both sides), for shared reactions/images/emojis
+No consolidation needed.
+
+### broadcastActivityData Call Signature Bug (useSessionState.ts)
+1. **Critical**: `broadcastActivityData(type, data)` accepted two separate args, but both call sites passed a single object `{ type, data }`. This meant `type` received the whole object, `data` was undefined, and the receiving side's `payload.type === 'twoTruths'` comparison always failed. **Two Truths and Finish Sentence data never synced to the partner.** Fixed by changing the function signature to accept a single `{ type, data }` object.
+
+### simulateActivityPartner Fix (useAiActions.ts)
+2. **Not dead code** — used in TwoTruthsView and FinishSentenceView for auto-simulating partner choice when disconnected. Fixed hardcoded `Math.random() * 3` to use actual option count from `twoTruthsData.statements.length` or `finishSentenceData.options.length`.
+
+### Lazy Loading Assessment
+3. Evaluated lazy loading views. All views render inside `<AnimatePresence mode="wait">` — adding React.lazy + Suspense would conflict with animations and add complexity. App code is already 569KB after vendor splitting. **Not worth the tradeoff** for a personal fun app.
+
+### Verification
+- `npx tsc --noEmit`: 0 errors
+- `npm run build`: success (3.55s)
+
+---
+
+## 2026-03-12 — Fix Session 6: /simplify Code Review
+
+Ran three-agent parallel review (code reuse, quality, efficiency) across all 19 changed files.
+
+### Fixes Applied
+
+1. **Extracted `applyVibeDeltas` utility** (`utils/helpers.ts`) — the 4-line `Math.min(100, ...)` vibe clamping pattern was duplicated 4 times across `useAiActions.ts` (3x) and `useQuestionFlow.ts` (1x). All replaced with single utility call.
+
+2. **`syncFinishedProcessed` reset on disconnect** (`useNetworkSync.ts`) — the guard ref was never reset, so if a guest reconnected after disconnect, `SYNC_FINISHED` would be permanently blocked, leaving them stuck on loading. Now resets in `onDisconnect`.
+
+3. **Soundscape audio node memory leak** (`Soundscape.tsx`) — heartbeat oscillators created every beat were never `disconnect()`ed from the audio graph. Over a long session, hundreds of dead nodes accumulated. Added `osc.onended` handler to disconnect both oscillator and gain nodes.
+
+4. **Avatar retry timeout cleanup** (`usePersonaLogic.ts`) — retry `setTimeout` handles were not tracked, causing stale state updates on unmounted components. Added `retryTimers` ref with cleanup on unmount.
+
+5. **Heartbeat congestion mask** (`p2p.ts`) — when buffer was congested, `lastPongTime` was reset to `Date.now()`, masking genuinely dead connections. Changed to simply skip the ping cycle without resetting the timeout clock.
+
+6. **Removed duplicate `sendFullState` on connect** (`useNetworkSync.ts`) — host was sending full state on both raw connect AND on `SYNC_HELLO`, causing ~24 messages in the first 500ms. Removed the onConnect send since `SYNC_HELLO` always follows.
+
+7. **Moved `missedPongs` field** (`p2p.ts`) — from between methods to with other class fields for consistency.
+
+### Reviewed but Not Changed (False Positives / Not Worth It)
+- Timeout button CSS duplication (3 views) — three similar lines is simpler than premature abstraction
+- Activity setup boilerplate (2 branches) — abstracting adds indirection for little gain
+- `createSyncHandlers` typed as `any` — big refactor, not blocking
+- RatingView derivable state — minor extra renders
+- Magic strings for activities/status — revisit when scope grows
+
+### Verification
+- `npx tsc --noEmit`: 0 errors
+- `npm run build`: success (3.37s, 568.78KB app chunk)
+
+---
+
+## 2026-03-12 — Session 7: Hardening Plan (All 6 Phases)
+
+Implemented the full Tonight v2 Hardening & Polish Plan in dependency order.
+
+### Phase 1: Gemini API Proxy (Security)
+- Created Vercel serverless API routes (`api/gemini/text.ts`, `api/gemini/image.ts`) proxying all Gemini calls
+- Rewrote `services/geminiService.ts`: replaced `GoogleGenAI` SDK with `fetch('/api/gemini/...')` calls via `callProxy` helper
+- All 14 exported functions keep identical signatures — zero caller changes
+- Removed `define` block from `vite.config.ts` (no more client-side API key)
+- Removed `vendor-genai` chunk (SDK no longer in client bundle)
+- Client bundle reduced by ~267KB
+
+### Phase 2: Type Safety Hardening
+- Added `NetworkSyncState`, `NetworkSyncActions`, `SyncHandlerInput`, `SyncHandlerMap` interfaces to `useNetworkSync.ts`
+- Added `ActivityPayload` discriminated union and `ActivityId` type to `types.ts`
+- Typed `SYNC_FULL_STATE` payload fully (was `any`)
+- `handlersRef` typed as `useRef<SyncHandlerMap>({})`
+- Exported `GameState` and `PresenceState` interfaces from Zustand stores
+
+### Phase 3: useSessionState Refactor
+- Split 582-line monolith into focused hooks:
+  - `hooks/useBroadcastingState.ts` (~220 lines) — all P2P broadcasting wrappers + local UI state
+  - `hooks/useSessionLifecycle.ts` (~185 lines) — session persistence, restore, startApp, clearSession
+  - `hooks/usePersonaEffects.ts` (~58 lines) — haze CSS, avatar sync, chemistry milestones
+- `useSessionState.ts` reduced to ~200-line composition root with no business logic
+- Solved circular dep between network sync and lifecycle by lifting `sessionInfo` to composition root
+
+### Phase 4: Testing Foundation
+- Installed vitest + jsdom + @testing-library/react
+- Added vitest config to `vite.config.ts`
+- 4 test files, 35 tests — all pass:
+  - `tests/helpers.test.ts` (7) — `applyVibeDeltas` clamping
+  - `tests/geminiParsing.test.ts` (10) — `cleanAndParseJSON` robustness
+  - `tests/p2p.test.ts` (8) — message buffering, listeners, teardown
+  - `tests/syncHandlers.test.ts` (10) — handler behavior for each message type
+
+### Phase 5: UX Improvements
+- **5A: PWA Support** — `vite-plugin-pwa` with manifest, workbox caching, app icons, meta tags
+- **5B: QR Code** — `qrcode.react` in SetupView step 4, encodes magic link URL
+- **5C: sendFullState Batching** — replaced 12+ individual P2P sends with single `SYNC_FULL_STATE` message + `SYNC_FULL_STATE` handler that unpacks
+
+### Phase 6: Polish
+- **6A: Image Compression** — confirmed all paths already use `compressImage()`, no changes needed
+- **6B: Date History** — `utils/dateHistory.ts` with ring buffer (max 10), saved after `finalizeReport`, "Past Dates" collapsible UI on setup screen
+
+### /simplify Code Review Fixes
+- Extracted `DEFAULT_AVATAR` constant to `constants.ts` (was duplicated in 3 hooks)
+- Consolidated `api/gemini/analyze.ts` into `api/gemini/text.ts` (were identical)
+- Extracted `mergeUsers()` and `mergeDateContext()` helpers in `useNetworkSync.ts` (deduplicated between `SYNC_USER` and `SYNC_FULL_STATE` handlers)
+- Extracted `getDominantVibe()` to `utils/helpers.ts` (was computed inline in 3 places)
+- Fixed PastDates localStorage read on every render → `useMemo`
+- Merged double `setUserPersona` call in guest join path → single call
+- Added chemistry no-op guard (skip if unchanged)
+- `takeSip` now reuses `setSipLevel` broadcasting wrapper
+- Fixed `syncActions` useMemo deps (was using entire store objects → stable empty deps since Zustand setters are stable)
+- Typed `SYNC_FULL_STATE` handler payload (was `any`)
+
+### Verification
+- `npx tsc --noEmit`: 0 errors
+- `npm run build`: success (2.81s, 590KB app chunk — no GenAI SDK)
+- `npm test`: 35/35 pass
