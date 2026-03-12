@@ -59,76 +59,80 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
 
     a.triggerFlash("Initializing Activity...");
 
-    if (activityId === 'twoTruths') {
-      // Logic: Pick a subject (randomly or round robin). Default to Partner as subject for now.
-      // Actually, let's make the User (host) the subject first for simplicity, or random.
-      const isUserSubject = Math.random() > 0.5;
-      const subjectPersona = isUserSubject ? s.userPersona : s.partnerPersona;
-      const guesserPersona = isUserSubject ? s.partnerPersona : s.userPersona;
-      const subjectName = isUserSubject ? self.name : partner.name;
+    try {
+      if (activityId === 'twoTruths') {
+        const isUserSubject = Math.random() > 0.5;
+        const subjectPersona = isUserSubject ? s.userPersona : s.partnerPersona;
+        const guesserPersona = isUserSubject ? s.partnerPersona : s.userPersona;
+        const subjectName = isUserSubject ? self.name : partner.name;
 
-      const data = await generateTwoTruthsOneLie(
-        subjectPersona,
-        guesserPersona,
-        subjectName,
-        s.vibe,
-        s.conversationLog,
-        s.dateContext
-      );
+        const data = await generateTwoTruthsOneLie(
+          subjectPersona,
+          guesserPersona,
+          subjectName,
+          s.vibe,
+          s.conversationLog,
+          s.dateContext
+        );
 
-      const fullData: TwoTruthsData = {
-        ...data,
-        subjectId: isUserSubject ? self.id : partner.id,
-        subjectName: subjectName
-      };
+        const fullData: TwoTruthsData = {
+          ...data,
+          subjectId: isUserSubject ? self.id : partner.id,
+          subjectName: subjectName
+        };
 
-      setTwoTruthsData(fullData);
-      setActivityChoices({});
-      a.setView('twoTruths');
-      a.broadcastActivityData({ type: 'twoTruths', data: fullData });
+        setTwoTruthsData(fullData);
+        setActivityChoices({});
+        a.setView('twoTruths');
+        a.broadcastActivityData({ type: 'twoTruths', data: fullData });
 
-    } else if (activityId === 'finishSentence') {
-      const isUserSubject = Math.random() > 0.5;
-      const subjectPersona = isUserSubject ? s.userPersona : s.partnerPersona;
-      const guesserPersona = isUserSubject ? s.partnerPersona : s.userPersona;
-      const subjectName = isUserSubject ? self.name : partner.name;
-      const guesserName = isUserSubject ? partner.name : self.name;
+      } else if (activityId === 'finishSentence') {
+        const isUserSubject = Math.random() > 0.5;
+        const subjectPersona = isUserSubject ? s.userPersona : s.partnerPersona;
+        const guesserPersona = isUserSubject ? s.partnerPersona : s.userPersona;
+        const subjectName = isUserSubject ? self.name : partner.name;
+        const guesserName = isUserSubject ? partner.name : self.name;
 
-      const data = await generateFinishSentence(
-        subjectPersona,
-        guesserPersona,
-        subjectName,
-        guesserName,
-        s.vibe,
-        s.conversationLog,
-        s.dateContext
-      );
+        const data = await generateFinishSentence(
+          subjectPersona,
+          guesserPersona,
+          subjectName,
+          guesserName,
+          s.vibe,
+          s.conversationLog,
+          s.dateContext
+        );
 
-      const fullData: FinishSentenceData = {
-        ...data,
-        subjectId: isUserSubject ? self.id : partner.id,
-        subjectName: subjectName
-      };
+        const fullData: FinishSentenceData = {
+          ...data,
+          subjectId: isUserSubject ? self.id : partner.id,
+          subjectName: subjectName
+        };
 
-      setFinishSentenceData(fullData);
-      setActivityChoices({});
-      a.setView('finishSentence');
-      a.broadcastActivityData({ type: 'finishSentence', data: fullData });
+        setFinishSentenceData(fullData);
+        setActivityChoices({});
+        a.setView('finishSentence');
+        a.broadcastActivityData({ type: 'finishSentence', data: fullData });
 
-    } else {
-      // Standard Scene-based Activity (Truth or Drink, etc)
-      a.setView('loading'); // Show loading state immediately
-      const scene = await generateScene(
-        s.vibe, 
-        s.round, 
-        s.partnerPersona, 
-        s.userPersona, 
-        s.dateContext, 
-        s.lastChoiceText,
-        activityId
-      );
-      a.setCurrentScene(scene);
-      a.setView('activity');
+      } else {
+        // Standard Scene-based Activity (Truth or Drink, etc)
+        a.setView('loading');
+        const scene = await generateScene(
+          s.vibe,
+          s.round,
+          s.partnerPersona,
+          s.userPersona,
+          s.dateContext,
+          s.lastChoiceText,
+          activityId
+        );
+        a.setCurrentScene(scene);
+        a.setView('activity');
+      }
+    } catch (error) {
+      console.error("Activity generation failed:", error);
+      a.triggerFlash("Activity failed — returning to hub");
+      a.setView('hub');
     }
   };
 
@@ -145,22 +149,21 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     if (!choice) return;
 
     showFlash("Thought recorded...");
-    const result = await generateSilentReaction(choice.text, s.vibe);
-    
-    // Update local vibe silently
-    a.setVibe(prev => ({
-        playful: Math.min(100, prev.playful + (result.vibeUpdate.playful || 0)),
-        flirty: Math.min(100, prev.flirty + (result.vibeUpdate.flirty || 0)),
-        deep: Math.min(100, prev.deep + (result.vibeUpdate.deep || 0)),
-        comfortable: Math.min(100, prev.comfortable + (result.vibeUpdate.comfortable || 0)),
-    }));
+    try {
+      const result = await generateSilentReaction(choice.text, s.vibe);
 
-    // Trigger local thought bubble
-    // We don't have a direct setter for monologue in session state exposed easily, 
-    // but the `useInnerMonologue` hook polls. 
-    // We can use the reaction system to show the text to self? No, that broadcasts.
-    // For now, just flash the narrative.
-    showFlash(result.narrative);
+      a.setVibe(prev => ({
+          playful: Math.min(100, prev.playful + (result.vibeUpdate.playful || 0)),
+          flirty: Math.min(100, prev.flirty + (result.vibeUpdate.flirty || 0)),
+          deep: Math.min(100, prev.deep + (result.vibeUpdate.deep || 0)),
+          comfortable: Math.min(100, prev.comfortable + (result.vibeUpdate.comfortable || 0)),
+      }));
+
+      showFlash(result.narrative);
+    } catch (error) {
+      console.error("Silent reaction failed:", error);
+      showFlash("Signal interference...");
+    }
   };
 
   const processImage = async (base64: string, type: 'drink' | 'selfie' | 'general') => {
@@ -190,9 +193,24 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
 
   const finalizeReport = async (rating: number) => {
     a.triggerFlash("Compiling Final Dossier...");
-    const report = await generateIntelligenceReport(s.vibe, s.partnerPersona, rating, s.dateContext);
-    setIntelligenceReport(report);
-    return true;
+    try {
+      const report = await generateIntelligenceReport(s.vibe, s.partnerPersona, rating, s.dateContext);
+      setIntelligenceReport(report);
+      return true;
+    } catch (error) {
+      console.error("Intelligence report generation failed:", error);
+      a.triggerFlash("Dossier compilation failed");
+      // Return a minimal fallback report so the UI isn't stuck
+      setIntelligenceReport({
+        headline: "Transmission Lost",
+        lede: "The intelligence network experienced interference during compilation.",
+        summary: "This session's data was recorded but the final report could not be generated. The connection between agents was real — even if the paperwork wasn't.",
+        vibeAnalysis: s.vibe,
+        barTab: [],
+        rating
+      } as any);
+      return true;
+    }
   };
 
   const handleTwoTruthsComplete = (correct: boolean) => {

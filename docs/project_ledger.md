@@ -82,8 +82,23 @@ Verified via Google AI docs: `gemini-3.1-pro-preview` and `gemini-2.5-flash-imag
 - `npx tsc --noEmit`: 0 errors
 - `npm run build`: success (2.3s)
 
+---
+
+## 2026-03-12 — Fix Session 2: AI Error Recovery & Stuck-State Prevention
+
+### AI Error Recovery (hooks/useAiActions.ts)
+1. **handleActivitySelect** — wrapped entire function in try/catch. On failure, flashes error message and returns to hub instead of leaving view stuck on 'loading'.
+2. **finalizeReport** — wrapped in try/catch. On failure, generates a minimal fallback report so IntelligenceBriefing can still open instead of the user being stuck on the rating sync screen.
+3. **handleSilentChoice** — wrapped in try/catch. On failure, flashes "Signal interference..." instead of silent crash.
+
+### LoadingView Timeout (components/views/LoadingView.tsx)
+4. Added 30s timeout with "Return to Hub" button. Previously the loading screen had no escape hatch — if scene generation failed silently, the user was stuck forever.
+
+### Verification
+- `npx tsc --noEmit`: 0 errors
+- `npm run build`: success (2.35s)
+
 ### What's Next
-- Fix scene generation error recovery (view gets stuck if Gemini fails)
 - Fix persona avatar retry on generation failure
 - Consolidate flash message system
-- Add error UI for AI failures (retry buttons instead of silent fallbacks)
+- Consider code-splitting (bundle is 1MB, Vite warns about chunk size)
