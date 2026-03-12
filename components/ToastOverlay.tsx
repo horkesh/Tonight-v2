@@ -17,6 +17,10 @@ export const ToastOverlay: React.FC<ToastOverlayProps> = ({ isOpen, onClose, onC
         setProgress(0);
         if (intervalRef.current) clearInterval(intervalRef.current);
     }
+    // Cleanup interval on unmount
+    return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isOpen]);
 
   const startFilling = () => {

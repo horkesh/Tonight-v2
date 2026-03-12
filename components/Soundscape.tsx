@@ -45,11 +45,20 @@ export const Soundscape: React.FC<SoundscapeProps> = ({ vibe, location }) => {
     };
 
     window.addEventListener('click', startAudio, { once: true });
-    
+
     return () => {
-      oscillatorRef.current?.stop();
+      window.removeEventListener('click', startAudio);
+      if (oscillatorRef.current) {
+          try { oscillatorRef.current.stop(); } catch (_) { /* already stopped */ }
+          oscillatorRef.current = null;
+      }
       if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
-      audioCtxRef.current?.close();
+      if (audioCtxRef.current) {
+          audioCtxRef.current.close().catch(() => {});
+          audioCtxRef.current = null;
+      }
+      gainRef.current = null;
+      filterRef.current = null;
     };
   }, []); 
   

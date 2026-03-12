@@ -82,9 +82,14 @@ export class P2PService {
     this.emitStatus('Registering...');
 
     const initTimeout = setTimeout(() => {
-        if (!this.peer || (!this.peer.open && !this.peer.disconnected)) {
+        if (!this.peer || !this.peer.open) {
             console.warn("P2P: Initialization timeout. Signaling server may be unreachable.");
             this.emitStatus('Signaling Timeout');
+            // Actually clean up the stuck peer
+            if (this.peer && !this.peer.destroyed) {
+                this.peer.destroy();
+                this.peer = null;
+            }
             if (onError) onError("Signaling server unreachable. Check connection.");
         }
     }, 10000);
@@ -285,11 +290,13 @@ export class P2PService {
           }
 
           // Schedule next attempt with escalating backoff (3s → 4.5s → 6.75s → ... → cap 30s)
-          const delay = Math.min(
-              P2PService.CONNECTION_BASE_DELAY * Math.pow(1.5, this.connectionAttemptCount - 1),
-              30000
-          );
-          this.connectionRetryInterval = setTimeout(attempt, delay);
+          if (!this.isDestroyed && this.connectionAttemptCount <= P2PService.MAX_CONNECTION_ATTEMPTS) {
+              const delay = Math.min(
+                  P2PService.CONNECTION_BASE_DELAY * Math.pow(1.5, this.connectionAttemptCount - 1),
+                  30000
+              );
+              this.connectionRetryInterval = setTimeout(attempt, delay);
+          }
       };
 
       attempt();
@@ -321,6 +328,11 @@ export class P2PService {
     });
 
     conn.on('data', (data: any) => {
+      // Zombie connection check: ignore data from replaced connections
+      if (this.conn !== conn) {
+          console.warn("P2P: Ignoring data from zombie connection.");
+          return;
+      }
       if (data && data.type === 'PING') {
           this.send({ type: 'PONG' });
           return;
@@ -329,8 +341,13 @@ export class P2PService {
           this.lastPongTime = Date.now();
           return;
       }
+      // Validate message structure
+      if (!data || typeof data.type !== 'string') {
+          console.warn("P2P: Received malformed message, ignoring.", data);
+          return;
+      }
       // Log large or image-bearing messages without stringifying the whole payload
-      if (data?.type === 'SYNC_PERSONA' || data?.type === 'SYNC_DATE_CONTEXT' || data?.type === 'SYNC_USER') {
+      if (data.type === 'SYNC_PERSONA' || data.type === 'SYNC_DATE_CONTEXT' || data.type === 'SYNC_USER') {
           const hasImage = data.payload?.data?.imageUrl || data.payload?.generatedImage;
           console.log(`P2P: Received ${data.type} (hasImage: ${!!hasImage})`);
       }
@@ -357,32 +374,45 @@ export class P2PService {
     });
   }
 
+  private missedPongs: number = 0;
+
   private startHeartbeat() {
       this.stopHeartbeat();
       this.lastPongTime = Date.now();
-      
+      this.missedPongs = 0;
+
       this.heartbeatInterval = setInterval(() => {
           if (!this.conn || !this.conn.open) {
               this.stopHeartbeat();
               return;
           }
-          // Fix 3.3: Heartbeat buffer check
-          // If buffered amount is high, don't ping yet
-          if (this.conn.dataChannel?.bufferedAmount > 16000) return;
-
-          if (Date.now() - this.lastPongTime > 15000) {
-              console.warn("P2P: Heartbeat timed out.");
-              this.conn.close(); 
+          // If buffered amount is high, skip this ping cycle and don't count it against timeout
+          if (this.conn.dataChannel?.bufferedAmount > 16000) {
+              this.lastPongTime = Date.now(); // Don't penalize for buffer congestion
               return;
           }
-          
+
+          const timeSinceLastPong = Date.now() - this.lastPongTime;
+          if (timeSinceLastPong > 30000) {
+              // 30s without any pong — connection is likely dead
+              this.missedPongs++;
+              if (this.missedPongs >= 3) {
+                  console.warn("P2P: Heartbeat timed out after 3 missed cycles.");
+                  this.conn.close();
+                  return;
+              }
+              console.warn(`P2P: Missed pong cycle ${this.missedPongs}/3`);
+          } else {
+              this.missedPongs = 0;
+          }
+
           try {
              this.conn.send({ type: 'PING' });
           } catch (e) {
-             console.warn("P2P: Ping send failed, resetting timeout window");
-             this.lastPongTime = Date.now(); // Prevent false timeout on transient error
+             console.warn("P2P: Ping send failed");
+             // Don't reset lastPongTime — let the timeout counter continue naturally
           }
-      }, 3000); 
+      }, 5000);  // Check every 5s instead of 3s to reduce noise
   }
 
   private stopHeartbeat() {

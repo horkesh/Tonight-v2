@@ -146,7 +146,7 @@ export type NetworkMessage =
   | { type: 'SYNC_ROUND'; payload: number }
   | { type: 'SYNC_VIEW'; payload: AppView }
   | { type: 'SYNC_QUESTION_STATE'; payload: { question: Question | null; ownerId: string | null } }
-  | { type: 'TRIGGER_FLASH'; payload: string }
+  | { type: 'TRIGGER_FLASH'; payload: string | { content: string; duration: number } }
   | { type: 'TRIGGER_CLINK'; payload: null }
   | { type: 'TRIGGER_REACTION'; payload: string }
   | { type: 'SYNC_TOAST_INVITE'; payload: null }
@@ -163,6 +163,8 @@ export type NetworkMessage =
   | { type: 'SYNC_CONVERSATION_LOG'; payload: ConversationEntry[] }
   | { type: 'SYNC_ACTIVITY_DATA'; payload: { type: string; data: any } }
   | { type: 'SYNC_ACTIVITY_CHOICE'; payload: { userId: string; choice: number } }
+  | { type: 'SYNC_LAST_CHOICE'; payload: string }
+  | { type: 'REQUEST_SYNC'; payload?: never }
   | { type: 'PING'; payload?: never }
   | { type: 'PONG'; payload?: never };
 

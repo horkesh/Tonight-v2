@@ -16,9 +16,7 @@ export const RatingView: React.FC<RatingViewProps> = ({ onFinalize, onCancel }) 
 
   const [localRating, setLocalRating] = useState<number | null>(myRating);
   const [isWaiting, setIsWaiting] = useState(false);
-
-  // If I have rated, but partner hasn't, I am waiting.
-  // If both have rated, trigger finalize.
+  const [waitTimedOut, setWaitTimedOut] = useState(false);
 
   const handleRate = (r: number) => {
       setLocalRating(r);
@@ -29,10 +27,16 @@ export const RatingView: React.FC<RatingViewProps> = ({ onFinalize, onCancel }) 
     if (myRating !== null && partnerRating === null) {
         setIsWaiting(true);
     } else if (myRating !== null && partnerRating !== null) {
-        // Both done.
         onFinalize(myRating);
     }
   }, [myRating, partnerRating, onFinalize]);
+
+  // Timeout: if partner doesn't rate within 45s, allow continuing alone
+  useEffect(() => {
+    if (!isWaiting) return;
+    const timer = setTimeout(() => setWaitTimedOut(true), 45000);
+    return () => clearTimeout(timer);
+  }, [isWaiting]);
 
   return (
     <motion.div key="rating" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col items-center justify-center pt-24 gap-12 text-center">
@@ -72,6 +76,14 @@ export const RatingView: React.FC<RatingViewProps> = ({ onFinalize, onCancel }) 
                 <p className="text-[9px] text-white/30 max-w-xs leading-relaxed mt-4">
                     The intelligence report can only be compiled once both agents have submitted their final assessment.
                 </p>
+                {waitTimedOut && (
+                    <button
+                        onClick={() => onFinalize(myRating!)}
+                        className="mt-6 px-8 py-4 rounded-full border border-rose-500/40 text-rose-500 hover:bg-rose-500 hover:text-white text-[11px] tracking-[0.3em] uppercase font-black transition-all"
+                    >
+                        Continue Without Partner
+                    </button>
+                )}
             </div>
         )}
         

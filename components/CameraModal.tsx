@@ -29,17 +29,21 @@ export const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCap
 
   const startCamera = async () => {
     try {
-      if (videoRef.current && videoRef.current.srcObject) {
-          stopCamera();
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: facingMode }, 
-        audio: false 
+      // Always stop existing stream first and wait for tracks to fully release
+      stopCamera();
+      await new Promise(r => setTimeout(r, 100)); // Brief delay for device release
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingMode },
+        audio: false
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
         setStreaming(true);
+      } else {
+        // Component unmounted while we were waiting — stop the stream we just got
+        stream.getTracks().forEach(track => track.stop());
       }
     } catch (err) {
       console.error("Camera error:", err);

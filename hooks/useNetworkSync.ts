@@ -52,6 +52,8 @@ export function useNetworkSync(
   const hasSeenArrival = useRef(false);
   const handlersRef = useRef<any>({});
   const sentAssetsCache = useRef<{ hostAvatar?: string; partnerAvatar?: string; generatedImage?: string }>({});
+  const lastHelloTime = useRef(0);
+  const syncFinishedProcessed = useRef(false);
   
   // Ref to hold latest state for event listeners
   const stateRef = useRef(state);
@@ -142,19 +144,6 @@ export function useNetworkSync(
       });
   }, [sessionInfo]);
 
-  // Keep handlers fresh
-  useEffect(() => {
-    handlersRef.current = createSyncHandlers({
-        actions,
-        sessionInfo,
-        stateRef,
-        activityCallbacksRef,
-        hasSeenArrival,
-        setIsSynced,
-        sendFullState
-    });
-  }, [actions, activityCallbacksRef, sessionInfo, sendFullState]);
-
   // P2P Listeners
   useEffect(() => {
     handlersRef.current = createSyncHandlers({
@@ -165,7 +154,9 @@ export function useNetworkSync(
         hasSeenArrival,
         setIsSynced,
         sendFullState,
-        sentAssetsCache
+        sentAssetsCache,
+        lastHelloTime,
+        syncFinishedProcessed
     });
 
     const unsubscribeData = p2p.onData((msg: NetworkMessage) => {
@@ -260,7 +251,9 @@ function createSyncHandlers({
     activityCallbacksRef,
     hasSeenArrival,
     setIsSynced,
-    sendFullState
+    sendFullState,
+    lastHelloTime,
+    syncFinishedProcessed
 }: any) {
     return {
       SYNC_USER: (payload: User[]) => {
@@ -322,6 +315,10 @@ function createSyncHandlers({
       },
       SYNC_FINISHED: () => {
         if (!sessionInfo?.isHost) {
+            // Guard against duplicate SYNC_FINISHED processing
+            if (syncFinishedProcessed && syncFinishedProcessed.current) return;
+            if (syncFinishedProcessed) syncFinishedProcessed.current = true;
+
             setTimeout(() => {
                 setIsSynced(true);
                 actions.setView((prev: AppView) => (prev === 'setup' || prev === 'loading') ? 'hub' : prev);
@@ -339,9 +336,10 @@ function createSyncHandlers({
       },
       SYNC_HELLO: (payload: any) => {
           if (sessionInfo?.isHost) {
-              // Prevent rapid re-processing of SYNC_HELLO
-              if ((window as any)._lastHelloTime && Date.now() - (window as any)._lastHelloTime < 5000) return;
-              (window as any)._lastHelloTime = Date.now();
+              // Prevent rapid re-processing of SYNC_HELLO (5s debounce via ref, not window global)
+              const now = Date.now();
+              if (lastHelloTime && lastHelloTime.current && now - lastHelloTime.current < 5000) return;
+              if (lastHelloTime) lastHelloTime.current = now;
 
               const { id, name, avatar } = payload;
               const currentPartner = stateRef.current.partnerPersona;
@@ -359,18 +357,18 @@ function createSyncHandlers({
                   }
                   return u;
               }));
-              
+
               actions.setPartnerPersona((p: PersonaState) => ({ ...p, imageUrl: effectiveAvatar }));
-              
+
               if (!hasSeenArrival.current) {
                   hasSeenArrival.current = true;
                   actions.setArrivalEvent({ name: effectiveName, avatar: effectiveAvatar, type: 'arrival' });
               }
-              
+
               setIsSynced(true);
-              
-              requestAnimationFrame(() => setTimeout(() => sendFullState(), 200));
-              setTimeout(() => sendFullState(), 1500);
+
+              // Single delayed sendFullState (was sending twice — 200ms and 1500ms)
+              requestAnimationFrame(() => setTimeout(() => sendFullState(), 300));
           }
       },
       REQUEST_SYNC: () => {

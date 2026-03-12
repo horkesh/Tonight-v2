@@ -1,8 +1,40 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
 import { useSession } from '../../context/SessionContext';
+
+const WAITING_TIMEOUT_MS = 45000; // 45 seconds
+
+const WaitingForAnswer: React.FC<{ onTimeout: () => void }> = ({ onTimeout }) => {
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setTimedOut(true), WAITING_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center justify-center py-32 text-white/10 gap-8">
+      {!timedOut ? (
+        <>
+          <div className="w-12 h-12 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
+          <span className="text-[11px] uppercase tracking-[0.8em] font-black">Awaiting Disclosure</span>
+        </>
+      ) : (
+        <>
+          <span className="text-[11px] uppercase tracking-[0.5em] font-black text-white/30">No response received</span>
+          <button
+            onClick={onTimeout}
+            className="px-8 py-4 rounded-full border border-rose-500/40 text-rose-500 hover:bg-rose-500 hover:text-white text-[11px] tracking-[0.3em] uppercase font-black transition-all"
+          >
+            Skip & Continue
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
 
 interface QuestionViewProps {
   selfId?: string;
@@ -119,10 +151,9 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ selfId }) => {
                 <button onClick={() => qActions.handleRefuse(false)} className="mt-4 p-9 rounded-full border border-rose-500/40 text-rose-500 hover:bg-rose-500 hover:text-white text-[12px] tracking-[0.4em] uppercase font-black transition-all">Refuse & Sip 🥃</button>
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center py-32 text-white/10 gap-8">
-                    <div className="w-12 h-12 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
-                    <span className="text-[11px] uppercase tracking-[0.8em] font-black">Awaiting Disclosure</span>
-                </div>
+                <WaitingForAnswer onTimeout={() => {
+                    qActions.handleRefuse(true);
+                }} />
             )}
         </div>
         )}
