@@ -509,14 +509,15 @@ OUTPUT: JSON with "statements" array of exactly 3 objects, each with "text" (str
       }
     }));
     const data = cleanAndParseJSON(response.text, { statements: [] });
-    // Validate: ensure exactly 1 lie
+    // Validate: ensure exactly 3 statements with exactly 1 lie
+    if (data.statements.length >= 3) {
+      data.statements = data.statements.slice(0, 3);
+    }
     const lies = data.statements.filter((s: any) => s.isLie);
-    if (lies.length !== 1 || data.statements.length !== 3) {
-      // Fix: force exactly 1 lie if AI messed up
-      if (data.statements.length >= 3) {
-        data.statements = data.statements.slice(0, 3);
-        data.statements.forEach((s: any, i: number) => { s.isLie = i === 1; }); // Default: middle is lie
-      }
+    if (lies.length !== 1 && data.statements.length === 3) {
+      // Fix: randomize lie position so it's not predictable
+      const lieIndex = Math.floor(Math.random() * 3);
+      data.statements.forEach((s: any, i: number) => { s.isLie = i === lieIndex; });
     }
     return data;
   } catch (e) {

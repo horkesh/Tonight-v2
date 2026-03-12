@@ -119,7 +119,28 @@ Verified via Google AI docs: `gemini-3.1-pro-preview` and `gemini-2.5-flash-imag
 - `npx tsc --noEmit`: 0 errors
 - `npm run build`: success (2.64s)
 
+---
+
+## 2026-03-12 — Fix Session 4: Code Splitting, Two Truths Fix
+
+### Two Truths Lie Validation (services/geminiService.ts)
+1. **Randomized lie position** — when AI returns invalid lie count, the fallback now places the lie at a random index instead of always position 1 (middle). Prevents trivial guessing.
+
+### Code Splitting (vite.config.ts)
+2. **Vendor chunking** — split heavy dependencies into separate cached chunks:
+   - `vendor-react` (4KB) — React/ReactDOM
+   - `vendor-motion` (133KB) — Framer Motion
+   - `vendor-peer` (94KB) — PeerJS
+   - `vendor-genai` (267KB) — Google GenAI SDK
+   - `vendor-charts` (0.04KB) — Recharts (tree-shaken, barely used)
+   - App code: 1,067KB → 569KB (47% reduction)
+   - Vendor chunks cache independently across deploys
+
+### Verification
+- `npx tsc --noEmit`: 0 errors
+- `npm run build`: success (4.1s)
+
 ### What's Next
-- Consider code-splitting (bundle is 1MB)
 - Consolidate flash message system (3 overlapping patterns)
-- Improve Two Truths lie positioning (currently hardcodes middle as lie on validation failure)
+- Clean up dead code (simulateActivityPartner)
+- Consider lazy-loading IntelligenceBriefing and view components
