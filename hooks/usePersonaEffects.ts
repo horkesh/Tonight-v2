@@ -9,13 +9,18 @@ export function usePersonaEffects(
 ) {
   const lastChemistryMilestone = useRef<number>(0);
 
-  // Haze / Drunk Factor Effect
+  // Haze / Drunk Factor Effect — applied to overlay element instead of body
   useEffect(() => {
-    const root = document.documentElement;
+    const el = document.getElementById('haze-overlay');
+    if (!el) return;
     const blur = presence.partnerPersona.drunkFactor * 0.8;
-    root.style.setProperty('--haze-blur', `${blur}px`);
-    if (presence.partnerPersona.drunkFactor > 0) document.body.classList.add('haze-active');
-    else document.body.classList.remove('haze-active');
+    if (blur > 0) {
+      el.style.backdropFilter = `blur(${blur}px) hue-rotate(${blur * 2}deg)`;
+      el.style.opacity = '1';
+    } else {
+      el.style.backdropFilter = 'none';
+      el.style.opacity = '0';
+    }
   }, [presence.partnerPersona.drunkFactor]);
 
   // Keep users[].avatar in sync with persona imageUrl

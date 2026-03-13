@@ -218,6 +218,8 @@ export const ACTIVITY_ICONS: Record<string, string> = {
   twoTruths: '🎭', finishSentence: '✍️', truth: '🥃',
 };
 
+export const NOISE_TEXTURE_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwBAMAAAClLOS0AAAAElBMVEUAAAAAAAAAAAAAAAAAAAAAAADgKxmiAAAABnRSTlMFCA0RFRkMN4ZOAAAAgUlEQVQ4y83SMQ6AMAxE0YjCBbj/WcggZbBlp2GBhv+b0SjFLGnlqFa75RkQkGgFGBRgE2BpEwCTAPssAI8EYFCAoQDTCF6vAN8F4GbAl+tz/wTwLICjhICEgETzXwBO5R93AXjht28B/uiPBHiUcF2A3RR7AphqOe8CcA7Aow81SM4LXHZ2tQAAAABJRU5ErkJggg==";
+
 export const PAGE_VARIANTS = {
   initial: { opacity: 0, filter: 'blur(12px)', scale: 1.05 },
   animate: { opacity: 1, filter: 'blur(0px)', scale: 1, transition: { duration: 0.8, ease: "easeOut" as const } },

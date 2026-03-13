@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import { VibeStats } from '../types';
 import { motion } from 'framer-motion';
+import { NOISE_TEXTURE_URI } from '../constants';
 
 interface VibeMatrixProps {
   vibe: VibeStats;
@@ -74,7 +75,7 @@ export const VibeMatrix: React.FC<VibeMatrixProps> = ({ vibe }) => {
         </svg>
 
         {/* Subtle Noise Texture Overlay */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay" style={{ backgroundImage: `url("${NOISE_TEXTURE_URI}")`, backgroundRepeat: "repeat", backgroundSize: "48px 48px" }} />
       </div>
     </motion.div>
   );

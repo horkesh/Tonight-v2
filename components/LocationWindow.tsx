@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateLocation } from '../types';
+import { NOISE_TEXTURE_URI } from '../constants';
 
 const LOCATION_ICONS: Record<string, string> = {
   sax: '🎷', city: '🌃', book: '📚', wave: '🌊', car: '🚘'
@@ -49,7 +50,7 @@ export const LocationWindow: React.FC<LocationWindowProps> = ({ location, genera
 
       {/* Interior Reflection / Haze */}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent pointer-events-none" />
-      <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: "url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwBAMAAAClLOS0AAAAElBMVEUAAAAAAAAAAAAAAAAAAAAAAADgKxmiAAAABnRSTlMFCA0RFRkMN4ZOAAAAgUlEQVQ4y83SMQ6AMAxE0YjCBbj/WcggZbBlp2GBhv+b0SjFLGnlqFa75RkQkGgFGBRgE2BpEwCTAPssAI8EYFCAoQDTCF6vAN8F4GbAl+tz/wTwLICjhICEgETzXwBO5R93AXjht28B/uiPBHiUcF2A3RR7AphqOe8CcA7Aow81SM4LXHZ2tQAAAABJRU5ErkJggg==\")", backgroundRepeat: "repeat", backgroundSize: "48px 48px" }} />
+      <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay" style={{ backgroundImage: `url("${NOISE_TEXTURE_URI}")`, backgroundRepeat: "repeat", backgroundSize: "48px 48px" }} />
 
       {/* Subtle Live Pulse Overlay */}
       <motion.div

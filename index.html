@@ -27,8 +27,6 @@
             --highlight-tint: 0px 0px 0px rgba(255,255,255,0);
 
             /* Atmosphere */
-            --haze-blur: 0px;
-            --haze-hue: 0deg;
             --color-blob-1: #4c0519;
             --color-blob-2: #1e1b4b;
         }
@@ -40,9 +38,6 @@
             overflow-y: auto;
             -webkit-font-smoothing: antialiased;
             transition: background-color 1.5s ease;
-        }
-        .haze-active {
-            filter: blur(var(--haze-blur)) hue-rotate(var(--haze-hue));
         }
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Playfair Display', serif;
@@ -83,6 +78,7 @@
             background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwBAMAAAClLOS0AAAAElBMVEUAAAAAAAAAAAAAAAAAAAAAAADgKxmiAAAABnRSTlMFCA0RFRkMN4ZOAAAAgUlEQVQ4y83SMQ6AMAxE0YjCBbj/WcggZbBlp2GBhv+b0SjFLGnlqFa75RkQkGgFGBRgE2BpEwCTAPssAI8EYFCAoQDTCF6vAN8F4GbAl+tz/wTwLICjhICEgETzXwBO5R93AXjht28B/uiPBHiUcF2A3RR7AphqOe8CcA7Aow81SM4LXHZ2tQAAAABJRU5ErkJggg==");
             background-repeat: repeat;
             background-size: 48px 48px;
+            mix-blend-mode: overlay;
         }
         
         /* Glitch Effect Classes */
@@ -132,6 +128,7 @@
 <link rel="stylesheet" href="/index.css">
 </head>
 <body>
+    <div id="haze-overlay" style="position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0;transition:backdrop-filter 1s ease,opacity 0.5s ease;"></div>
     <div id="root"></div>
     <div class="mesh-bg"></div>
     <div class="cinematic-overlay"></div>
