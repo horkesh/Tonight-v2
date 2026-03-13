@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { PresenceBar } from './components/PresenceBar';
 import { ActionDock } from './components/ActionDock';
 import { CameraModal } from './components/CameraModal';
@@ -29,20 +29,20 @@ import { useInnerMonologue } from './hooks/useInnerMonologue';
 import { compressImage } from './utils/helpers';
 
 import { PAGE_VARIANTS } from './constants';
+import { useAssetPreloader } from './hooks/useAssetPreloader';
 
-// Views
+// Views — SetupView is eager (initial screen), rest are lazy-loaded
 import { SetupView } from './components/views/SetupView';
-import { OnboardingView } from './components/views/OnboardingView';
-import { HubView } from './components/views/HubView';
-import { QuestionView } from './components/views/QuestionView';
-import { RatingView } from './components/views/RatingView';
-import { ActivityView } from './components/views/ActivityView';
-import { TwoTruthsView } from './components/views/TwoTruthsView';
-import { FinishSentenceView } from './components/views/FinishSentenceView';
-import { LoadingView } from './components/views/LoadingView';
 import { SyncWaitScreen } from './components/views/SyncWaitScreen';
 
-import { useAssetLoader } from './hooks/useAssetLoader';
+const OnboardingView = lazy(() => import('./components/views/OnboardingView').then(m => ({ default: m.OnboardingView })));
+const HubView = lazy(() => import('./components/views/HubView').then(m => ({ default: m.HubView })));
+const QuestionView = lazy(() => import('./components/views/QuestionView').then(m => ({ default: m.QuestionView })));
+const RatingView = lazy(() => import('./components/views/RatingView').then(m => ({ default: m.RatingView })));
+const ActivityView = lazy(() => import('./components/views/ActivityView').then(m => ({ default: m.ActivityView })));
+const TwoTruthsView = lazy(() => import('./components/views/TwoTruthsView').then(m => ({ default: m.TwoTruthsView })));
+const FinishSentenceView = lazy(() => import('./components/views/FinishSentenceView').then(m => ({ default: m.FinishSentenceView })));
+const LoadingView = lazy(() => import('./components/views/LoadingView').then(m => ({ default: m.LoadingView })));
 
 function AppContent() {
   const session = useSession();
@@ -62,6 +62,9 @@ function AppContent() {
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
   
   const reactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Background-preload location images (non-blocking)
+  useAssetPreloader();
 
   // Custom Hooks - Now passing dateContext for dynamic theming
   useAtmosphere(s.vibe, s.dateContext);
@@ -246,18 +249,19 @@ function AppContent() {
             )}
         </AnimatePresence>
 
-        <AnimatePresence mode="wait">
+        <Suspense fallback={<LazyFallback />}>
+          <AnimatePresence mode="wait">
             {s.view === 'setup' && (
                 <SetupView onStart={a.startApp} />
             )}
-            
+
             {/* Sync Blocking State for Guests — Clean loading, escape hatches appear after delay */}
             {(s.view as string) !== 'setup' && !s.isSynced && (
                  <SyncWaitScreen
-                    onRetry={() => { 
-                        qa.showFlash("Retrying Connection..."); 
+                    onRetry={() => {
+                        qa.showFlash("Retrying Connection...");
                         if (!s.isConnected) a.retryConnection();
-                        else a.refreshSync(); 
+                        else a.refreshSync();
                     }}
                     onCancel={() => a.clearSession()}
                     status={s.connectionStatus}
@@ -270,19 +274,19 @@ function AppContent() {
             )}
 
             {s.view === 'hub' && s.isSynced && (
-                <HubView 
-                    onOpenReactionPicker={() => setReactionPickerOpen(true)} 
+                <HubView
+                    onOpenReactionPicker={() => setReactionPickerOpen(true)}
                 />
             )}
 
             {s.view === 'question' && s.isSynced && (
-                <QuestionView 
-                    selfId={a.getSelf()?.id} 
+                <QuestionView
+                    selfId={a.getSelf()?.id}
                 />
             )}
 
             {s.view === 'rating' && s.isSynced && (
-                <RatingView 
+                <RatingView
                     onFinalize={async (n) => { if(await aa.finalizeReport(n)) setReportOpen(true); }}
                     onCancel={() => a.setView('hub')}
                 />
@@ -305,7 +309,8 @@ function AppContent() {
             {s.view === 'loading' && s.isSynced && (
                 <LoadingView />
             )}
-        </AnimatePresence>
+          </AnimatePresence>
+        </Suspense>
       </main>
 
       {/* Conditionally Render ActionDock - Hides in Setup or Syncing */}
@@ -360,23 +365,21 @@ function AppContent() {
   );
 }
 
+const LazyFallback = () => (
+  <div className="flex items-center justify-center py-24">
+    <div className="relative">
+      <div className="w-10 h-10 border-2 border-white/10 rounded-full" />
+      <div className="absolute inset-0 border-t-2 border-rose-500 rounded-full animate-spin" />
+    </div>
+  </div>
+);
+
 export default function App() {
-  const assetsLoaded = useAssetLoader();
-
-  if (!assetsLoaded) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="relative">
-          <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
-          <div className="absolute inset-0 border-t-2 border-rose-500 rounded-full animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <SessionProvider>
-      <AppContent />
+      <Suspense fallback={<LazyFallback />}>
+        <AppContent />
+      </Suspense>
     </SessionProvider>
   );
 }
