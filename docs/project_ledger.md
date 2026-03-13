@@ -265,3 +265,65 @@ Implemented the full Tonight v2 Hardening & Polish Plan in dependency order.
 - `npx tsc --noEmit`: 0 errors
 - `npm run build`: success (2.81s, 590KB app chunk — no GenAI SDK)
 - `npm test`: 35/35 pass
+
+---
+
+## 2026-03-13 — Performance Overhaul
+
+### Problem
+App was running at ~5 FPS on initial screen. Even hover effects had 5-second lag. Reported on both Vercel deployment and local dev server.
+
+### Root Cause Analysis
+Three compounding GPU/CPU killers running on every frame, even before any session started:
+
+1. **Animated blur blobs** — Two `position: fixed` divs (70vw and 80vw) with `filter: blur(80–120px)` animating continuously via `@keyframes float`. On every frame, the GPU had to re-blur massive viewport-sized textures. The worst single offender.
+
+2. **`feTurbulence` SVG noise** — Full-viewport div with an inline SVG `feTurbulence` filter. Unlike a raster image, `feTurbulence` is computed by the CPU on every paint — not cached. This was introduced when replacing the original external `grainy-gradients.vercel.app/noise.svg` fetch (which was at least a pre-rasterized image).
+
+3. **`body` filter transition** — `transition: background-color 1.5s ease, filter 1s ease` on `<body>`. Any `filter` change on the root element forces the GPU to recomposite the entire page. The haze/drunk effect toggled `.haze-active` (which applied `filter: blur() hue-rotate()` to `<body>`) every 15 seconds during decay — causing a full-page GPU recomposite on a timer.
+
+4. **Blocking asset preloader** — App rendered nothing (spinner only) until 6 Unsplash images downloaded. On slow connections this blocked the initial render for several seconds.
+
+5. **External noise SVG** — `grainy-gradients.vercel.app/noise.svg` was a network dependency on every load. Also referenced in `LocationWindow` and `VibeMatrix`.
+
+6. **Dead import map** — `<script type="importmap">` in `index.html` listed 7 esm.sh CDN URLs (React, framer-motion, PeerJS, etc.). Vite handles all imports at build time — the browser was parsing and attempting to resolve these unused entries on every load.
+
+7. **Eager view imports** — All 8 views (HubView, QuestionView, ActivityView, etc.) loaded upfront even though only SetupView is shown initially.
+
+### Fixes Applied
+
+**GPU / Rendering**
+- Replaced animated blur blobs with static CSS `radial-gradient()` on `.mesh-bg`. Same ambient color glow, zero per-frame GPU cost. Colors still update dynamically via `--color-blob-1`/`--color-blob-2` CSS variables driven by `useAtmosphere`.
+- Replaced `feTurbulence` SVG noise with a tiny repeating 48×48 static PNG (base64 inline). Raster textures are cached by the GPU; SVG filters are not.
+- Added `mix-blend-mode: overlay` to noise layer (was lost in the feTurbulence replacement).
+- Removed `box-shadow: inset 0 0 100px` from `.cinematic-overlay` — expensive on a full-viewport fixed element. The radial gradient vignette already handles the effect.
+- Removed `filter 1s ease` from `body` transition — was causing full-page recomposite on any filter change.
+- Moved haze/drunk effect from `document.body.classList` (`.haze-active`) to a dedicated `#haze-overlay` div using `backdrop-filter`. Applying filter to body composites the entire page; a fixed overlay composites only that layer.
+
+**Load Time**
+- Removed blocking `useAssetLoader` gate — app now renders immediately. Location images preload in background via `requestIdleCallback` (graceful `setTimeout` fallback with proper cleanup on unmount).
+- Removed `<script type="importmap">` from `index.html` — dead code, Vite resolves all imports at build time.
+- Lazy-loaded 8 views with `React.lazy()`: `OnboardingView`, `HubView`, `QuestionView`, `RatingView`, `ActivityView`, `TwoTruthsView`, `FinishSentenceView`, `LoadingView`. Only `SetupView` and `SyncWaitScreen` load eagerly. Consolidated to a single `<Suspense>` wrapping the `<AnimatePresence>` (views are mutually exclusive — one boundary is sufficient).
+
+**External Dependencies Eliminated**
+- Noise texture extracted to `NOISE_TEXTURE_URI` constant in `constants.ts`. Replaced all 3 references: `index.html`, `LocationWindow.tsx`, `VibeMatrix.tsx`.
+
+**Bundle**
+- Replaced unused `recharts` manual chunk with `@google/genai` and `qrcode.react` chunks for better splitting.
+- Removed unused `speed` variable and all `--bg-speed` assignments from `useAtmosphere` (was driving blob animation speed — no longer relevant).
+
+### Files Changed
+- `index.html` — blob → gradient, noise texture, removed importmap, removed float keyframe, haze-overlay div, body transition
+- `hooks/useAssetLoader.ts` → renamed to `hooks/useAssetPreloader.ts` — non-blocking with requestIdleCallback + cleanup
+- `hooks/useAtmosphere.ts` — removed speed variable
+- `hooks/usePersonaEffects.ts` — haze moved to #haze-overlay
+- `App.tsx` — lazy views, single Suspense boundary, removed asset loader gate
+- `components/LocationWindow.tsx` — noise from constant, mix-blend-mode restored
+- `components/VibeMatrix.tsx` — noise from constant, external URL removed
+- `constants.ts` — added `NOISE_TEXTURE_URI`
+- `vite.config.ts` — updated manual chunks
+
+### Verification
+- `npx tsc --noEmit`: 0 errors
+- `npm run build`: success
+- Result: smooth rendering on both Vercel and local production serve (`npx serve dist -s`)
