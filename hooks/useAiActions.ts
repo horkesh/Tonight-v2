@@ -23,6 +23,7 @@ import { applyVibeDeltas } from '../utils/helpers';
 import { saveDateToHistory, buildHistoryEntry } from '../utils/dateHistory';
 import { useProfileStore } from '../store/profileStore';
 import { buildPromptContext } from '../services/prompts/promptContext';
+import { soundManager } from '../services/soundManager';
 
 const getPromptContext = () => {
   const { activeProfile, activeVenue, activeDateConfig } = useProfileStore.getState();
@@ -68,6 +69,7 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     if (!self || !partner) return;
 
     a.triggerFlash("Initializing Activity...");
+    soundManager.play('activity');
 
     try {
       if (activityId === 'twoTruths') {
@@ -210,6 +212,7 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
 
     try {
       const report = await generateIntelligenceReport(s.vibe, s.partnerPersona, rating, s.dateContext, getPromptContext());
+      report.caseNumber = `TNT-${Date.now().toString(36).toUpperCase()}`;
       setIntelligenceReport(report);
       saveHistory(report);
       return true;
@@ -225,7 +228,8 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
         closingThought: '',
         barTab: [],
         date: new Date().toISOString(),
-        partnerRating: rating
+        partnerRating: rating,
+        caseNumber: `TNT-${Date.now().toString(36).toUpperCase()}`
       } satisfies IntelligenceReport;
       setIntelligenceReport(fallback);
       saveHistory(fallback);

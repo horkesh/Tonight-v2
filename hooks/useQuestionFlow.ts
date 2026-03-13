@@ -7,6 +7,7 @@ import { useQuestionStore } from '../store/aiState';
 import { applyVibeDeltas } from '../utils/helpers';
 import { buildPromptContext } from '../services/prompts/promptContext';
 import { useProfileStore } from '../store/profileStore';
+import { soundManager } from '../services/soundManager';
 
 const VIBE_WEIGHTS: Record<string, Partial<VibeStats>> = {
   'Style': { playful: 10, flirty: 5 },
@@ -236,6 +237,7 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
              showFlash("Partner took a sip");
         }
     } else if (isVulnerability) {
+        soundManager.play('vulnerability');
         if (isBot) {
              showFlash("VULNERABILITY DETECTED");
         } else {
@@ -248,6 +250,8 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
         const delta = VIBE_WEIGHTS[question.category];
         a.setVibe(v => applyVibeDeltas(v, delta));
     }
+
+    soundManager.play('answer');
 
     if (!isBot) {
         a.setLastChoiceText(opt);

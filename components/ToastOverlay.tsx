@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from './ui/GlassCard';
+import { soundManager } from '../services/soundManager';
 
 interface ToastOverlayProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const ToastOverlay: React.FC<ToastOverlayProps> = ({ isOpen, onClose, onC
       setProgress(p => {
         if (p >= 100) {
           clearInterval(intervalRef.current!);
+          soundManager.play('clink');
           onClink();
           return 100;
         }

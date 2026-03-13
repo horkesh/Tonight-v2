@@ -177,6 +177,20 @@ export const HOST_PROFILE: HostProfile = {
   avatarPath: null,
 };
 
+export const NARRATIVE_ARC_RULES: Record<string, { categories: string[]; activities: string[] }> = {
+  '0-2': { categories: ['Style', 'Preferences'], activities: ['twoTruths'] },
+  '3-5': { categories: ['Escape', 'Deep'], activities: ['twoTruths', 'finishSentence'] },
+  '6-7': { categories: ['Intimate', 'Desire'], activities: ['finishSentence', 'truth'] },
+  '8+':  { categories: [], activities: [] },
+};
+
+export const getNarrativeArcForRound = (round: number): { categories: string[]; activities: string[] } => {
+  if (round <= 2) return NARRATIVE_ARC_RULES['0-2'];
+  if (round <= 5) return NARRATIVE_ARC_RULES['3-5'];
+  if (round <= 7) return NARRATIVE_ARC_RULES['6-7'];
+  return NARRATIVE_ARC_RULES['8+'];
+};
+
 export const PAGE_VARIANTS = {
   initial: { opacity: 0, filter: 'blur(12px)', scale: 1.05 },
   animate: { opacity: 1, filter: 'blur(0px)', scale: 1, transition: { duration: 0.8, ease: "easeOut" as const } },

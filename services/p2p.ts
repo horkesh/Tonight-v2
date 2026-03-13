@@ -27,6 +27,7 @@ export class P2PService {
   
   private myId: string = '';
   private targetId: string = '';
+  private lastPeerId: string = '';
   public isHost: boolean = false;
   
   // Message Buffer for pre-open sends
@@ -129,6 +130,8 @@ export class P2PService {
               this.targetId = hostId;
               this.startConnectionLoop(hostId);
           }
+
+          this.setupVisibilityListener();
         });
 
         peer.on('error', (err: any) => {
@@ -358,21 +361,60 @@ export class P2PService {
     conn.on('close', () => {
         console.log('P2P: Connection Closed');
         this.stopHeartbeat();
-        if (this.conn === conn) this.conn = null;
+        if (this.conn === conn) {
+            this.lastPeerId = conn.peer || '';
+            this.conn = null;
+        }
         this.isConnecting = false;
         this.onDisconnectCallbacks.forEach(cb => cb());
-        
+
         // Guest Auto-Reconnect Logic
         if (!this.isHost && this.targetId && !this.isDestroyed) {
             console.log("P2P: Lost connection. Reconnecting...");
             this.startConnectionLoop(this.targetId);
         }
+        // Host: keep peer alive for incoming reconnections (don't teardown)
     });
 
     conn.on('error', (err: any) => {
         console.warn("P2P Connection Error:", err);
         this.isConnecting = false;
     });
+  }
+
+  private visibilityHandler: (() => void) | null = null;
+
+  private setupVisibilityListener() {
+    // Remove any previous listener
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+    }
+
+    this.visibilityHandler = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (this.isDestroyed) return;
+
+      // Tab is back in focus — check if connection is dead
+      if (this.conn && this.conn.open) {
+        // Connection alive, send a ping to verify
+        try { this.conn.send({ type: 'PING' }); } catch {}
+        return;
+      }
+
+      // Connection is dead — attempt reconnect
+      console.log('P2P: Tab visible, connection dead. Attempting reconnect...');
+      this.emitStatus('Reconnecting...');
+
+      if (!this.isHost && this.targetId) {
+        // Guest: restart connection loop to find host
+        this.startConnectionLoop(this.targetId);
+      } else if (this.isHost && this.peer && !this.peer.destroyed) {
+        // Host: peer is still alive, just waiting for guest to reconnect
+        this.emitStatus('Waiting for reconnect...');
+      }
+    };
+
+    document.addEventListener('visibilitychange', this.visibilityHandler);
   }
 
   private startHeartbeat() {
@@ -491,9 +533,17 @@ export class P2PService {
       this.onStatusCallbacks.forEach(cb => cb(status));
   }
   
+  getLastPeerId(): string {
+    return this.lastPeerId;
+  }
+
   teardown() {
       this.isDestroyed = true;
       this.stopHeartbeat();
+      if (this.visibilityHandler) {
+          document.removeEventListener('visibilitychange', this.visibilityHandler);
+          this.visibilityHandler = null;
+      }
       if (this.connectionRetryInterval) clearTimeout(this.connectionRetryInterval);
       this.connectionRetryInterval = null;
       if (this.signalingRetryTimer) clearTimeout(this.signalingRetryTimer);

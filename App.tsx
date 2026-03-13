@@ -209,10 +209,12 @@ function AppContent() {
           <Soundscape vibe={s.vibe} location={s.dateContext?.location} />
           <ReactionOverlay url={activeReaction} />
           <InnerMonologue text={monologue} />
-          <ConnectionStatusOverlay 
-                isConnected={s.isConnected} 
-                isActive={true} 
+          <ConnectionStatusOverlay
+                isConnected={s.isConnected}
+                isActive={true}
                 onRetry={a.retryConnection}
+                partnerName={a.getPartner()?.name}
+                connectionStatus={s.connectionStatus}
           />
           
           <AnimatePresence>

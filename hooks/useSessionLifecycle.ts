@@ -49,7 +49,7 @@ export function useSessionLifecycle(
       if (saved) {
           try {
               const { userId, roomId, isHost, timestamp } = JSON.parse(saved);
-              if (Date.now() - timestamp < 1000 * 60 * 5) {
+              if (Date.now() - timestamp < 1000 * 60 * 15) {
                   console.log("Session: Restoring existing session...");
                   setSessionInfo({ userId, roomId, isHost });
                   initSession(userId, roomId, isHost);
@@ -70,7 +70,7 @@ export function useSessionLifecycle(
                           }
                           return prev;
                       });
-                  }, 8000);
+                  }, 15000);
               } else {
                   console.log("Session: Stale session found, clearing.");
                   localStorage.removeItem(SESSION_KEY);

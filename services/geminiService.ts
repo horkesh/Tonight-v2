@@ -1,9 +1,10 @@
 
-import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData } from "../types";
+import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData, NarrativeSuggestion } from "../types";
 import type { PromptContext } from "../types/profiles";
 import {
   SYSTEM_INSTRUCTION
 } from "../constants";
+import { buildNarrativePrompt } from "./prompts/narrativePrompts";
 import { getDominantVibe } from "../utils/helpers";
 import {
   buildScenePrompt,
@@ -826,6 +827,50 @@ interface PhotoAnalysisResult {
     appearance: string;
     traits: string[];
 }
+
+export const generateNarrativeSuggestion = async (
+  round: number,
+  vibe: VibeStats,
+  chemistry: number,
+  conversationLog: ConversationEntry[],
+  promptContext?: PromptContext | null
+): Promise<NarrativeSuggestion> => {
+  const prompt = buildNarrativePrompt(round, vibe, chemistry, conversationLog, promptContext || null);
+
+  try {
+    const response = await callWithRetry(() => callProxy('/api/gemini/text', {
+      model: MODEL_TEXT,
+      contents: prompt,
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: T.OBJECT,
+          properties: {
+            suggestedAction: { type: T.STRING },
+            suggestedCategory: { type: T.STRING },
+            suggestedActivity: { type: T.STRING },
+            reasoning: { type: T.STRING },
+            transitionNarrative: { type: T.STRING },
+          },
+          required: ["suggestedAction", "transitionNarrative", "reasoning"],
+        },
+      },
+    }));
+
+    const data = cleanAndParseJSON(response.text);
+    return {
+      suggestedAction: data.suggestedAction === 'activity' ? 'activity' : 'question',
+      suggestedCategory: data.suggestedCategory || undefined,
+      suggestedActivity: data.suggestedActivity || undefined,
+      reasoning: data.reasoning || '',
+      transitionNarrative: data.transitionNarrative || 'The night continues...',
+    };
+  } catch (error) {
+    console.error("Narrative suggestion failed:", error);
+    throw error;
+  }
+};
 
 export const analyzeUserPhotoForAvatar = async (base64Image: string, hint?: string): Promise<PhotoAnalysisResult> => {
   const prompt = `

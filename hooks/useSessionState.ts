@@ -19,7 +19,7 @@ export function useSessionState() {
 
   // --- UI state not owned by other hooks ---
   const [activePersonaTab, setActivePersonaTab] = useState<'partner' | 'self'>('partner');
-  const [hasSeenArrivalOverlay, setHasSeenArrivalOverlay] = useState(false);
+  // hasSeenArrivalOverlay now lives in presenceState store for persistence across reconnections
 
   // --- Activity callbacks ref ---
   const activityCallbacksRef = useRef<{
@@ -130,7 +130,8 @@ export function useSessionState() {
     arrivalEvent: presence.arrivalEvent,
     lastChoiceText: broadcasting.lastChoiceText,
     activePersonaTab,
-    hasSeenArrivalOverlay,
+    hasSeenArrivalOverlay: presence.hasSeenArrivalOverlay,
+    isHost: sessionInfo?.isHost ?? false,
   };
 
   const actions = {
@@ -174,8 +175,8 @@ export function useSessionState() {
     setActivePersonaTab,
     clearArrivalEvent: useCallback(() => {
         presence.setArrivalEvent(null);
-        setHasSeenArrivalOverlay(true);
-    }, [presence.setArrivalEvent]),
+        presence.setHasSeenArrivalOverlay(true);
+    }, [presence.setArrivalEvent, presence.setHasSeenArrivalOverlay]),
     confirmGuestProfile: (name: string, background: string) => {
         presence.setGuestProfileConfirmed(true);
         if (name) {

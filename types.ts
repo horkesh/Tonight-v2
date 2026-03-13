@@ -97,15 +97,16 @@ export interface PersonaState {
 }
 
 export interface IntelligenceReport {
-  publicationName: string; // New field
+  publicationName: string;
   headline: string;
   lede: string;
   summary: string;
   vibeAnalysis: string;
   closingThought: string;
-  partnerRating?: number; // My rating of them
+  partnerRating?: number;
   date: string;
   barTab: string[];
+  caseNumber?: string;
 }
 
 export interface SessionState {
@@ -138,7 +139,15 @@ export interface TouchPoint {
   timestamp: number;
 }
 
-export type NetworkMessage = 
+export interface NarrativeSuggestion {
+  suggestedAction: 'question' | 'activity';
+  suggestedCategory?: Question['category'];
+  suggestedActivity?: string;
+  reasoning: string;
+  transitionNarrative: string;
+}
+
+export type NetworkMessage =
   | { type: 'SYNC_VIBE'; payload: VibeStats }
   | { type: 'SYNC_SCENE'; payload: Scene | null }
   | { type: 'SYNC_USER'; payload: User[] }
