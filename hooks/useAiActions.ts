@@ -20,7 +20,7 @@ import {
 import { useSessionState } from './useSessionState';
 import { useAiStore } from '../store/aiState';
 import { applyVibeDeltas } from '../utils/helpers';
-import { saveDateToHistory, buildHistoryEntry } from '../utils/dateHistory';
+import { saveDateToHistory, buildHistoryEntry, extractHighlights } from '../utils/dateHistory';
 import { useProfileStore } from '../store/profileStore';
 import { buildPromptContext } from '../services/prompts/promptContext';
 import { soundManager } from '../services/soundManager';
@@ -202,9 +202,19 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     const locationTitle = s.dateContext?.location?.title || 'Unknown Location';
 
     const activeProfileId = useProfileStore.getState().activeProfile?.id;
+    const highlights = extractHighlights(s.conversationLog);
+    const partnerAvatar = s.partnerPersona.imageUrl;
     const saveHistory = (report: IntelligenceReport) => {
       try {
-        saveDateToHistory(buildHistoryEntry(report, partnerName, locationTitle, s.vibe, s.partnerPersona.chemistry, activeProfileId));
+        saveDateToHistory(buildHistoryEntry(report, {
+          partnerName,
+          location: locationTitle,
+          vibe: s.vibe,
+          chemistry: s.partnerPersona.chemistry,
+          profileId: activeProfileId,
+          highlights,
+          partnerAvatar,
+        }));
       } catch (e) {
         console.warn('Failed to save date history:', e);
       }

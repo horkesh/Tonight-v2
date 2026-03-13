@@ -1,4 +1,5 @@
-import type { IntelligenceReport, VibeStats } from '../types';
+import type { IntelligenceReport, VibeStats, ConversationEntry } from '../types';
+import { VULNERABLE_CATEGORIES } from '../constants';
 
 const HISTORY_KEY = 'tonight_history';
 const MAX_ENTRIES = 10;
@@ -14,6 +15,8 @@ export interface DateHistoryEntry {
   headline: string;
   summary: string;
   rating: number | null;
+  highlights?: string[];
+  partnerAvatar?: string | null;
 }
 
 export function saveDateToHistory(entry: Omit<DateHistoryEntry, 'id' | 'timestamp'>): void {
@@ -49,22 +52,38 @@ export function getDateHistory(): DateHistoryEntry[] {
 
 export function buildHistoryEntry(
   report: IntelligenceReport,
-  partnerName: string,
-  location: string,
-  vibe: VibeStats,
-  chemistry: number,
-  profileId?: string
+  opts: {
+    partnerName: string;
+    location: string;
+    vibe: VibeStats;
+    chemistry: number;
+    profileId?: string;
+    highlights?: string[];
+    partnerAvatar?: string | null;
+  }
 ): Omit<DateHistoryEntry, 'id' | 'timestamp'> {
   return {
-    partnerName,
-    profileId,
-    location,
-    vibe,
-    chemistry,
+    partnerName: opts.partnerName,
+    profileId: opts.profileId,
+    location: opts.location,
+    vibe: opts.vibe,
+    chemistry: opts.chemistry,
     headline: report.headline,
     summary: report.summary,
     rating: report.partnerRating ?? null,
+    highlights: opts.highlights,
+    partnerAvatar: opts.partnerAvatar,
   };
+}
+
+/**
+ * Extract conversation highlights — the most revealing/vulnerable moments from a date.
+ */
+export function extractHighlights(conversationLog: ConversationEntry[]): string[] {
+  return conversationLog
+    .filter(e => (VULNERABLE_CATEGORIES as readonly string[]).includes(e.category) && e.answer !== '[Refused — took a sip instead]')
+    .slice(-5)
+    .map(e => `"${e.questionText}" → "${e.answer}"`);
 }
 
 export function getHistoryForProfile(profileId: string): DateHistoryEntry[] {

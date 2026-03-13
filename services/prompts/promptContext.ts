@@ -214,12 +214,20 @@ export function renderHostReveals(config: DateConfig): string {
 export function renderDateHistoryBlock(history: DateHistoryEntry[]): string {
   if (history.length === 0) return '';
 
+  const header = `OUR STORY SO FAR (${history.length} previous date${history.length > 1 ? 's' : ''}):`;
+
   const summaries = history.slice(0, 5).map((h, i) => {
     const date = new Date(h.timestamp).toLocaleDateString();
-    return `Date ${i + 1} (${date}): ${h.location}. Chemistry: ${h.chemistry}%. "${h.headline}" — ${h.summary}`;
+    let entry = `Date ${i + 1} (${date}): ${h.location}. Chemistry: ${h.chemistry}%. "${h.headline}" — ${h.summary}`;
+    if (h.highlights && h.highlights.length > 0) {
+      entry += `\n  Key moments: ${h.highlights.join(' | ')}`;
+    }
+    return entry;
   });
 
-  return `PREVIOUS DATES:\n${summaries.join('\n')}\nUse this history to create callbacks, inside jokes, and show longitudinal growth.`;
+  const instructions = `\nThis is a RETURNING partner. Reference specific moments from past dates — "Last time you said...", "Remember when...". Build on established inside jokes and emotional threads. Show that the AI remembers and the connection has continuity.`;
+
+  return `${header}\n${summaries.join('\n')}${instructions}`;
 }
 
 /**

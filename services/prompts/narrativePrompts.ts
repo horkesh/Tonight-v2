@@ -39,6 +39,8 @@ ARC RULES:
 - Rounds 3–5 (Building): Escape, Deep categories. Two Truths, Finish My Sentence. ${chemistry > 40 ? 'Chemistry is building — lean into flirtier content.' : 'Still warming up — stay curious, not pushy.'}
 - Rounds 6–7 (Deepening): Intimate, Desire categories. Finish My Sentence, Truth or Drink. The guard is down.
 - Round 8+ (Climax): Time for the Morning Edition / rating wrap-up.
+${chemistry >= 60 && round < 6 ? `CHEMISTRY OVERRIDE: Chemistry is ${chemistry}% — unusually high for round ${round}. You may suggest Intimate or Desire categories early. The connection is ahead of schedule.` : ''}
+${chemistry >= 40 && round < 3 ? `EARLY CHEMISTRY: Chemistry is ${chemistry}% — the opening phase is warmer than expected. You may suggest Escape or Deep categories even in early rounds.` : ''}
 
 AVAILABLE ACTIONS:
 - question: Ask a question (categories: Style, Escape, Preferences, Deep, Intimate, Desire)

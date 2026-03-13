@@ -177,6 +177,8 @@ export const HOST_PROFILE: HostProfile = {
   avatarPath: null,
 };
 
+export const VULNERABLE_CATEGORIES = ['Deep', 'Intimate', 'Escape', 'Desire'] as const;
+
 export const NARRATIVE_ARC_RULES: Record<string, { categories: string[]; activities: string[] }> = {
   '0-2': { categories: ['Style', 'Preferences'], activities: ['twoTruths'] },
   '3-5': { categories: ['Escape', 'Deep'], activities: ['twoTruths', 'finishSentence'] },
@@ -184,11 +186,24 @@ export const NARRATIVE_ARC_RULES: Record<string, { categories: string[]; activit
   '8+':  { categories: [], activities: [] },
 };
 
-export const getNarrativeArcForRound = (round: number): { categories: string[]; activities: string[] } => {
-  if (round <= 2) return NARRATIVE_ARC_RULES['0-2'];
-  if (round <= 5) return NARRATIVE_ARC_RULES['3-5'];
-  if (round <= 7) return NARRATIVE_ARC_RULES['6-7'];
-  return NARRATIVE_ARC_RULES['8+'];
+type ArcRule = { categories: string[]; activities: string[] };
+
+const mergeArcRules = (a: ArcRule, b: ArcRule): ArcRule => ({
+  categories: [...new Set([...a.categories, ...b.categories])],
+  activities: [...new Set([...a.activities, ...b.activities])],
+});
+
+export const getNarrativeArcForRound = (round: number, chemistry = 0): ArcRule => {
+  const base = round <= 2 ? NARRATIVE_ARC_RULES['0-2']
+    : round <= 5 ? NARRATIVE_ARC_RULES['3-5']
+    : round <= 7 ? NARRATIVE_ARC_RULES['6-7']
+    : NARRATIVE_ARC_RULES['8+'];
+
+  // Chemistry-based escalation: unlock deeper categories early
+  if (chemistry >= 60 && round >= 2) return mergeArcRules(base, NARRATIVE_ARC_RULES['6-7']);
+  if (chemistry >= 40 && round >= 1) return mergeArcRules(base, NARRATIVE_ARC_RULES['3-5']);
+
+  return base;
 };
 
 export const SESSION_RESTORE_WINDOW_MS = 1000 * 60 * 15;  // 15 minutes

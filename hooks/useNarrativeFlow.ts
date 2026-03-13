@@ -7,8 +7,8 @@ import { useProfileStore } from '../store/profileStore';
 import { buildPromptContext } from '../services/prompts/promptContext';
 import { useSessionState } from './useSessionState';
 
-function buildFallbackSuggestion(round: number): NarrativeSuggestion | null {
-  const arc = getNarrativeArcForRound(round);
+function buildFallbackSuggestion(round: number, chemistry = 0): NarrativeSuggestion | null {
+  const arc = getNarrativeArcForRound(round, chemistry);
   const fallbackCategory = arc.categories[Math.floor(Math.random() * arc.categories.length)];
   const fallbackActivity = arc.activities[Math.floor(Math.random() * arc.activities.length)];
 
@@ -88,7 +88,7 @@ export function useNarrativeFlow(session: ReturnType<typeof useSessionState>) {
         setNarrativeSuggestion(suggestion);
         lastSuggestionRound.current = currentRound;
       } catch {
-        const fallback = buildFallbackSuggestion(currentRound);
+        const fallback = buildFallbackSuggestion(currentRound, stateRef.current.partnerPersona.chemistry);
         if (fallback) setNarrativeSuggestion(fallback);
         lastSuggestionRound.current = currentRound;
       } finally {

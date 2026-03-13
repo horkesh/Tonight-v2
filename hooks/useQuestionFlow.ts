@@ -5,6 +5,7 @@ import { useSessionState } from './useSessionState';
 import { generateDynamicQuestions, extractTraitFromInteraction } from '../services/geminiService';
 import { useQuestionStore } from '../store/aiState';
 import { applyVibeDeltas } from '../utils/helpers';
+import { VULNERABLE_CATEGORIES } from '../constants';
 import { buildPromptContext } from '../services/prompts/promptContext';
 import { useProfileStore } from '../store/profileStore';
 import { soundManager } from '../services/soundManager';
@@ -180,7 +181,7 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
         }
     }
 
-    const isVulnerability = question && ['Deep', 'Intimate', 'Escape', 'Desire'].includes(question.category);
+    const isVulnerability = question && (VULNERABLE_CATEGORIES as readonly string[]).includes(question.category);
 
     // 1. Store in memories/secrets
     updateTarget(p => {
