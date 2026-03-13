@@ -174,7 +174,7 @@ export const HOST_PROFILE: HostProfile = {
   age: 46,
   sex: 'male',
   appearance: 'South Asian man, salt-and-pepper hair, warm brown eyes, well-groomed beard, athletic build',
-  avatarPath: null,
+  avatarPath: '/haris.jpg',
 };
 
 export const VULNERABLE_CATEGORIES = ['Deep', 'Intimate', 'Escape', 'Desire'] as const;

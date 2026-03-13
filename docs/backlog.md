@@ -6,15 +6,7 @@ The measure of every item here: does it make the person sitting across from you 
 
 ## P0 — Fix What Breaks the Magic
 
-These are structural problems. Until they're solved, the app fights the moment instead of creating it.
-
-### Pre-Date Setup Mode
-
-**What:** The current setup flow is 8+ screens of configuration before anything happens. At a bar, that's death. The host (always Haris) should pre-configure everything — his profile is permanent, partner profile is optional — so the live experience is: open app, show QR, partner scans, cinematic arrival, experience begins. Under 60 seconds from phone-out to first wow moment.
-
-**Why it matters:** Every second spent tapping through setup screens is a second of awkward silence where you're staring at your phone instead of your date. The magic starts when *they* see something incredible, not when you finish filling out a form.
-
-**Scope:** Medium. Needs a persistent host profile (localStorage), a stripped-down guest join flow, a new "pre-configured session" path that skips most of SetupView. Touches `hooks/useSessionLifecycle.ts`, `components/views/SetupView.tsx`, `types.ts`, and likely a new `utils/hostProfile.ts`.
+All P0 items are complete.
 
 ---
 
@@ -84,6 +76,10 @@ These were in the original plan but don't justify the effort for a personal app:
 ## Completed
 
 Done as of 2026-03-13:
+
+- **Pre-Date Setup Mode (P0)** — Quick Launch: Host → tap profile → QR + room live. 3 taps, under 30 seconds. Host avatar from `/haris.jpg`, last-used venue/config persisted in localStorage, full customize flow still available. `SetupView.tsx` restructured, `utils/profileStorage.ts` last-setup persistence.
+- **Dynamic Question Escalation (P2)** — Chemistry-aware category unlocking: 40%+ unlocks Escape/Deep early, 60%+ unlocks Intimate/Desire. Arc rules in `constants.ts`, narrative prompts adapted. `VULNERABLE_CATEGORIES` constant shared across codebase.
+- **Richer Date History (P2)** — Conversation highlights and partner avatars stored per date. "Our Story So Far" framing for returning partners in AI prompts. `PastDates.tsx` redesigned with avatars, chemistry, expandable key moments.
 
 - **Guided Narrative Flow** — AI-driven arc suggestions on hub, cinematic transition text, accept/override UX. `hooks/useNarrativeFlow.ts`, `services/prompts/narrativePrompts.ts`, `constants.ts` arc rules, `HubView.tsx` restructured.
 - **Cinematic Partner Arrival** — 9-second multi-stage reveal: location Ken Burns, particle convergence, avatar blur-in, letter-spacing name animation, arrival sound. `components/ArrivalOverlay.tsx`, `store/presenceState.ts` persistence.

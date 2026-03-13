@@ -10,7 +10,7 @@ import { VenueCard } from '../VenueCard';
 import { ProfileEditorView } from './ProfileEditorView';
 import { VenueEditorView } from './VenueEditorView';
 import { DateConfigView } from './DateConfigView';
-import { getProfiles, deleteProfile, getVenues, deleteVenue } from '../../utils/profileStorage';
+import { getProfiles, deleteProfile, getVenues, deleteVenue, getLastSetup, saveLastSetup } from '../../utils/profileStorage';
 import { venueToDateLocation } from '../../utils/venueToLocation';
 import { useProfileStore } from '../../store/profileStore';
 import type { PartnerProfile, VenueProfile, DateConfig } from '../../types/profiles';
@@ -20,33 +20,37 @@ interface SetupViewProps {
   onStart: (hostData: any, guestData: any, vibe: DateVibe | null, location: DateLocation | null, roomId: string, isHost: boolean, avatar?: string, partnerAvatar?: string, hostTraits?: string[], partnerTraits?: string[]) => void;
 }
 
-const IntroStep: React.FC<{ handleHostStart: () => void; handleGuestJoin: () => void; handleManage: () => void }> = ({ handleHostStart, handleGuestJoin, handleManage }) => (
-  <div className="flex flex-col items-center gap-6 w-full">
-    <h1 className="text-6xl font-serif text-white tracking-tighter mb-4">Tonight</h1>
-    <button onClick={handleHostStart} className="w-full p-6 bg-rose-600 rounded-[32px] border border-rose-500/30 hover:bg-rose-500 transition-all text-left group relative overflow-hidden">
-      <span className="relative z-10 text-[10px] uppercase tracking-[0.4em] font-black text-white/80 block mb-2">Host</span>
-      <span className="relative z-10 text-2xl font-serif italic text-white">Create Experience</span>
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 text-4xl opacity-50 group-hover:scale-110 transition-transform">🍷</div>
-    </button>
-    <button onClick={handleGuestJoin} className="w-full p-6 bg-white/5 rounded-[32px] border border-white/10 hover:bg-white/10 transition-all text-left group">
-      <span className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40 block mb-2">Guest</span>
-      <span className="text-2xl font-serif italic text-white/80">Enter Room Code</span>
-      <div className="ml-auto float-right -mt-6 text-3xl opacity-30 group-hover:opacity-100 transition-opacity">🗝️</div>
-    </button>
-    <button onClick={handleManage} className="mt-2 text-[9px] uppercase tracking-[0.3em] font-black text-white/20 hover:text-white/60 transition-colors">
-      Manage Profiles & Venues
-    </button>
-    <PastDates />
-  </div>
-);
+const generateRoomId = (): string => {
+  const ROOM_CODES = [
+    'NOIR', 'LUNA', 'SILK', 'JAZZ', 'WINE', 'DEEP', 'DARK', 'SOUL',
+    'HAZE', 'GLOW', 'MIST', 'RAIN', 'FIRE', 'KISS', 'REAL', 'WANT'
+  ];
+  const base = ROOM_CODES[Math.floor(Math.random() * ROOM_CODES.length)];
+  const suffix = Math.floor(Math.random() * 90 + 10);
+  return `${base}${suffix}`;
+};
+
+const buildDefaultConfig = (profileId: string, venueId: string | null, dateNumber: number): DateConfig => ({
+  profileId,
+  venueId,
+  dateNumber,
+  dateArc: 'ai_reads_room',
+  specialOccasion: null,
+  comfortLevel: 'can_go_there',
+  topicsToAvoid: [],
+  vibes: ['noir'],
+  aboutYouForHer: null,
+  preDateIntel: null,
+  notesForTonight: null,
+});
 
 export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
-  // Step 0=Intro, 1=ProfilePicker, 2=VenuePicker, 3=DateConfig, 4=RoomCode
-  // Step 10=Guest join, 11=ProfileEditor overlay, 12=VenueEditor overlay
+  // Step 0=Intro, 1=QuickLaunch, 2=VenuePicker, 3=DateConfig, 4=RoomCode
+  // Step 5=ProfilePicker (full), 10=Guest join
+  // Step 11=ProfileEditor overlay, 12=VenueEditor overlay
   // Step 20=Manage hub (profiles & venues)
   const [step, setStep] = useState<number>(0);
   const [manageTab, setManageTab] = useState<'profiles' | 'venues'>('profiles');
-  // Track where editors should return: management hub or date flow
   const editorReturnRef = useRef<number>(1);
   const [isHost, setIsHost] = useState(false);
   const [roomId, setRoomId] = useState('');
@@ -54,7 +58,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
   const [isLoading, setIsLoading] = useState(false);
   const autoJoinFired = useRef(false);
 
-  // Profile store — use selectors to minimize re-renders
+  // Profile store
   const activeProfile = useProfileStore(s => s.activeProfile);
   const activeVenue = useProfileStore(s => s.activeVenue);
   const activeDateConfig = useProfileStore(s => s.activeDateConfig);
@@ -68,7 +72,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
   const [editingProfile, setEditingProfile] = useState<PartnerProfile | undefined>(undefined);
   const [editingVenue, setEditingVenue] = useState<VenueProfile | undefined>(undefined);
 
-  // Guest data (unchanged from original)
+  // Guest data
   const [guestName, setGuestName] = useState('');
 
   // Load profiles and venues
@@ -78,45 +82,39 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
   }, []);
 
   useEffect(() => {
-    // Check for Magic Link
     const params = new URLSearchParams(window.location.search);
     const urlRoom = params.get('room');
 
     if (urlRoom) {
-        setRoomId(urlRoom);
-        setIsHost(false);
-        setIsAutoJoin(true);
-        setIsLoading(true);
-        setStep(10);
-        if (autoJoinFired.current) return;
-        autoJoinFired.current = true;
-        setTimeout(() => {
-            const finalRoomId = urlRoom.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
-            onStart(
-                null,
-                { name: "Guest", age: "Unknown", desc: "Connecting...", sex: "Neutral", traits: [] },
-                null, null, finalRoomId, false, undefined, undefined, [], []
-            );
-        }, 100);
-        return;
+      setRoomId(urlRoom);
+      setIsHost(false);
+      setIsAutoJoin(true);
+      setIsLoading(true);
+      setStep(10);
+      if (autoJoinFired.current) return;
+      autoJoinFired.current = true;
+      setTimeout(() => {
+        const finalRoomId = urlRoom.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        onStart(
+          null,
+          { name: "Guest", age: "Unknown", desc: "Connecting...", sex: "Neutral", traits: [] },
+          null, null, finalRoomId, false, undefined, undefined, [], []
+        );
+      }, 100);
+      return;
     } else {
-        const ROOM_CODES = [
-            'NOIR', 'LUNA', 'SILK', 'JAZZ', 'WINE', 'DEEP', 'DARK', 'SOUL',
-            'HAZE', 'GLOW', 'MIST', 'RAIN', 'FIRE', 'KISS', 'REAL', 'WANT'
-        ];
-        const base = ROOM_CODES[Math.floor(Math.random() * ROOM_CODES.length)];
-        const suffix = Math.floor(Math.random() * 90 + 10);
-        setRoomId(`${base}${suffix}`);
+      setRoomId(generateRoomId());
     }
   }, []);
 
-  const handleManage = () => {
-    setStep(20);
-  };
+  const handleManage = () => setStep(20);
 
   const handleHostStart = () => {
     setIsHost(true);
-    setStep(1); // Go to Profile Picker
+    // If profiles exist, go to quick launch. Otherwise, go to profile picker (which will prompt to create one).
+    const currentProfiles = getProfiles();
+    setProfiles(currentProfiles);
+    setStep(currentProfiles.length > 0 ? 1 : 5);
   };
 
   const handleGuestJoin = () => {
@@ -125,14 +123,42 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
     setRoomId('');
   };
 
+  // Quick Launch: tap a profile → instant finalize
+  const handleQuickLaunch = (profile: PartnerProfile) => {
+    setActiveProfile(profile);
+
+    const lastSetup = getLastSetup();
+    const dateNumber = getDateNumber(profile.id);
+
+    // Resolve venue from last setup
+    let venue: VenueProfile | null = null;
+    if (lastSetup?.venueId) {
+      venue = venues.find(v => v.id === lastSetup.venueId) || null;
+    }
+    setActiveVenue(venue);
+
+    // Build config: reuse last config if available, otherwise defaults
+    let config: DateConfig;
+    if (lastSetup?.config) {
+      config = { ...lastSetup.config, profileId: profile.id, venueId: venue?.id || null, dateNumber };
+    } else {
+      config = buildDefaultConfig(profile.id, venue?.id || null, dateNumber);
+    }
+    setActiveDateConfig(config);
+
+    // Finalize immediately
+    finalizeWithProfile(profile, venue, config);
+  };
+
+  // Full customize flow: select profile then go through venue → config → room code
   const handleSelectProfile = (profile: PartnerProfile) => {
     setActiveProfile(profile);
-    setStep(2); // Go to Venue Picker
+    setStep(2);
   };
 
   const handleSelectVenue = (venue: VenueProfile) => {
     setActiveVenue(venue);
-    setStep(3); // Go to DateConfig
+    setStep(3);
   };
 
   const handleSkipVenue = () => {
@@ -142,69 +168,77 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
 
   const handleDateConfigConfirm = (config: DateConfig) => {
     setActiveDateConfig(config);
-    setStep(4); // Go to Room Code
+    setStep(4);
+  };
+
+  const dateNumber = useMemo(() => activeProfile ? getDateNumber(activeProfile.id) : 1, [activeProfile]);
+
+  const inviteLink = `${window.location.origin}?room=${roomId}`;
+
+  const copyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    alert("Link copied! Send it to your date.");
+  };
+
+  const finalizeWithProfile = (profile: PartnerProfile, venue: VenueProfile | null, config: DateConfig) => {
+    setIsLoading(true);
+
+    // Save setup for next time
+    saveLastSetup({ profileId: profile.id, venueId: venue?.id || null, config });
+
+    const hData = {
+      name: HOST_PROFILE.name,
+      age: String(HOST_PROFILE.age),
+      desc: HOST_PROFILE.appearance,
+      appearance: HOST_PROFILE.appearance,
+      sex: HOST_PROFILE.sex,
+    };
+
+    const partnerBackground = [
+      profile.job,
+      profile.interests.length > 0 ? `Interests: ${profile.interests.join(', ')}` : null,
+      profile.personalityTraits.length > 0 ? `Personality: ${profile.personalityTraits.join(', ')}` : null,
+      profile.aspiration ? `Aspiration: ${profile.aspiration}` : null,
+    ].filter(Boolean).join('. ');
+
+    const gData = {
+      name: profile.name,
+      age: profile.aiEstimatedAge || 'Unknown',
+      desc: partnerBackground || "An intriguing guest.",
+      appearance: profile.aiAppearance || '',
+      sex: profile.aiGender || 'Unknown',
+    };
+
+    let locationData: DateLocation | null = null;
+    let vibeData: DateVibe | null = null;
+
+    if (venue && config) {
+      const selectedVibes = config.vibes
+        .map(id => DATE_VIBES.find(v => v.id === id))
+        .filter((v): v is DateVibe => v !== undefined);
+      locationData = venueToDateLocation(venue, selectedVibes);
+      vibeData = selectedVibes[0] || null;
+    }
+
+    const finalRoomId = roomId.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
+
+    setTimeout(() => {
+      onStart(
+        hData, gData, vibeData, locationData, finalRoomId, true,
+        HOST_PROFILE.avatarPath || undefined,
+        profile.photo || undefined,
+        [],
+        profile.aiTraits
+      );
+    }, 500);
   };
 
   const finalize = () => {
-    setIsLoading(true);
-
     if (isHost && activeProfile) {
-      // Build hostData from HOST_PROFILE constant
-      const hData = {
-        name: HOST_PROFILE.name,
-        age: String(HOST_PROFILE.age),
-        desc: HOST_PROFILE.appearance,
-        appearance: HOST_PROFILE.appearance,
-        sex: HOST_PROFILE.sex,
-      };
-
-      // Build partner (guest) data from active profile
-      const profile = activeProfile;
-      const partnerBackground = [
-        profile.job,
-        profile.interests.length > 0 ? `Interests: ${profile.interests.join(', ')}` : null,
-        profile.personalityTraits.length > 0 ? `Personality: ${profile.personalityTraits.join(', ')}` : null,
-        profile.aspiration ? `Aspiration: ${profile.aspiration}` : null,
-      ].filter(Boolean).join('. ');
-
-      const gData = {
-        name: profile.name,
-        age: profile.aiEstimatedAge || 'Unknown',
-        desc: partnerBackground || "An intriguing guest.",
-        appearance: profile.aiAppearance || '',
-        sex: profile.aiGender || 'Unknown',
-      };
-
-      // Derive location + vibe from venue + config
-      let locationData: DateLocation | null = null;
-      let vibeData: DateVibe | null = null;
-
-      if (activeVenue && activeDateConfig) {
-        const selectedVibes = activeDateConfig.vibes
-          .map(id => DATE_VIBES.find(v => v.id === id))
-          .filter((v): v is DateVibe => v !== undefined);
-        locationData = venueToDateLocation(activeVenue, selectedVibes);
-        vibeData = selectedVibes[0] || null;
-      }
-
-      const finalRoomId = roomId.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
-
-      setTimeout(() => {
-        onStart(
-          hData,
-          gData,
-          vibeData,
-          locationData,
-          finalRoomId,
-          true,
-          HOST_PROFILE.avatarPath || undefined,
-          profile.photo || undefined,
-          [],
-          profile.aiTraits
-        );
-      }, 500);
+      finalizeWithProfile(activeProfile, activeVenue, activeDateConfig!);
     } else {
       // Guest flow
+      setIsLoading(true);
       const gData = {
         name: guestName || "Guest",
         age: "Unknown",
@@ -213,20 +247,11 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
         traits: [],
       };
       const finalRoomId = roomId.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
-
       setTimeout(() => {
         onStart(null, gData, null, null, finalRoomId, false, undefined, undefined, [], []);
       }, 500);
     }
   };
-
-  const copyInviteLink = () => {
-    const url = `${window.location.origin}?room=${roomId}`;
-    navigator.clipboard.writeText(url);
-    alert("Link copied! Send it to your date.");
-  };
-
-  const dateNumber = useMemo(() => activeProfile ? getDateNumber(activeProfile.id) : 1, [activeProfile]);
 
   return (
     <div className="w-full max-w-sm flex flex-col items-center min-h-[50vh] justify-center relative z-20">
@@ -235,16 +260,111 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
         {/* Intro */}
         {step === 0 && (
           <motion.div key="intro" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
-            <IntroStep handleHostStart={handleHostStart} handleGuestJoin={handleGuestJoin} handleManage={handleManage} />
+            <div className="flex flex-col items-center gap-6 w-full">
+              <h1 className="text-6xl font-serif text-white tracking-tighter mb-4">Tonight</h1>
+              <button onClick={handleHostStart} className="w-full p-6 bg-rose-600 rounded-[32px] border border-rose-500/30 hover:bg-rose-500 transition-all text-left group relative overflow-hidden">
+                <span className="relative z-10 text-[10px] uppercase tracking-[0.4em] font-black text-white/80 block mb-2">Host</span>
+                <span className="relative z-10 text-2xl font-serif italic text-white">Create Experience</span>
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-4xl opacity-50 group-hover:scale-110 transition-transform">🍷</div>
+              </button>
+              <button onClick={handleGuestJoin} className="w-full p-6 bg-white/5 rounded-[32px] border border-white/10 hover:bg-white/10 transition-all text-left group">
+                <span className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40 block mb-2">Guest</span>
+                <span className="text-2xl font-serif italic text-white/80">Enter Room Code</span>
+                <div className="ml-auto float-right -mt-6 text-3xl opacity-30 group-hover:opacity-100 transition-opacity">🗝️</div>
+              </button>
+              <button onClick={handleManage} className="mt-2 text-[9px] uppercase tracking-[0.3em] font-black text-white/20 hover:text-white/60 transition-colors">
+                Manage Profiles & Venues
+              </button>
+              <PastDates />
+            </div>
           </motion.div>
         )}
 
-        {/* Host: Profile Picker */}
+        {/* Quick Launch — profiles + QR, one tap to go */}
         {step === 1 && (
+          <motion.div key="quick-launch" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center justify-between mb-1">
+                <button onClick={() => setStep(0)} className="text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">← Back</button>
+                <h2 className="text-xl font-serif italic text-white">Who's Tonight?</h2>
+                <div className="w-12" />
+              </div>
+
+              {/* QR + Room Code — always visible */}
+              <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="bg-white rounded-xl p-2 flex-shrink-0">
+                  <QRCodeSVG value={inviteLink} size={80} bgColor="#ffffff" fgColor="#020617" level="M" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Room Code</p>
+                  <p className="text-2xl font-mono text-white tracking-widest">{roomId}</p>
+                  <button onClick={copyInviteLink} className="text-[8px] text-rose-400/60 uppercase tracking-widest mt-1 hover:text-rose-400 transition-colors">
+                    Tap to copy link
+                  </button>
+                </div>
+              </div>
+
+              {/* Profile cards — tap to instant launch */}
+              {isLoading ? (
+                <div className="flex flex-col items-center gap-4 py-12">
+                  <div className="w-8 h-8 border-2 border-white/10 border-t-rose-500 rounded-full animate-spin"/>
+                  <span className="text-[9px] uppercase tracking-widest text-white/30">Encrypting connection...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-3">
+                    {profiles.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => handleQuickLaunch(p)}
+                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-rose-950/20 hover:border-rose-500/20 transition-all text-left group active:scale-[0.98]"
+                      >
+                        <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-white/10 group-hover:border-rose-500/40 transition-colors">
+                          {p.photo ? (
+                            <img src={p.photo} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-white/10 flex items-center justify-center text-xl text-white/30">
+                              {p.name.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-serif text-lg group-hover:text-rose-200 transition-colors">{p.name}</p>
+                          <p className="text-[9px] text-white/30 uppercase tracking-widest truncate">
+                            {[p.job, p.aiEstimatedAge].filter(Boolean).join(' · ') || 'Tap to begin'}
+                          </p>
+                        </div>
+                        <span className="text-rose-500/50 group-hover:text-rose-400 text-xl transition-colors">→</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => { setEditingProfile(undefined); editorReturnRef.current = 1; setStep(11); }}
+                    className="w-full p-4 rounded-2xl border-2 border-dashed border-white/10 hover:border-rose-500/50 hover:bg-white/5 transition-all text-center group"
+                  >
+                    <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/30 group-hover:text-white/70 transition-colors">+ New Profile</span>
+                  </button>
+
+                  {/* Customize link for full flow */}
+                  <button
+                    onClick={() => setStep(5)}
+                    className="text-[9px] text-white/20 uppercase tracking-[0.3em] font-black hover:text-white/50 transition-colors text-center py-2"
+                  >
+                    Customize venue & config
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Full Flow: Profile Picker */}
+        {step === 5 && (
           <motion.div key="profile-picker" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between mb-2">
-                <button onClick={() => setStep(0)} className="text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">← Back</button>
+                <button onClick={() => setStep(1)} className="text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">← Back</button>
                 <h2 className="text-xl font-serif italic text-white">Who's Tonight?</h2>
                 <div className="w-12" />
               </div>
@@ -266,7 +386,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
               )}
 
               <button
-                onClick={() => { setEditingProfile(undefined); editorReturnRef.current = 1; setStep(11); }}
+                onClick={() => { setEditingProfile(undefined); editorReturnRef.current = 5; setStep(11); }}
                 className="w-full p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-rose-500/50 hover:bg-white/5 transition-all text-center group"
               >
                 <span className="text-2xl block mb-2 opacity-30 group-hover:opacity-100 transition-opacity">+</span>
@@ -281,7 +401,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
           <motion.div key="venue-picker" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between mb-2">
-                <button onClick={() => setStep(1)} className="text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">← Back</button>
+                <button onClick={() => setStep(5)} className="text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">← Back</button>
                 <h2 className="text-xl font-serif italic text-white">Where Tonight?</h2>
                 <div className="w-12" />
               </div>
@@ -332,7 +452,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
             />
         )}
 
-        {/* Host: Room Code / QR */}
+        {/* Host: Room Code / QR (full flow) */}
         {step === 4 && (
           <motion.div key="final" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full text-center">
             <span className="text-[10px] uppercase tracking-[0.4em] font-black text-rose-500 mb-6 block">Secure Channel Open</span>
@@ -343,7 +463,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
             </div>
             <div className="mb-8 flex flex-col items-center">
               <div className="p-4 bg-white rounded-2xl">
-                <QRCodeSVG value={`${window.location.origin}?room=${roomId}`} size={160} bgColor="#ffffff" fgColor="#020617" level="M" />
+                <QRCodeSVG value={inviteLink} size={160} bgColor="#ffffff" fgColor="#020617" level="M" />
               </div>
               <span className="text-[9px] text-white/30 uppercase tracking-widest mt-3">Scan to join</span>
             </div>
@@ -361,7 +481,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
           </motion.div>
         )}
 
-        {/* GUEST FLOW — Enter code and connect immediately */}
+        {/* GUEST FLOW */}
         {step === 10 && (
           <motion.div key="guest-join" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
             {isAutoJoin ? (
@@ -445,7 +565,6 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
                 <div className="w-12" />
               </div>
 
-              {/* Tabs */}
               <div className="flex gap-2 mb-2">
                 <button
                   onClick={() => setManageTab('profiles')}
@@ -461,7 +580,6 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
                 </button>
               </div>
 
-              {/* Profiles Tab */}
               {manageTab === 'profiles' && (
                 <div className="flex flex-col gap-3">
                   {profiles.map(p => (
@@ -485,7 +603,6 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
                 </div>
               )}
 
-              {/* Venues Tab */}
               {manageTab === 'venues' && (
                 <div className="flex flex-col gap-3">
                   {venues.map(v => (

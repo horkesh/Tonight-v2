@@ -1,7 +1,30 @@
-import type { PartnerProfile, VenueProfile } from '../types/profiles';
+import type { PartnerProfile, VenueProfile, DateConfig } from '../types/profiles';
 
 const PROFILES_KEY = 'tonight_profiles';
 const VENUES_KEY = 'tonight_venues';
+const LAST_SETUP_KEY = 'tonight_last_setup';
+
+export interface LastSetup {
+  profileId: string;
+  venueId: string | null;
+  config: DateConfig;
+}
+
+export function saveLastSetup(setup: LastSetup): void {
+  try {
+    localStorage.setItem(LAST_SETUP_KEY, JSON.stringify(setup));
+  } catch {}
+}
+
+export function getLastSetup(): LastSetup | null {
+  try {
+    const raw = localStorage.getItem(LAST_SETUP_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as LastSetup;
+  } catch {
+    return null;
+  }
+}
 
 // ── Partner Profiles ─────────────────────────────────────────────────
 
