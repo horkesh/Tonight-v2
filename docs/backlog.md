@@ -16,52 +16,6 @@ These are structural problems. Until they're solved, the app fights the moment i
 
 **Scope:** Medium. Needs a persistent host profile (localStorage), a stripped-down guest join flow, a new "pre-configured session" path that skips most of SetupView. Touches `hooks/useSessionLifecycle.ts`, `components/views/SetupView.tsx`, `types.ts`, and likely a new `utils/hostProfile.ts`.
 
-### Guided Narrative Flow (Replace Hub as Primary Interface)
-
-**What:** The Hub is a flat menu you return to after every interaction. It feels like a tool, not a date. Replace it with an AI-driven narrative arc: early questions are light and playful, activities get more vulnerable as chemistry builds, the vibe escalates. The AI suggests what comes next based on chemistry score, conversation history, and round number. The Hub becomes a brief breathing room between guided moments — a pause, not a destination.
-
-**Why it matters:** A great date has a natural arc — you don't hand someone a menu and say "pick an intimacy level." The app should feel like it's reading the room and guiding you both somewhere neither expected. That's the difference between an app and an *experience*.
-
-**Scope:** Large. Requires a narrative engine (probably in a new `hooks/useNarrativeFlow.ts`), reworking how scenes transition, updating AI prompts to be arc-aware. The Hub view gets simplified. Touches `hooks/useAiActions.ts`, `hooks/useQuestionFlow.ts`, `services/prompts/`, `store/gameState.ts`, `components/views/HubView.tsx`.
-
-### Cinematic Partner Arrival
-
-**What:** When the date scans the QR and connects, the first thing they see should be breathtaking — a full-screen cinematic moment. Their abstract avatar materializing, location art filling the screen, a dramatic reveal with sound. Not a loading spinner into a dashboard.
-
-**Why it matters:** This is the "holy shit" moment. The partner just scanned a random QR code and expected nothing. If the first thing they see is a cinematic reveal of themselves rendered as art, with ambient sound swelling — that's when they lean in. First impressions are everything.
-
-**Scope:** Medium. A new transition view between connection and Hub, with Framer Motion choreography and sound cues. Needs `components/views/ArrivalView.tsx`, ties into Sound Design (below), and connects to the P2P `GUEST_JOINED` message flow.
-
----
-
-## P1 — The Wow Factor
-
-These directly amplify the in-person experience. Do these right after P0.
-
-### Sound Design
-
-**What:** The app is completely silent. Add UI feedback sounds (soft glass clink on toast, subtle pulse on reactions, tactile tap on choices), ambient crossfades when the vibe shifts, and most importantly — a satisfying, resonant *clink* for the synchronized toast. That's the app's signature moment.
-
-**Why it matters:** Sound is the fastest way to make a web app feel like a real product. Silence feels broken. A well-timed sound effect makes the toast moment go from "we both tapped a button" to a shared physical experience.
-
-**Scope:** Medium. `components/Soundscape.tsx` already handles ambient audio. Needs new audio assets in `public/sounds/`, a sound manager utility, and trigger points wired into key interactions across several components.
-
-### Shareable Intelligence Report (Web Share API)
-
-**What:** The end-of-date Intelligence Briefing is the payoff — and it just disappears when you close it. Render it as a beautiful shareable card image. Use `navigator.share()` as the primary share path (works on iOS Safari), with `html2canvas` + download as desktop fallback.
-
-**Why it matters:** This is what they screenshot and send to their friends. *"Look what this guy pulled out at dinner."* The report is your app's viral loop. If it doesn't leave the phone, the moment dies at the table.
-
-**Scope:** Medium. Needs `utils/exportReport.ts` for image generation, Web Share API integration in `components/IntelligenceBriefing.tsx`, and visual polish on the exported card (classified document aesthetic — stamps, redacted text, noir feel).
-
-### Smoother Reconnection
-
-**What:** If either phone locks or loses signal at a bar, the session shouldn't die. Extend the restore window from 5 to 15 minutes, add a one-tap "Reconnect to [Name]?" prompt, and auto-attempt reconnection when the tab regains focus before showing any error UI.
-
-**Why it matters:** Nothing kills the vibe faster than "sorry, the app crashed, let me set it up again." Reconnection needs to be invisible. If it can't be invisible, it needs to be one tap.
-
-**Scope:** Small-medium. Touches `hooks/useSessionLifecycle.ts` and `services/p2p.ts`. Mostly tuning timeouts and adding a focus-based reconnect listener.
-
 ---
 
 ## P2 — Depth & Delight
@@ -128,6 +82,15 @@ These were in the original plan but don't justify the effort for a personal app:
 ---
 
 ## Completed
+
+Done as of 2026-03-13:
+
+- **Guided Narrative Flow** — AI-driven arc suggestions on hub, cinematic transition text, accept/override UX. `hooks/useNarrativeFlow.ts`, `services/prompts/narrativePrompts.ts`, `constants.ts` arc rules, `HubView.tsx` restructured.
+- **Cinematic Partner Arrival** — 9-second multi-stage reveal: location Ken Burns, particle convergence, avatar blur-in, letter-spacing name animation, arrival sound. `components/ArrivalOverlay.tsx`, `store/presenceState.ts` persistence.
+- **Sound Design** — `services/soundManager.ts` singleton with Web Audio API, lazy buffer loading, per-category volume. 7 synthesized audio files. Integrated into toast, answer, activity, vulnerability, and arrival.
+- **Shareable Intelligence Report** — Classified document aesthetic with dark slate, CLASSIFIED/TOP SECRET stamps, vibe analysis bars, case numbers. Web Share API with native share sheet, lazy 3x retina export, download fallback. `components/IntelligenceBriefing.tsx`.
+- **Smoother Reconnection** — 15-minute restore window, 15s restore timeout, tab-focus auto-reconnect via `visibilitychange`, host keeps peer alive, "Reconnect to [Name]?" prompt, connection quality dot. `services/p2p.ts`, `hooks/useSessionLifecycle.ts`, `components/ConnectionStatusOverlay.tsx`.
+- **Profile & Venue System** — Deep partner profiles, venue profiles, date config, AI prompt personalization via PromptContext.
 
 Previously tracked — all done as of 2026-03-12:
 
