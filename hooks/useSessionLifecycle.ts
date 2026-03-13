@@ -5,7 +5,7 @@ import { p2p } from '../services/p2p';
 import { compressImage } from '../utils/helpers';
 import type { GameState } from '../store/gameState';
 import type { PresenceState } from '../store/presenceState';
-import { DEFAULT_AVATAR } from '../constants';
+import { DEFAULT_AVATAR, SESSION_RESTORE_WINDOW_MS, SESSION_RESTORE_TIMEOUT_MS } from '../constants';
 
 const SESSION_KEY = 'tonight_active_session';
 
@@ -49,7 +49,7 @@ export function useSessionLifecycle(
       if (saved) {
           try {
               const { userId, roomId, isHost, timestamp } = JSON.parse(saved);
-              if (Date.now() - timestamp < 1000 * 60 * 15) {
+              if (Date.now() - timestamp < SESSION_RESTORE_WINDOW_MS) {
                   console.log("Session: Restoring existing session...");
                   setSessionInfo({ userId, roomId, isHost });
                   initSession(userId, roomId, isHost);
@@ -70,7 +70,7 @@ export function useSessionLifecycle(
                           }
                           return prev;
                       });
-                  }, 15000);
+                  }, SESSION_RESTORE_TIMEOUT_MS);
               } else {
                   console.log("Session: Stale session found, clearing.");
                   localStorage.removeItem(SESSION_KEY);

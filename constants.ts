@@ -191,6 +191,18 @@ export const getNarrativeArcForRound = (round: number): { categories: string[]; 
   return NARRATIVE_ARC_RULES['8+'];
 };
 
+export const SESSION_RESTORE_WINDOW_MS = 1000 * 60 * 15;  // 15 minutes
+export const SESSION_RESTORE_TIMEOUT_MS = 15000;           // 15 seconds
+
+export const CATEGORY_ICONS: Record<string, string> = {
+  Style: '✨', Escape: '🌙', Preferences: '💎',
+  Deep: '🔮', Intimate: '🫀', Desire: '🔥',
+};
+
+export const ACTIVITY_ICONS: Record<string, string> = {
+  twoTruths: '🎭', finishSentence: '✍️', truth: '🥃',
+};
+
 export const PAGE_VARIANTS = {
   initial: { opacity: 0, filter: 'blur(12px)', scale: 1.05 },
   animate: { opacity: 1, filter: 'blur(0px)', scale: 1, transition: { duration: 0.8, ease: "easeOut" as const } },

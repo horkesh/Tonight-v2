@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IntelligenceReport, VibeStats } from '../types';
 // @ts-ignore
@@ -29,6 +29,7 @@ const VibeBar: React.FC<{ label: string; value: number; color: string }> = ({ la
 export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ report, isOpen, onClose }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const shareTargetRef = useRef<HTMLDivElement>(null);
+  const [showShareTarget, setShowShareTarget] = useState(false);
 
   if (!report) return null;
 
@@ -42,17 +43,19 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
   const caseNumber = report.caseNumber || `TNT-${Date.now().toString(36).toUpperCase()}`;
 
   const handleExport = async () => {
+    // Mount the share-target div, wait a frame for it to render
+    setShowShareTarget(true);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
     const target = shareTargetRef.current || contentRef.current;
     if (!target) return;
 
     try {
+      const useShareTarget = !!shareTargetRef.current;
       const canvas = await html2canvas(target, {
         backgroundColor: '#0f172a',
-        scale: 3,
-        width: 1080,
-        height: 1920,
-        windowWidth: 1080,
-        windowHeight: 1920,
+        scale: useShareTarget ? 3 : 2,
+        ...(useShareTarget ? { width: 1080, height: 1920, windowWidth: 1080, windowHeight: 1920 } : {}),
       });
 
       const blob = await new Promise<Blob | null>(resolve =>
@@ -86,20 +89,8 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
       URL.revokeObjectURL(link.href);
     } catch (err) {
       console.error("Failed to generate image", err);
-
-      // Ultimate fallback: basic screenshot of visible content
-      if (contentRef.current) {
-        try {
-          const canvas = await html2canvas(contentRef.current, {
-            backgroundColor: '#0f172a',
-            scale: 2,
-          });
-          const link = document.createElement('a');
-          link.download = `Tonight_${caseNumber}.png`;
-          link.href = canvas.toDataURL();
-          link.click();
-        } catch {}
-      }
+    } finally {
+      setShowShareTarget(false);
     }
   };
 
@@ -241,8 +232,8 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
             </div>
           </motion.div>
 
-          {/* Hidden share-target div for social-optimized export */}
-          <div className="fixed -left-[9999px] -top-[9999px]" aria-hidden="true">
+          {/* Hidden share-target div — only mounted during export */}
+          {showShareTarget && <div className="fixed -left-[9999px] -top-[9999px]" aria-hidden="true">
             <div ref={shareTargetRef} style={{ width: 1080, height: 1920, padding: 80, background: '#0f172a', color: 'white', fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
               <div style={{ position: 'absolute', top: 120, right: 60, transform: 'rotate(-15deg)', fontSize: 72, fontWeight: 900, color: 'rgba(225,29,72,0.08)', letterSpacing: '0.3em' }}>CLASSIFIED</div>
 
@@ -284,7 +275,7 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
                 TONIGHT
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       )}
     </AnimatePresence>

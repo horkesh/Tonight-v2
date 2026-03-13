@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PAGE_VARIANTS, ACTIVITIES } from '../../constants';
+import { PAGE_VARIANTS, ACTIVITIES, CATEGORY_ICONS, ACTIVITY_ICONS } from '../../constants';
 import { PersonaReveal } from '../PersonaReveal';
 import { VibeMatrix } from '../VibeMatrix';
 import { LocationWindow } from '../LocationWindow';
@@ -11,15 +11,6 @@ import { Question } from '../../types';
 interface HubViewProps {
   onOpenReactionPicker: () => void;
 }
-
-const CATEGORY_ICONS: Record<string, string> = {
-  Style: '✨', Escape: '🌙', Preferences: '💎',
-  Deep: '🔮', Intimate: '🫀', Desire: '🔥',
-};
-
-const ACTIVITY_ICONS: Record<string, string> = {
-  twoTruths: '🎭', finishSentence: '✍️', truth: '🥃',
-};
 
 export const HubView: React.FC<HubViewProps> = ({ onOpenReactionPicker }) => {
   const { state, actions, qActions, aiActions, narrativeState, narrativeActions } = useSession();
@@ -39,19 +30,17 @@ export const HubView: React.FC<HubViewProps> = ({ onOpenReactionPicker }) => {
   };
 
   const handleAcceptSuggestion = () => {
-    const suggestion = narrativeActions.acceptSuggestion();
-    if (!suggestion) return;
+    if (!narrativeSuggestion) return;
 
-    if (suggestion.suggestedAction === 'question' && suggestion.suggestedCategory) {
-      // Go to question view and auto-select category
-      qActions.handleCategorySelect(suggestion.suggestedCategory as Question['category']);
+    if (narrativeSuggestion.suggestedAction === 'question' && narrativeSuggestion.suggestedCategory) {
+      qActions.handleCategorySelect(narrativeSuggestion.suggestedCategory as Question['category']);
       actions.setView('question', false);
       actions.setUsers(prev => prev.map(u => u.isSelf ? { ...u, status: 'choosing' } : u));
-    } else if (suggestion.suggestedAction === 'activity') {
-      if (suggestion.suggestedActivity === 'morning_edition') {
+    } else if (narrativeSuggestion.suggestedAction === 'activity') {
+      if (narrativeSuggestion.suggestedActivity === 'morning_edition') {
         handleMorningEdition();
-      } else if (suggestion.suggestedActivity) {
-        aiActions.handleActivitySelect(suggestion.suggestedActivity);
+      } else if (narrativeSuggestion.suggestedActivity) {
+        aiActions.handleActivitySelect(narrativeSuggestion.suggestedActivity);
       }
     }
   };

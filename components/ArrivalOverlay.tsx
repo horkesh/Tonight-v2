@@ -1,8 +1,16 @@
 
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateContext } from '../types';
 import { soundManager } from '../services/soundManager';
+
+// Timeline constants (ms)
+const STAGE_PARTICLES = 1500;
+const STAGE_AVATAR = 3000;
+const STAGE_NAME = 5000;
+const STAGE_SUBTITLE = 7000;
+const DISMISSABLE_AT = 7000;
+const AUTO_DISMISS = 12000;
 
 const ARRIVAL_LINES: Record<string, string> = {
   lounge: "A figure takes the seat across from you...",
@@ -52,14 +60,14 @@ export const ArrivalOverlay: React.FC<ArrivalOverlayProps> = ({ event, dateConte
 
     soundManager.play('arrival_swell');
 
-    // Stage progression timeline (9s total)
+    // Stage progression timeline
     const timers = [
-      setTimeout(() => setStage(1), 1500),   // Particles converge
-      setTimeout(() => setStage(2), 3000),    // Avatar materialize
-      setTimeout(() => setStage(3), 5000),    // Name reveal
-      setTimeout(() => setStage(4), 7000),    // Subtitle + tap hint
-      setTimeout(() => setCanDismiss(true), 5000),
-      setTimeout(stableDismiss, 12000),        // Auto-dismiss at 12s
+      setTimeout(() => setStage(1), STAGE_PARTICLES),
+      setTimeout(() => setStage(2), STAGE_AVATAR),
+      setTimeout(() => setStage(3), STAGE_NAME),
+      setTimeout(() => setStage(4), STAGE_SUBTITLE),
+      setTimeout(() => setCanDismiss(true), DISMISSABLE_AT),
+      setTimeout(stableDismiss, AUTO_DISMISS),
     ];
 
     return () => timers.forEach(clearTimeout);
@@ -79,17 +87,19 @@ export const ArrivalOverlay: React.FC<ArrivalOverlayProps> = ({ event, dateConte
     if (canDismiss) stableDismiss();
   };
 
-  // Generate particle positions for the convergence effect
-  const particles = Array.from({ length: 10 }, (_, i) => {
-    const angle = (i / 10) * Math.PI * 2;
-    const radius = 150 + Math.random() * 80;
-    return {
-      startX: Math.cos(angle) * radius,
-      startY: Math.sin(angle) * radius,
-      size: 8 + Math.random() * 16,
-      delay: Math.random() * 0.5,
-    };
-  });
+  // Memoize particle positions — only regenerate when event changes
+  const particles = useMemo(() =>
+    event ? Array.from({ length: 10 }, (_, i) => {
+      const angle = (i / 10) * Math.PI * 2;
+      const radius = 150 + Math.random() * 80;
+      return {
+        startX: Math.cos(angle) * radius,
+        startY: Math.sin(angle) * radius,
+        size: 8 + Math.random() * 16,
+        delay: Math.random() * 0.5,
+      };
+    }) : [],
+  [event]);
 
   return (
     <AnimatePresence>

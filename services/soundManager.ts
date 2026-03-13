@@ -83,6 +83,14 @@ class SoundManager {
   isMuted(): boolean {
     return this.muted;
   }
+
+  teardown() {
+    if (this.ctx && this.ctx.state !== 'closed') {
+      this.ctx.close().catch(() => {});
+    }
+    this.ctx = null;
+    this.bufferCache.clear();
+  }
 }
 
 export const soundManager = new SoundManager();

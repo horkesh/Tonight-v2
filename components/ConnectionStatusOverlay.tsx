@@ -29,7 +29,7 @@ export const ConnectionStatusOverlay: React.FC<ConnectionStatusOverlayProps> = (
             setShowOverlay(true);
         }, 5000);
     } else {
-        setShowOverlay(false);
+        setShowOverlay(prev => prev ? false : prev);
     }
     return () => clearTimeout(timer);
   }, [isConnected, isActive]);
