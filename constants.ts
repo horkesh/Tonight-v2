@@ -1,5 +1,6 @@
 
 import { VibeStats, DateVibe, DateLocation } from "./types";
+import type { HostProfile } from "./types/profiles";
 
 export const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop";
 
@@ -167,6 +168,14 @@ Guidelines:
 Rule: When generating choices, provide EXACTLY 3 distinct options unless specified otherwise.
 Rule: Narrative must be pithy—max 12 words.
 `;
+
+export const HOST_PROFILE: HostProfile = {
+  name: 'Haris',
+  age: 46,
+  sex: 'male',
+  appearance: 'South Asian man, salt-and-pepper hair, warm brown eyes, well-groomed beard, athletic build',
+  avatarPath: null,
+};
 
 export const PAGE_VARIANTS = {
   initial: { opacity: 0, filter: 'blur(12px)', scale: 1.05 },

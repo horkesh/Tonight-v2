@@ -5,6 +5,8 @@ import { useSessionState } from './useSessionState';
 import { generateDynamicQuestions, extractTraitFromInteraction } from '../services/geminiService';
 import { useQuestionStore } from '../store/aiState';
 import { applyVibeDeltas } from '../utils/helpers';
+import { buildPromptContext } from '../services/prompts/promptContext';
+import { useProfileStore } from '../store/profileStore';
 
 const VIBE_WEIGHTS: Record<string, Partial<VibeStats>> = {
   'Style': { playful: 10, flirty: 5 },
@@ -92,7 +94,11 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
         conversationLog: s.conversationLog,
         round: s.round,
         vibe: s.vibe,
-      }
+      },
+      (() => {
+        const ps = useProfileStore.getState();
+        return buildPromptContext(ps.activeProfile, ps.activeVenue, ps.activeDateConfig);
+      })()
     );
 
     setAvailableQuestions(questions);

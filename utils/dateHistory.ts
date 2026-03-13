@@ -7,6 +7,7 @@ export interface DateHistoryEntry {
   id: string;
   timestamp: number;
   partnerName: string;
+  profileId?: string;
   location: string;
   vibe: VibeStats;
   chemistry: number;
@@ -51,10 +52,12 @@ export function buildHistoryEntry(
   partnerName: string,
   location: string,
   vibe: VibeStats,
-  chemistry: number
+  chemistry: number,
+  profileId?: string
 ): Omit<DateHistoryEntry, 'id' | 'timestamp'> {
   return {
     partnerName,
+    profileId,
     location,
     vibe,
     chemistry,
@@ -62,4 +65,12 @@ export function buildHistoryEntry(
     summary: report.summary,
     rating: report.partnerRating ?? null,
   };
+}
+
+export function getHistoryForProfile(profileId: string): DateHistoryEntry[] {
+  return getDateHistory().filter((h) => h.profileId === profileId);
+}
+
+export function getDateNumber(profileId: string): number {
+  return getHistoryForProfile(profileId).length + 1;
 }

@@ -9,10 +9,10 @@ import {
   Choice,
   ActivityPayload
 } from '../types';
-import { 
-  generateScene, 
-  generateIntelligenceReport, 
-  analyzeImageAction, 
+import {
+  generateScene,
+  generateIntelligenceReport,
+  analyzeImageAction,
   generateSilentReaction,
   generateTwoTruthsOneLie,
   generateFinishSentence
@@ -21,6 +21,13 @@ import { useSessionState } from './useSessionState';
 import { useAiStore } from '../store/aiState';
 import { applyVibeDeltas } from '../utils/helpers';
 import { saveDateToHistory, buildHistoryEntry } from '../utils/dateHistory';
+import { useProfileStore } from '../store/profileStore';
+import { buildPromptContext } from '../services/prompts/promptContext';
+
+const getPromptContext = () => {
+  const { activeProfile, activeVenue, activeDateConfig } = useProfileStore.getState();
+  return buildPromptContext(activeProfile, activeVenue, activeDateConfig);
+};
 
 export function useAiActions(session: ReturnType<typeof useSessionState>) {
   const { state: s, actions: a } = session;
@@ -75,7 +82,8 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
           subjectName,
           s.vibe,
           s.conversationLog,
-          s.dateContext
+          s.dateContext,
+          getPromptContext()
         );
 
         const fullData: TwoTruthsData = {
@@ -103,7 +111,8 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
           guesserName,
           s.vibe,
           s.conversationLog,
-          s.dateContext
+          s.dateContext,
+          getPromptContext()
         );
 
         const fullData: FinishSentenceData = {
@@ -127,7 +136,8 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
           s.userPersona,
           s.dateContext,
           s.lastChoiceText,
-          activityId
+          activityId,
+          getPromptContext()
         );
         a.setCurrentScene(scene);
         a.setView('activity');
@@ -189,16 +199,17 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     const partnerName = a.getPartner()?.name || 'Unknown';
     const locationTitle = s.dateContext?.location?.title || 'Unknown Location';
 
+    const activeProfileId = useProfileStore.getState().activeProfile?.id;
     const saveHistory = (report: IntelligenceReport) => {
       try {
-        saveDateToHistory(buildHistoryEntry(report, partnerName, locationTitle, s.vibe, s.partnerPersona.chemistry));
+        saveDateToHistory(buildHistoryEntry(report, partnerName, locationTitle, s.vibe, s.partnerPersona.chemistry, activeProfileId));
       } catch (e) {
         console.warn('Failed to save date history:', e);
       }
     };
 
     try {
-      const report = await generateIntelligenceReport(s.vibe, s.partnerPersona, rating, s.dateContext);
+      const report = await generateIntelligenceReport(s.vibe, s.partnerPersona, rating, s.dateContext, getPromptContext());
       setIntelligenceReport(report);
       saveHistory(report);
       return true;

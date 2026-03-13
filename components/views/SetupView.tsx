@@ -1,19 +1,26 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
-import { PAGE_VARIANTS, DATE_VIBES, DATE_LOCATIONS } from '../../constants';
+import { PAGE_VARIANTS, DATE_VIBES, HOST_PROFILE } from '../../constants';
 import { DateLocation, DateVibe } from '../../types';
-import { CameraModal } from '../CameraModal';
-import { analyzeUserPhotoForAvatar, generateAbstractAvatar } from '../../services/geminiService';
-import { compressImage } from '../../utils/helpers';
 import { PastDates } from '../PastDates';
+import { ProfileCard } from '../ProfileCard';
+import { VenueCard } from '../VenueCard';
+import { ProfileEditorView } from './ProfileEditorView';
+import { VenueEditorView } from './VenueEditorView';
+import { DateConfigView } from './DateConfigView';
+import { getProfiles, deleteProfile, getVenues, deleteVenue } from '../../utils/profileStorage';
+import { venueToDateLocation } from '../../utils/venueToLocation';
+import { useProfileStore } from '../../store/profileStore';
+import type { PartnerProfile, VenueProfile, DateConfig } from '../../types/profiles';
+import { getDateNumber } from '../../utils/dateHistory';
 
 interface SetupViewProps {
   onStart: (hostData: any, guestData: any, vibe: DateVibe | null, location: DateLocation | null, roomId: string, isHost: boolean, avatar?: string, partnerAvatar?: string, hostTraits?: string[], partnerTraits?: string[]) => void;
 }
 
-const IntroStep: React.FC<{ handleHostStart: () => void; handleGuestJoin: () => void }> = ({ handleHostStart, handleGuestJoin }) => (
+const IntroStep: React.FC<{ handleHostStart: () => void; handleGuestJoin: () => void; handleManage: () => void }> = ({ handleHostStart, handleGuestJoin, handleManage }) => (
   <div className="flex flex-col items-center gap-6 w-full">
     <h1 className="text-6xl font-serif text-white tracking-tighter mb-4">Tonight</h1>
     <button onClick={handleHostStart} className="w-full p-6 bg-rose-600 rounded-[32px] border border-rose-500/30 hover:bg-rose-500 transition-all text-left group relative overflow-hidden">
@@ -26,62 +33,49 @@ const IntroStep: React.FC<{ handleHostStart: () => void; handleGuestJoin: () => 
       <span className="text-2xl font-serif italic text-white/80">Enter Room Code</span>
       <div className="ml-auto float-right -mt-6 text-3xl opacity-30 group-hover:opacity-100 transition-opacity">🗝️</div>
     </button>
+    <button onClick={handleManage} className="mt-2 text-[9px] uppercase tracking-[0.3em] font-black text-white/20 hover:text-white/60 transition-colors">
+      Manage Profiles & Venues
+    </button>
     <PastDates />
   </div>
 );
 
 export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
-  const [step, setStep] = useState<number>(0); // 0=Intro, 1=HostDossier, 2=PartnerDossier, 3=Config, 4=Final
+  // Step 0=Intro, 1=ProfilePicker, 2=VenuePicker, 3=DateConfig, 4=RoomCode
+  // Step 10=Guest join, 11=ProfileEditor overlay, 12=VenueEditor overlay
+  // Step 20=Manage hub (profiles & venues)
+  const [step, setStep] = useState<number>(0);
+  const [manageTab, setManageTab] = useState<'profiles' | 'venues'>('profiles');
+  // Track where editors should return: management hub or date flow
+  const editorReturnRef = useRef<number>(1);
   const [isHost, setIsHost] = useState(false);
   const [roomId, setRoomId] = useState('');
   const [isAutoJoin, setIsAutoJoin] = useState(false);
-  
-  // Host Data
-  const [hostName, setHostName] = useState('');
-  const [hostDesc, setHostDesc] = useState('');
-  // Hidden state for API consistency, auto-filled by AI
-  const [hostAge, setHostAge] = useState('30');
-  const [hostGender, setHostGender] = useState('Unknown');
-  const [hostTraits, setHostTraits] = useState<string[]>([]);
-  const [hostAppearance, setHostAppearance] = useState(''); // AI visual description from photo scan
-
-  // Partner (Target) Data (Defined by Host)
-  const [partnerName, setPartnerName] = useState('');
-  const [partnerDesc, setPartnerDesc] = useState('');
-  // Hidden state
-  const [partnerAge, setPartnerAge] = useState('30');
-  const [partnerGender, setPartnerGender] = useState('Unknown');
-  const [partnerTraits, setPartnerTraits] = useState<string[]>([]);
-  const [partnerAppearance, setPartnerAppearance] = useState(''); // AI visual description
-
-  // Guest Self Data
-  const [guestName, setGuestName] = useState('');
-  const [guestDesc, setGuestDesc] = useState('');
-  const [guestAge, setGuestAge] = useState('30');
-  const [guestGender, setGuestGender] = useState('Unknown');
-  const [guestTraits, setGuestTraits] = useState<string[]>([]);
-  const [guestAppearance, setGuestAppearance] = useState('');
-
-  // Avatars
-  const [avatarImage, setAvatarImage] = useState<string | null>(null);
-  const [partnerAvatarImage, setPartnerAvatarImage] = useState<string | null>(null);
-  const [guestAvatarImage, setGuestAvatarImage] = useState<string | null>(null);
-  
-  const [showCamera, setShowCamera] = useState(false);
-  const [activeCameraTarget, setActiveCameraTarget] = useState<'self' | 'partner' | 'guest'>('self');
-
-  // File Input Refs
-  const selfFileInputRef = useRef<HTMLInputElement>(null);
-  const partnerFileInputRef = useRef<HTMLInputElement>(null);
-  const guestFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Date Settings
-  const [selectedLocation, setSelectedLocation] = useState<DateLocation | null>(null);
-  const [selectedVibe, setSelectedVibe] = useState<DateVibe | null>(null);
-
   const [isLoading, setIsLoading] = useState(false);
-  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const autoJoinFired = useRef(false);
+
+  // Profile store — use selectors to minimize re-renders
+  const activeProfile = useProfileStore(s => s.activeProfile);
+  const activeVenue = useProfileStore(s => s.activeVenue);
+  const activeDateConfig = useProfileStore(s => s.activeDateConfig);
+  const setActiveProfile = useProfileStore(s => s.setActiveProfile);
+  const setActiveVenue = useProfileStore(s => s.setActiveVenue);
+  const setActiveDateConfig = useProfileStore(s => s.setActiveDateConfig);
+
+  // Profile/venue lists
+  const [profiles, setProfiles] = useState<PartnerProfile[]>([]);
+  const [venues, setVenues] = useState<VenueProfile[]>([]);
+  const [editingProfile, setEditingProfile] = useState<PartnerProfile | undefined>(undefined);
+  const [editingVenue, setEditingVenue] = useState<VenueProfile | undefined>(undefined);
+
+  // Guest data (unchanged from original)
+  const [guestName, setGuestName] = useState('');
+
+  // Load profiles and venues
+  useEffect(() => {
+    setProfiles(getProfiles());
+    setVenues(getVenues());
+  }, []);
 
   useEffect(() => {
     // Check for Magic Link
@@ -92,12 +86,10 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
         setRoomId(urlRoom);
         setIsHost(false);
         setIsAutoJoin(true);
-        setIsLoading(true); // Show spinner immediately
+        setIsLoading(true);
         setStep(10);
-        // Guard against React Strict Mode double-fire
         if (autoJoinFired.current) return;
         autoJoinFired.current = true;
-        // Defer finalize to next tick so state is set
         setTimeout(() => {
             const finalRoomId = urlRoom.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
             onStart(
@@ -109,462 +101,418 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
         return;
     } else {
         const ROOM_CODES = [
-            'NOIR', 'LUNA', 'SILK', 'JAZZ', 'WINE', 'DEEP', 'DARK', 'SOUL', 
+            'NOIR', 'LUNA', 'SILK', 'JAZZ', 'WINE', 'DEEP', 'DARK', 'SOUL',
             'HAZE', 'GLOW', 'MIST', 'RAIN', 'FIRE', 'KISS', 'REAL', 'WANT'
         ];
         const base = ROOM_CODES[Math.floor(Math.random() * ROOM_CODES.length)];
-        const suffix = Math.floor(Math.random() * 90 + 10); // 10-99
+        const suffix = Math.floor(Math.random() * 90 + 10);
         setRoomId(`${base}${suffix}`);
     }
   }, []);
 
+  const handleManage = () => {
+    setStep(20);
+  };
+
   const handleHostStart = () => {
     setIsHost(true);
-    setStep(1); // Go to Host Dossier
+    setStep(1); // Go to Profile Picker
   };
 
   const handleGuestJoin = () => {
     setIsHost(false);
-    setStep(10); // Jump to Guest Join Screen
-    setRoomId(''); 
+    setStep(10);
+    setRoomId('');
+  };
+
+  const handleSelectProfile = (profile: PartnerProfile) => {
+    setActiveProfile(profile);
+    setStep(2); // Go to Venue Picker
+  };
+
+  const handleSelectVenue = (venue: VenueProfile) => {
+    setActiveVenue(venue);
+    setStep(3); // Go to DateConfig
+  };
+
+  const handleSkipVenue = () => {
+    setActiveVenue(null);
+    setStep(3);
+  };
+
+  const handleDateConfigConfirm = (config: DateConfig) => {
+    setActiveDateConfig(config);
+    setStep(4); // Go to Room Code
   };
 
   const finalize = () => {
     setIsLoading(true);
-    
-    const hData = isHost ? {
-        name: hostName,
-        age: hostAge,
-        desc: hostDesc || "A mysterious figure.",
-        appearance: hostAppearance, // AI visual description from photo (for avatar regen)
-        sex: hostGender
-    } : null;
 
-    const gData = isHost
-        ? {
-            name: partnerName || "The Guest",
-            age: partnerAge,
-            desc: partnerDesc || "An intriguing guest.",
-            appearance: partnerAppearance,
-            sex: partnerGender
-          }
-        : {
-            name: guestName || "Guest",
-            age: guestAge,
-            desc: guestDesc || "Connecting...",
-            appearance: guestAppearance,
-            sex: guestGender,
-            traits: guestTraits
-          };
-    
-    const finalRoomId = roomId.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    const finalHostAvatar = avatarImage || undefined;
-    const finalPartnerAvatar = partnerAvatarImage || undefined;
-    const finalGuestAvatar = guestAvatarImage || undefined;
+    if (isHost && activeProfile) {
+      // Build hostData from HOST_PROFILE constant
+      const hData = {
+        name: HOST_PROFILE.name,
+        age: String(HOST_PROFILE.age),
+        desc: HOST_PROFILE.appearance,
+        appearance: HOST_PROFILE.appearance,
+        sex: HOST_PROFILE.sex,
+      };
 
-    // For Guest, we send their avatar as 'initialAvatar'
-    const myAvatar = isHost ? finalHostAvatar : finalGuestAvatar;
+      // Build partner (guest) data from active profile
+      const profile = activeProfile;
+      const partnerBackground = [
+        profile.job,
+        profile.interests.length > 0 ? `Interests: ${profile.interests.join(', ')}` : null,
+        profile.personalityTraits.length > 0 ? `Personality: ${profile.personalityTraits.join(', ')}` : null,
+        profile.aspiration ? `Aspiration: ${profile.aspiration}` : null,
+      ].filter(Boolean).join('. ');
 
-    setTimeout(() => {
+      const gData = {
+        name: profile.name,
+        age: profile.aiEstimatedAge || 'Unknown',
+        desc: partnerBackground || "An intriguing guest.",
+        appearance: profile.aiAppearance || '',
+        sex: profile.aiGender || 'Unknown',
+      };
+
+      // Derive location + vibe from venue + config
+      let locationData: DateLocation | null = null;
+      let vibeData: DateVibe | null = null;
+
+      if (activeVenue && activeDateConfig) {
+        const selectedVibes = activeDateConfig.vibes
+          .map(id => DATE_VIBES.find(v => v.id === id))
+          .filter((v): v is DateVibe => v !== undefined);
+        locationData = venueToDateLocation(activeVenue, selectedVibes);
+        vibeData = selectedVibes[0] || null;
+      }
+
+      const finalRoomId = roomId.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
+
+      setTimeout(() => {
         onStart(
-            hData, 
-            gData, 
-            selectedVibe, 
-            selectedLocation, 
-            finalRoomId, 
-            isHost, 
-            myAvatar, 
-            finalPartnerAvatar,
-            hostTraits,
-            partnerTraits
+          hData,
+          gData,
+          vibeData,
+          locationData,
+          finalRoomId,
+          true,
+          HOST_PROFILE.avatarPath || undefined,
+          profile.photo || undefined,
+          [],
+          profile.aiTraits
         );
-    }, 500);
-  };
+      }, 500);
+    } else {
+      // Guest flow
+      const gData = {
+        name: guestName || "Guest",
+        age: "Unknown",
+        desc: "Connecting...",
+        sex: "Neutral",
+        traits: [],
+      };
+      const finalRoomId = roomId.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
 
-  const processAndGeneratePersona = async (base64Input: string, target: 'self' | 'partner' | 'guest') => {
-      setIsProcessingImage(true);
-      try {
-          const base64 = base64Input.includes(',') ? base64Input.split(',')[1] : base64Input;
-          
-          // 1. Analyze Photo with Gemini
-          const { appearance, traits, estimatedAge, gender } = await analyzeUserPhotoForAvatar(base64);
-          
-          // 2. Generate Abstract Avatar
-          let generatedAvatarUrl = await generateAbstractAvatar(traits, 15, appearance);
-          if (!generatedAvatarUrl) {
-               generatedAvatarUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop";
-          }
-          
-          // Store avatar + hidden AI metadata (age, gender, appearance, traits for avatar regen).
-          // Do NOT auto-fill the description textarea — user fills in background/career/interests manually.
-          // Traits are stored internally for avatar generation but NOT shown on persona card UI.
-
-          if (target === 'self') {
-              setAvatarImage(generatedAvatarUrl);
-              setHostAge(estimatedAge);
-              setHostGender(gender);
-              setHostAppearance(appearance);
-              setHostTraits(traits);
-          } else if (target === 'partner') {
-              setPartnerAvatarImage(generatedAvatarUrl);
-              setPartnerAge(estimatedAge);
-              setPartnerGender(gender);
-              setPartnerAppearance(appearance);
-              setPartnerTraits(traits);
-          } else if (target === 'guest') {
-              setGuestAvatarImage(generatedAvatarUrl);
-              setGuestAge(estimatedAge);
-              setGuestGender(gender);
-              setGuestAppearance(appearance);
-              setGuestTraits(traits);
-          }
-      } catch (e) {
-          console.error("Persona Gen Failed", e);
-      } finally {
-          setIsProcessingImage(false);
-      }
-  };
-
-  const handleCameraCapture = async (base64: string) => {
-      const compressed = await compressImage(`data:image/jpeg;base64,${base64}`);
-      await processAndGeneratePersona(compressed, activeCameraTarget);
-      setShowCamera(false);
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'self' | 'partner' | 'guest') => {
-      const file = e.target.files?.[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-              const result = reader.result as string;
-              const compressed = await compressImage(result, 0.5, 400);
-              await processAndGeneratePersona(compressed, target);
-          };
-          reader.readAsDataURL(file);
-      }
+      setTimeout(() => {
+        onStart(null, gData, null, null, finalRoomId, false, undefined, undefined, [], []);
+      }, 500);
+    }
   };
 
   const copyInviteLink = () => {
-      const url = `${window.location.origin}?room=${roomId}`;
-      navigator.clipboard.writeText(url);
-      alert("Link copied! Send it to your date.");
+    const url = `${window.location.origin}?room=${roomId}`;
+    navigator.clipboard.writeText(url);
+    alert("Link copied! Send it to your date.");
   };
 
-  const renderIdentityForm = (
-      title: string, 
-      name: string, setName: (v: string) => void,
-      desc: string, setDesc: (v: string) => void,
-      onNext: () => void,
-      avatarTarget: 'self' | 'partner' | 'guest'
-  ) => {
-    let currentAvatar;
-    if (avatarTarget === 'self') currentAvatar = avatarImage;
-    else if (avatarTarget === 'partner') currentAvatar = partnerAvatarImage;
-    else currentAvatar = guestAvatarImage;
-
-    let fileRef;
-    if (avatarTarget === 'self') fileRef = selfFileInputRef;
-    else if (avatarTarget === 'partner') fileRef = partnerFileInputRef;
-    else fileRef = guestFileInputRef;
-
-    const canUseCamera = (isHost && avatarTarget === 'self') || (!isHost && avatarTarget === 'guest');
-    
-    return (
-        <div className="w-full flex flex-col gap-6">
-            <h2 className="text-2xl font-serif italic text-white text-center">{title}</h2>
-            
-            <div className="flex flex-col items-center gap-6">
-                <div 
-                    className="relative group cursor-pointer" 
-                    onClick={() => { 
-                        if (canUseCamera) {
-                            setActiveCameraTarget(avatarTarget); 
-                            setShowCamera(true); 
-                        } else {
-                            fileRef.current?.click();
-                        }
-                    }}
-                >
-                    <div className="w-32 h-32 rounded-full border-2 border-white/10 bg-white/5 overflow-hidden flex items-center justify-center hover:border-rose-500 transition-colors relative shadow-2xl">
-                        {isProcessingImage && (
-                             <div className="absolute inset-0 z-20 bg-black/80 flex flex-col items-center justify-center gap-2">
-                                 <div className="w-8 h-8 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"/>
-                                 <span className="text-[8px] uppercase tracking-widest text-rose-500 animate-pulse">Scanning...</span>
-                             </div>
-                        )}
-                        {currentAvatar ? (
-                            <img src={currentAvatar} className="w-full h-full object-cover" alt="Avatar" />
-                        ) : (
-                            <div className="flex flex-col items-center opacity-30 group-hover:opacity-100 transition-opacity">
-                                <span className="text-4xl mb-2">{canUseCamera ? '📷' : '📁'}</span>
-                                <span className="text-[8px] uppercase tracking-widest">Add Photo</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex gap-3 w-full justify-center">
-                    {canUseCamera && (
-                        <button 
-                            onClick={() => { setActiveCameraTarget(avatarTarget); setShowCamera(true); }}
-                            className="text-[9px] uppercase tracking-widest bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-colors"
-                        >
-                            Open Camera
-                        </button>
-                    )}
-                    <button 
-                        onClick={() => fileRef.current?.click()}
-                        className={`text-[9px] uppercase tracking-widest bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-colors ${!canUseCamera ? 'min-w-[100px]' : ''}`}
-                    >
-                        Upload Photo
-                    </button>
-                </div>
-
-                <input 
-                    type="file" 
-                    ref={fileRef}
-                    className="hidden" 
-                    accept="image/*"
-                    onChange={(e) => handleFileUpload(e, avatarTarget)}
-                />
-            </div>
-
-            <div className="space-y-4 px-2">
-                <input 
-                    value={name} onChange={e => setName(e.target.value)} autoFocus={avatarTarget !== 'partner'}
-                    placeholder="Enter Name" className="w-full bg-transparent border-b border-white/20 p-2 text-center text-3xl font-serif focus:outline-none focus:border-rose-500 transition-colors placeholder:text-white/10"
-                />
-                
-                <div className="relative">
-                    <span className="text-[9px] text-rose-500 uppercase tracking-widest font-black block mb-2">Background</span>
-                    <textarea
-                        value={desc}
-                        onChange={e => setDesc(e.target.value)}
-                        placeholder="Career, interests, what they're into... (helps personalize questions)"
-                        className="w-full bg-white/5 rounded-2xl border border-white/10 p-4 text-sm font-sans text-white/80 focus:outline-none focus:border-rose-500 transition-colors min-h-[120px] resize-none"
-                    />
-                </div>
-            </div>
-
-            <button 
-                disabled={!name || isProcessingImage || !currentAvatar}
-                onClick={onNext}
-                className="mt-4 w-full py-4 bg-white/10 rounded-full text-[10px] uppercase tracking-[0.3em] font-black hover:bg-white/20 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-            >
-                Confirm Identity
-            </button>
-            
-            {avatarTarget === 'guest' && (
-                <button 
-                    onClick={finalize}
-                    className="text-[9px] text-white/20 uppercase tracking-widest hover:text-white transition-colors"
-                >
-                    Skip (Use Host's Invite)
-                </button>
-            )}
-        </div>
-    );
-  };
-
-  const renderConfig = () => (
-    <div className="w-full flex flex-col gap-6 relative z-10">
-       <h2 className="text-2xl font-serif italic text-white text-center mb-2">Set the Scene</h2>
-
-       {/* LOCATION PICKER */}
-       {!selectedLocation ? (
-         <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <span className="text-[10px] uppercase tracking-widest text-white/40 text-center mb-2">Select Location</span>
-            <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
-                {DATE_LOCATIONS.map(loc => (
-                    <button 
-                        key={loc.id}
-                        onClick={() => setSelectedLocation(loc)}
-                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-left flex items-center gap-4 group"
-                    >
-                        <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                             {loc.icon === 'sax' ? '🎷' : loc.icon === 'city' ? '🌃' : loc.icon === 'book' ? '📚' : loc.icon === 'wave' ? '🌊' : '🚘'}
-                        </div>
-                        <div>
-                            <span className="text-white font-serif text-lg">{loc.title}</span>
-                            <p className="text-[10px] text-white/40 uppercase tracking-wider">{loc.description.split(',')[0]}</p>
-                        </div>
-                    </button>
-                ))}
-            </div>
-         </div>
-       ) : (
-         <button 
-            onClick={() => { setSelectedLocation(null); setSelectedVibe(null); }}
-            className="w-full p-4 rounded-2xl bg-rose-900/40 border border-rose-500/30 flex items-center justify-between group shadow-xl backdrop-blur-md"
-         >
-            <div className="flex items-center gap-4">
-                <span className="text-2xl">{selectedLocation.icon === 'sax' ? '🎷' : selectedLocation.icon === 'city' ? '🌃' : selectedLocation.icon === 'book' ? '📚' : selectedLocation.icon === 'wave' ? '🌊' : '🚘'}</span>
-                <div className="text-left">
-                    <span className="text-[9px] uppercase tracking-widest text-rose-400 font-black">Location</span>
-                    <div className="text-white font-serif">{selectedLocation.title}</div>
-                </div>
-            </div>
-            <span className="text-xs text-white/30 group-hover:text-white uppercase tracking-wider font-bold">Change</span>
-         </button>
-       )}
-
-       {/* VIBE PICKER */}
-       {selectedLocation && !selectedVibe && (
-         <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="w-px h-8 bg-white/10 mx-auto my-2" />
-             <span className="text-[10px] uppercase tracking-widest text-white/40 text-center mb-2">Select Vibe</span>
-             <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                {DATE_VIBES.map(vibe => (
-                    <button 
-                        key={vibe.id}
-                        onClick={() => setSelectedVibe(vibe)}
-                        className="w-full p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-left flex items-center gap-4 group"
-                    >
-                        <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                             {vibe.icon}
-                        </div>
-                        <div>
-                            <span className="text-white font-serif">{vibe.title}</span>
-                             <p className="text-[10px] text-white/40 uppercase tracking-wider">{vibe.description}</p>
-                        </div>
-                    </button>
-                ))}
-             </div>
-         </div>
-       )}
-
-       {/* START BUTTON */}
-       {selectedLocation && selectedVibe && (
-           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-4">
-              <button 
-                onClick={() => setStep(4)}
-                className="w-full py-5 bg-rose-600 rounded-full text-[11px] uppercase tracking-[0.4em] font-black text-white hover:bg-rose-500 shadow-[0_0_30px_rgba(225,29,72,0.4)] transition-all"
-              >
-                  Initiate Sequence
-              </button>
-           </div>
-       )}
-    </div>
-  );
+  const dateNumber = useMemo(() => activeProfile ? getDateNumber(activeProfile.id) : 1, [activeProfile]);
 
   return (
     <div className="w-full max-w-sm flex flex-col items-center min-h-[50vh] justify-center relative z-20">
       <AnimatePresence mode="wait">
-        
+
         {/* Intro */}
         {step === 0 && (
           <motion.div key="intro" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
-            <IntroStep handleHostStart={handleHostStart} handleGuestJoin={handleGuestJoin} />
+            <IntroStep handleHostStart={handleHostStart} handleGuestJoin={handleGuestJoin} handleManage={handleManage} />
           </motion.div>
         )}
 
-        {/* Host: Self Identity */}
+        {/* Host: Profile Picker */}
         {step === 1 && (
-           <motion.div key="host-self" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
-                {renderIdentityForm("Your Identity", hostName, setHostName, hostDesc, setHostDesc, () => setStep(2), "self")}
-           </motion.div>
+          <motion.div key="profile-picker" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-2">
+                <button onClick={() => setStep(0)} className="text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">← Back</button>
+                <h2 className="text-xl font-serif italic text-white">Who's Tonight?</h2>
+                <div className="w-12" />
+              </div>
+
+              {profiles.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  {profiles.map(p => (
+                    <ProfileCard
+                      key={p.id}
+                      profile={p}
+                      onClick={() => handleSelectProfile(p)}
+                      onDelete={() => {
+                        deleteProfile(p.id);
+                        setProfiles(getProfiles());
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={() => { setEditingProfile(undefined); editorReturnRef.current = 1; setStep(11); }}
+                className="w-full p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-rose-500/50 hover:bg-white/5 transition-all text-center group"
+              >
+                <span className="text-2xl block mb-2 opacity-30 group-hover:opacity-100 transition-opacity">+</span>
+                <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40 group-hover:text-white/80 transition-colors">New Profile</span>
+              </button>
+            </div>
+          </motion.div>
         )}
 
-        {/* Host: Partner Identity */}
+        {/* Host: Venue Picker */}
         {step === 2 && (
-           <motion.div key="host-partner" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
-                {renderIdentityForm("Partner Dossier", partnerName, setPartnerName, partnerDesc, setPartnerDesc, () => setStep(3), "partner")}
-           </motion.div>
+          <motion.div key="venue-picker" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-2">
+                <button onClick={() => setStep(1)} className="text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">← Back</button>
+                <h2 className="text-xl font-serif italic text-white">Where Tonight?</h2>
+                <div className="w-12" />
+              </div>
+
+              {venues.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  {venues.map(v => (
+                    <VenueCard
+                      key={v.id}
+                      venue={v}
+                      onClick={() => handleSelectVenue(v)}
+                      onDelete={() => {
+                        deleteVenue(v.id);
+                        setVenues(getVenues());
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={() => { setEditingVenue(undefined); editorReturnRef.current = 2; setStep(12); }}
+                className="w-full p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-rose-500/50 hover:bg-white/5 transition-all text-center group"
+              >
+                <span className="text-2xl block mb-2 opacity-30 group-hover:opacity-100 transition-opacity">+</span>
+                <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40 group-hover:text-white/80 transition-colors">New Venue</span>
+              </button>
+
+              <button
+                onClick={handleSkipVenue}
+                className="text-[9px] text-white/20 uppercase tracking-widest hover:text-white transition-colors text-center mt-2"
+              >
+                Skip — Use Default Location
+              </button>
+            </div>
+          </motion.div>
         )}
 
-        {/* Host: Config */}
-        {step === 3 && (
-            <motion.div key="config" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
-                {renderConfig()}
-            </motion.div>
+        {/* Host: Date Config */}
+        {step === 3 && activeProfile && (
+            <DateConfigView
+              key="date-config"
+              profileId={activeProfile.id}
+              venueId={activeVenue?.id || null}
+              dateNumber={dateNumber}
+              onConfirm={handleDateConfigConfirm}
+              onBack={() => setStep(2)}
+            />
         )}
 
-        {/* Host: Finalize (Room Code) */}
+        {/* Host: Room Code / QR */}
         {step === 4 && (
-            <motion.div key="final" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full text-center">
-                <span className="text-[10px] uppercase tracking-[0.4em] font-black text-rose-500 mb-6 block">Secure Channel Open</span>
-                <div onClick={copyInviteLink} className="p-8 bg-white/5 border border-white/10 rounded-[32px] mb-4 cursor-pointer hover:bg-white/10 transition-colors group">
-                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Access Code</p>
-                    <h1 className="text-5xl font-mono text-white tracking-widest">{roomId}</h1>
-                    <span className="text-[9px] text-rose-400 mt-4 block opacity-50 group-hover:opacity-100 transition-opacity">Tap to Copy Invite Link</span>
-                </div>
-                <div className="mb-8 flex flex-col items-center">
-                    <div className="p-4 bg-white rounded-2xl">
-                        <QRCodeSVG value={`${window.location.origin}?room=${roomId}`} size={160} bgColor="#ffffff" fgColor="#020617" level="M" />
-                    </div>
-                    <span className="text-[9px] text-white/30 uppercase tracking-widest mt-3">Scan to join</span>
-                </div>
-                
-                {isLoading ? (
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="w-8 h-8 border-2 border-white/10 border-t-rose-500 rounded-full animate-spin"/>
-                        <span className="text-[9px] uppercase tracking-widest text-white/30">Encrypting connection...</span>
-                    </div>
-                ) : (
-                    <button onClick={finalize} className="w-full py-5 bg-white rounded-full text-[11px] uppercase tracking-[0.4em] font-black text-black hover:bg-white/90 shadow-xl transition-all">
-                        Enter Room
-                    </button>
-                )}
-            </motion.div>
+          <motion.div key="final" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full text-center">
+            <span className="text-[10px] uppercase tracking-[0.4em] font-black text-rose-500 mb-6 block">Secure Channel Open</span>
+            <div onClick={copyInviteLink} className="p-8 bg-white/5 border border-white/10 rounded-[32px] mb-4 cursor-pointer hover:bg-white/10 transition-colors group">
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Access Code</p>
+              <h1 className="text-5xl font-mono text-white tracking-widest">{roomId}</h1>
+              <span className="text-[9px] text-rose-400 mt-4 block opacity-50 group-hover:opacity-100 transition-opacity">Tap to Copy Invite Link</span>
+            </div>
+            <div className="mb-8 flex flex-col items-center">
+              <div className="p-4 bg-white rounded-2xl">
+                <QRCodeSVG value={`${window.location.origin}?room=${roomId}`} size={160} bgColor="#ffffff" fgColor="#020617" level="M" />
+              </div>
+              <span className="text-[9px] text-white/30 uppercase tracking-widest mt-3">Scan to join</span>
+            </div>
+
+            {isLoading ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-8 h-8 border-2 border-white/10 border-t-rose-500 rounded-full animate-spin"/>
+                <span className="text-[9px] uppercase tracking-widest text-white/30">Encrypting connection...</span>
+              </div>
+            ) : (
+              <button onClick={finalize} className="w-full py-5 bg-white rounded-full text-[11px] uppercase tracking-[0.4em] font-black text-black hover:bg-white/90 shadow-xl transition-all">
+                Enter Room
+              </button>
+            )}
+          </motion.div>
         )}
 
         {/* GUEST FLOW — Enter code and connect immediately */}
         {step === 10 && (
-            <motion.div key="guest-join" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
-                {isAutoJoin ? (
-                    /* Magic link auto-join: clean spinner, no input needed */
-                    <div className="flex flex-col items-center gap-6 pt-16">
-                        <div className="relative">
-                            <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
-                            <div className="absolute inset-0 border-t-2 border-rose-500 rounded-full animate-spin" />
-                        </div>
-                        <div className="text-center">
-                            <h3 className="text-xl font-serif text-white">Joining</h3>
-                            <p className="text-[10px] uppercase tracking-widest text-rose-500/80 font-black mt-2">Room {roomId}</p>
-                        </div>
-                    </div>
+          <motion.div key="guest-join" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
+            {isAutoJoin ? (
+              <div className="flex flex-col items-center gap-6 pt-16">
+                <div className="relative">
+                  <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
+                  <div className="absolute inset-0 border-t-2 border-rose-500 rounded-full animate-spin" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-serif text-white">Joining</h3>
+                  <p className="text-[10px] uppercase tracking-widest text-rose-500/80 font-black mt-2">Room {roomId}</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-2xl font-serif italic text-white text-center mb-8">Join Experience</h2>
+                <input
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+                  placeholder="ENTER CODE"
+                  autoFocus
+                  className="w-full bg-transparent border-b border-white/20 p-4 text-center text-4xl font-mono tracking-widest focus:outline-none focus:border-rose-500 transition-colors placeholder:text-white/10 mb-8"
+                />
+
+                {isLoading ? (
+                  <div className="flex flex-col items-center gap-4 mt-8">
+                    <div className="w-8 h-8 border-2 border-white/10 border-t-rose-500 rounded-full animate-spin"/>
+                    <span className="text-[9px] uppercase tracking-widest text-white/30">Dialing Host...</span>
+                  </div>
                 ) : (
-                    /* Manual guest join: code input + connect button */
-                    <>
-                        <h2 className="text-2xl font-serif italic text-white text-center mb-8">Join Experience</h2>
-                        <input
-                            value={roomId}
-                            onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                            placeholder="ENTER CODE"
-                            autoFocus
-                            className="w-full bg-transparent border-b border-white/20 p-4 text-center text-4xl font-mono tracking-widest focus:outline-none focus:border-rose-500 transition-colors placeholder:text-white/10 mb-8"
-                        />
-
-                        {isLoading ? (
-                            <div className="flex flex-col items-center gap-4 mt-8">
-                                <div className="w-8 h-8 border-2 border-white/10 border-t-rose-500 rounded-full animate-spin"/>
-                                <span className="text-[9px] uppercase tracking-widest text-white/30">Dialing Host...</span>
-                            </div>
-                        ) : (
-                            <button
-                                disabled={roomId.length < 3}
-                                onClick={finalize}
-                                className="w-full py-4 bg-white/10 rounded-full text-[10px] uppercase tracking-[0.3em] font-black hover:bg-white/20 disabled:opacity-20 transition-all"
-                            >
-                                Connect
-                            </button>
-                        )}
-
-                        {!isLoading && (
-                            <button onClick={() => setStep(0)} className="mt-6 text-[9px] text-white/20 uppercase tracking-widest w-full hover:text-white">Cancel</button>
-                        )}
-                    </>
+                  <button
+                    disabled={roomId.length < 3}
+                    onClick={finalize}
+                    className="w-full py-4 bg-white/10 rounded-full text-[10px] uppercase tracking-[0.3em] font-black hover:bg-white/20 disabled:opacity-20 transition-all"
+                  >
+                    Connect
+                  </button>
                 )}
-            </motion.div>
-        )}
-      </AnimatePresence>
 
-      <CameraModal 
-        isOpen={showCamera} 
-        onClose={() => setShowCamera(false)} 
-        onCapture={handleCameraCapture} 
-        instruction="Capture Identity" 
-      />
+                {!isLoading && (
+                  <button onClick={() => setStep(0)} className="mt-6 text-[9px] text-white/20 uppercase tracking-widest w-full hover:text-white">Cancel</button>
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
+
+        {/* Profile Editor Overlay */}
+        {step === 11 && (
+            <ProfileEditorView
+              key="profile-editor"
+              profile={editingProfile}
+              onSave={() => {
+                setProfiles(getProfiles());
+                setStep(editorReturnRef.current);
+              }}
+              onCancel={() => setStep(editorReturnRef.current)}
+            />
+        )}
+
+        {/* Venue Editor Overlay */}
+        {step === 12 && (
+            <VenueEditorView
+              key="venue-editor"
+              venue={editingVenue}
+              onSave={() => {
+                setVenues(getVenues());
+                setStep(editorReturnRef.current);
+              }}
+              onCancel={() => setStep(editorReturnRef.current)}
+            />
+        )}
+
+        {/* Manage Profiles & Venues */}
+        {step === 20 && (
+          <motion.div key="manage" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-2">
+                <button onClick={() => setStep(0)} className="text-[9px] uppercase tracking-widest text-white/30 hover:text-white transition-colors">← Back</button>
+                <h2 className="text-xl font-serif italic text-white">Dossiers</h2>
+                <div className="w-12" />
+              </div>
+
+              {/* Tabs */}
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={() => setManageTab('profiles')}
+                  className={`flex-1 py-3 rounded-xl text-[10px] uppercase tracking-[0.2em] font-black transition-all ${manageTab === 'profiles' ? 'bg-rose-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                >
+                  Profiles
+                </button>
+                <button
+                  onClick={() => setManageTab('venues')}
+                  className={`flex-1 py-3 rounded-xl text-[10px] uppercase tracking-[0.2em] font-black transition-all ${manageTab === 'venues' ? 'bg-rose-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                >
+                  Venues
+                </button>
+              </div>
+
+              {/* Profiles Tab */}
+              {manageTab === 'profiles' && (
+                <div className="flex flex-col gap-3">
+                  {profiles.map(p => (
+                    <ProfileCard
+                      key={p.id}
+                      profile={p}
+                      onClick={() => { setEditingProfile(p); editorReturnRef.current = 20; setStep(11); }}
+                      onDelete={() => {
+                        deleteProfile(p.id);
+                        setProfiles(getProfiles());
+                      }}
+                    />
+                  ))}
+                  <button
+                    onClick={() => { setEditingProfile(undefined); editorReturnRef.current = 20; setStep(11); }}
+                    className="w-full p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-rose-500/50 hover:bg-white/5 transition-all text-center group"
+                  >
+                    <span className="text-2xl block mb-2 opacity-30 group-hover:opacity-100 transition-opacity">+</span>
+                    <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40 group-hover:text-white/80 transition-colors">New Profile</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Venues Tab */}
+              {manageTab === 'venues' && (
+                <div className="flex flex-col gap-3">
+                  {venues.map(v => (
+                    <VenueCard
+                      key={v.id}
+                      venue={v}
+                      onClick={() => { setEditingVenue(v); editorReturnRef.current = 20; setStep(12); }}
+                      onDelete={() => {
+                        deleteVenue(v.id);
+                        setVenues(getVenues());
+                      }}
+                    />
+                  ))}
+                  <button
+                    onClick={() => { setEditingVenue(undefined); editorReturnRef.current = 20; setStep(12); }}
+                    className="w-full p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-rose-500/50 hover:bg-white/5 transition-all text-center group"
+                  >
+                    <span className="text-2xl block mb-2 opacity-30 group-hover:opacity-100 transition-opacity">+</span>
+                    <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40 group-hover:text-white/80 transition-colors">New Venue</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+      </AnimatePresence>
     </div>
   );
 };

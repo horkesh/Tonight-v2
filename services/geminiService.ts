@@ -1,5 +1,6 @@
 
 import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData } from "../types";
+import type { PromptContext } from "../types/profiles";
 import {
   SYSTEM_INSTRUCTION
 } from "../constants";
@@ -7,11 +8,10 @@ import { getDominantVibe } from "../utils/helpers";
 import {
   buildScenePrompt,
   buildIntelligenceReportPrompt,
-  buildTwoTruthsPrompt,
-  buildFinishSentencePrompt,
   buildAvatarPrompt,
   buildLocationImagePrompt
 } from "./prompts/gamePrompts";
+import { renderFullContextBlock } from "./prompts/promptContext";
 
 // Schema type constants (replaces @google/genai Type enum — values are identical strings)
 const T = {
@@ -170,7 +170,8 @@ export const generateDynamicQuestions = async (
       conversationLog: ConversationEntry[];
       round: number;
       vibe: VibeStats;
-    } = { conversationLog: [], round: 0, vibe: { playful: 0, flirty: 0, deep: 0, comfortable: 0 } }
+    } = { conversationLog: [], round: 0, vibe: { playful: 0, flirty: 0, deep: 0, comfortable: 0 } },
+    promptContext?: PromptContext | null
 ): Promise<Question[]> => {
 
     const { conversationLog, round, vibe } = enrichedContext;
@@ -302,6 +303,7 @@ KNOWLEDGE TEMPLATE: A sentence with {option} placeholder that captures psycholog
 - BAD: "They chose {option}" or "Their answer was {option}"
 - GOOD: "When cornered emotionally, they {option}" or "Their relationship with control: {option}" or "Faced with honesty about desire, they {option}"
 
+${promptContext ? `\nDEEP PARTNER INTELLIGENCE:\n${renderFullContextBlock(promptContext)}\n\nUse the deep profile to:\n- Shape questions around her specific interests, career, and personality\n- Reference her zodiac traits in Intimate/Flirty questions\n- Frame questions to highlight what impresses her about the host\n- Use pre-date intel for callback questions ("Earlier you mentioned...")\n- Shape Preferences questions around her love language\n- Gate physical suggestion cues based on her physical comfort level\n` : ''}
 CATEGORY FLAVOR for "${category}":
 ${{
   'Style': 'Surface-level but diagnostic. How they present themselves reveals what they want the world to see — and what they hide. Taste as a window into psychology.',
@@ -404,9 +406,10 @@ export const generateIntelligenceReport = async (
   vibe: VibeStats,
   partner: PersonaState,
   rating: number,
-  dateContext: DateContext | null
+  dateContext: DateContext | null,
+  promptContext?: PromptContext | null
 ): Promise<IntelligenceReport> => {
-  const prompt = buildIntelligenceReportPrompt(vibe, partner, rating, dateContext);
+  const prompt = buildIntelligenceReportPrompt(vibe, partner, rating, dateContext, promptContext);
 
   try {
     const response = await callWithRetry(() => callProxy('/api/gemini/text', {
@@ -443,7 +446,8 @@ export const generateTwoTruthsOneLie = async (
   targetName: string,
   vibe: VibeStats,
   conversationLog: ConversationEntry[],
-  dateContext: DateContext | null
+  dateContext: DateContext | null,
+  promptContext?: PromptContext | null
 ): Promise<{ statements: { text: string; isLie: boolean }[] }> => {
   const vibeInstruction = getVibeInstruction(vibe);
 
@@ -479,7 +483,7 @@ ${conversationBlock}
 ATMOSPHERE:
 ${locationCtx}
 Vibe: ${vibeInstruction}
-
+${promptContext ? `\nDEEP PROFILE INTELLIGENCE:\n${renderFullContextBlock(promptContext)}\nUse signature details (dream destination, defining media, drink, loved place) to create more personal truths. The lie should contradict known profile data subtly.\n` : ''}
 TASK: Generate exactly 3 statements about ${targetName}.
 - 2 statements should be PLAUSIBLE TRUTHS — extrapolated from their real data (background, traits, secrets, conversation answers, age, appearance). They should feel like things that COULD be true based on what we know. Make them specific and revealing, not generic.
 - 1 statement should be a FABRICATED LIE — something that sounds plausible but contradicts or is inconsistent with what we know about them. It should be clever enough to fool someone but detectable if you've been paying attention.
@@ -552,7 +556,8 @@ export const generateFinishSentence = async (
   guesserName: string,
   vibe: VibeStats,
   conversationLog: ConversationEntry[],
-  dateContext: DateContext | null
+  dateContext: DateContext | null,
+  promptContext?: PromptContext | null
 ): Promise<{ sentence: string; options: string[] }> => {
   const vibeInstruction = getVibeInstruction(vibe);
 
@@ -588,7 +593,7 @@ ${guesserBackground}
 ATMOSPHERE:
 ${locationCtx}
 Vibe: ${vibeInstruction}
-
+${promptContext ? `\nDEEP PROFILE INTELLIGENCE:\n${renderFullContextBlock(promptContext)}\nUse love language, personality traits, and play style to shape the sentence and completions.\n` : ''}
 TASK: Generate 1 provocative incomplete sentence about ${targetName} and exactly 3 possible completions.
 
 SENTENCE RULES:
@@ -653,9 +658,10 @@ export const generateScene = async (
   userPersona: PersonaState,
   dateContext: DateContext | null,
   previousChoiceText?: string,
-  mode: string = 'Standard'
+  mode: string = 'Standard',
+  promptContext?: PromptContext | null
 ): Promise<Scene> => {
-  const prompt = buildScenePrompt(currentVibe, round, partnerPersona, userPersona, dateContext, previousChoiceText || "", mode);
+  const prompt = buildScenePrompt(currentVibe, round, partnerPersona, userPersona, dateContext, previousChoiceText || "", mode, promptContext);
 
   try {
     const response = await callWithRetry(() => callProxy('/api/gemini/text', {
