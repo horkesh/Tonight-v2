@@ -268,7 +268,11 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     if (!partner) return;
 
     // Use actual option count from current activity data
-    const optionCount = twoTruthsData?.statements?.length || finishSentenceData?.options?.length || 3;
+    // For FinishSentence, the subject has an extra "None of these" option (index 3)
+    let optionCount = twoTruthsData?.statements?.length || finishSentenceData?.options?.length || 3;
+    if (finishSentenceData && partner.id === finishSentenceData.subjectId) {
+      optionCount = finishSentenceData.options.length + 1; // Include "None of these"
+    }
     const randomChoice = Math.floor(Math.random() * optionCount);
     setActivityChoices(prev => ({ ...prev, [partner.id]: randomChoice }));
   };

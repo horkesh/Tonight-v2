@@ -129,14 +129,15 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     }));
 
     // Record refusal in conversation log
+    // Labels are always from the HOST's perspective: 'user' = host, 'partner' = guest
     if (question) {
       const newEntry: ConversationEntry = {
         round: s.round,
         category: question.category,
         questionText: question.text,
         answer: "[Refused — took a sip instead]",
-        answeredBy: isBot ? 'partner' : 'user',
-        askedBy: isBot ? 'user' : 'partner',
+        answeredBy: isBot ? 'partner' : (s.isHost ? 'user' : 'partner'),
+        askedBy: isBot ? 'user' : (s.isHost ? 'partner' : 'user'),
       };
       a.setConversationLog(prev => [...prev, newEntry].slice(-20));
     }
@@ -191,14 +192,15 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     });
 
     // 2. Record structured conversation entry
+    // Labels are always from the HOST's perspective: 'user' = host, 'partner' = guest
     if (question) {
       const newEntry: ConversationEntry = {
         round: s.round,
         category: question.category,
         questionText: question.text,
         answer: opt,
-        answeredBy: isBot ? 'partner' : 'user',
-        askedBy: isBot ? 'user' : 'partner',
+        answeredBy: isBot ? 'partner' : (s.isHost ? 'user' : 'partner'),
+        askedBy: isBot ? 'user' : (s.isHost ? 'partner' : 'user'),
       };
       a.setConversationLog(prev => [...prev, newEntry].slice(-20));
     }

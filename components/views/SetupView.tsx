@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
-import { PAGE_VARIANTS, DATE_VIBES, HOST_PROFILE } from '../../constants';
+import { PAGE_VARIANTS, DATE_VIBES, DATE_LOCATIONS, HOST_PROFILE } from '../../constants';
 import { DateLocation, DateVibe } from '../../types';
 import { PastDates } from '../PastDates';
 import { ProfileCard } from '../ProfileCard';
@@ -71,6 +71,9 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
   const [venues, setVenues] = useState<VenueProfile[]>([]);
   const [editingProfile, setEditingProfile] = useState<PartnerProfile | undefined>(undefined);
   const [editingVenue, setEditingVenue] = useState<VenueProfile | undefined>(undefined);
+
+  // Premade location (when user picks a DATE_LOCATIONS entry instead of a custom venue)
+  const [premadeLocation, setPremadeLocation] = useState<DateLocation | null>(null);
 
   // Guest data
   const [guestName, setGuestName] = useState('');
@@ -158,11 +161,19 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
 
   const handleSelectVenue = (venue: VenueProfile) => {
     setActiveVenue(venue);
+    setPremadeLocation(null);
+    setStep(3);
+  };
+
+  const handleSelectPremadeLocation = (loc: DateLocation) => {
+    setPremadeLocation(loc);
+    setActiveVenue(null);
     setStep(3);
   };
 
   const handleSkipVenue = () => {
     setActiveVenue(null);
+    setPremadeLocation(null);
     setStep(3);
   };
 
@@ -212,7 +223,13 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
     let locationData: DateLocation | null = null;
     let vibeData: DateVibe | null = null;
 
-    if (venue && config) {
+    if (premadeLocation) {
+      locationData = premadeLocation;
+      const selectedVibes = config.vibes
+        .map(id => DATE_VIBES.find(v => v.id === id))
+        .filter((v): v is DateVibe => v !== undefined);
+      vibeData = selectedVibes[0] || null;
+    } else if (venue && config) {
       const selectedVibes = config.vibes
         .map(id => DATE_VIBES.find(v => v.id === id))
         .filter((v): v is DateVibe => v !== undefined);
@@ -406,20 +423,43 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
                 <div className="w-12" />
               </div>
 
+              {/* Premade locations */}
+              <div className="flex flex-col gap-3">
+                {DATE_LOCATIONS.map(loc => (
+                  <button
+                    key={loc.id}
+                    onClick={() => handleSelectPremadeLocation(loc)}
+                    className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left flex items-center gap-4 group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
+                      {loc.icon === 'sax' ? '🎷' : loc.icon === 'city' ? '🌃' : loc.icon === 'book' ? '📖' : loc.icon === 'wave' ? '🌊' : loc.icon === 'car' ? '🚗' : '📍'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-white font-serif text-lg truncate block">{loc.title}</span>
+                      <span className="text-[9px] text-white/30 truncate block">{loc.description}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom venues */}
               {venues.length > 0 && (
-                <div className="flex flex-col gap-3">
-                  {venues.map(v => (
-                    <VenueCard
-                      key={v.id}
-                      venue={v}
-                      onClick={() => handleSelectVenue(v)}
-                      onDelete={() => {
-                        deleteVenue(v.id);
-                        setVenues(getVenues());
-                      }}
-                    />
-                  ))}
-                </div>
+                <>
+                  <p className="text-[8px] uppercase tracking-[0.3em] text-white/20 font-black mt-2">Your Venues</p>
+                  <div className="flex flex-col gap-3">
+                    {venues.map(v => (
+                      <VenueCard
+                        key={v.id}
+                        venue={v}
+                        onClick={() => handleSelectVenue(v)}
+                        onDelete={() => {
+                          deleteVenue(v.id);
+                          setVenues(getVenues());
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
               )}
 
               <button
@@ -427,7 +467,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
                 className="w-full p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-rose-500/50 hover:bg-white/5 transition-all text-center group"
               >
                 <span className="text-2xl block mb-2 opacity-30 group-hover:opacity-100 transition-opacity">+</span>
-                <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40 group-hover:text-white/80 transition-colors">New Venue</span>
+                <span className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40 group-hover:text-white/80 transition-colors">Add Venue</span>
               </button>
 
               <button

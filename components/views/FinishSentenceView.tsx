@@ -46,7 +46,7 @@ export const FinishSentenceView: React.FC = () => {
   // Auto-simulate partner if disconnected
   useEffect(() => {
     if (!isConnected && myPick !== undefined && partnerPick === undefined) {
-      const timer = setTimeout(() => onSimulatePartner(), 2000);
+      const timer = setTimeout(() => onSimulatePartner(), 6000);
       return () => clearTimeout(timer);
     }
   }, [isConnected, myPick, partnerPick, onSimulatePartner]);

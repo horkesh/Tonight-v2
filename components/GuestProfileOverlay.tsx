@@ -11,7 +11,7 @@ interface GuestProfileOverlayProps {
 
 export const GuestProfileOverlay: React.FC<GuestProfileOverlayProps> = ({ persona, currentName, onConfirm }) => {
   const [name, setName] = useState(currentName === 'Guest' ? '' : currentName);
-  const [background, setBackground] = useState(persona.background || '');
+  const [background, setBackground] = useState('');
 
   const handleSubmit = () => {
     onConfirm(name || currentName, background);
