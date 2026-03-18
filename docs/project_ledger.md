@@ -327,3 +327,72 @@ Three compounding GPU/CPU killers running on every frame, even before any sessio
 - `npx tsc --noEmit`: 0 errors
 - `npm run build`: success
 - Result: smooth rendering on both Vercel and local production serve (`npx serve dist -s`)
+
+---
+
+## 2026-03-18 — Pre-Date Setup UX Fix
+
+### Problem
+Profile save button silently did nothing when validation failed (empty name). No error feedback shown to user. Also, "Married" was missing from relationship status options — a gap for couples using Tonight as a date tool.
+
+### Fixes Applied
+
+**Validation Feedback (ProfileEditorView, VenueEditorView)**
+- `handleSave()` now shows inline error banner when name is empty ("Name is required")
+- Storage functions (`saveProfile`, `saveVenue`) now return `boolean` — callers detect quota failures and show "Storage full" error
+- Same pattern applied to both profile and venue editors
+
+**Missing Relationship Status (types/profiles.ts, ProfileEditorView)**
+- Added `married` and `in_relationship` to `RelationshipHistory` union type
+- Added corresponding UI options in profile editor radio group
+
+### Files Changed
+- `types/profiles.ts` — added `married`, `in_relationship` to RelationshipHistory
+- `utils/profileStorage.ts` — `saveProfile()` and `saveVenue()` return boolean
+- `components/views/ProfileEditorView.tsx` — error state, validation messages, new relationship options
+- `components/views/VenueEditorView.tsx` — error state, validation messages
+
+---
+
+## 2026-03-18 — General Polish & Efficiency Pass
+
+Three-agent parallel review of all components, hooks/stores, and services/utils. Focused on real-impact fixes.
+
+### Fixes Applied
+
+**Memory/Cleanup**
+1. **useInnerMonologue timer leak** — `setTimeout(() => setMonologue(null), 6000)` was never cleaned up on unmount. Now tracked via ref and cleared in effect cleanup.
+
+**Performance**
+2. **Gemini retry backoff cap** — exponential backoff was unbounded (could reach 60s+ after several retries). Capped at 30s max via `MAX_RETRY_DELAY`.
+3. **DateHUD sip animation** — was animating `height` (triggers layout recalc). Changed to `scaleY` with `origin-bottom` (GPU-composited transform).
+4. **LoadingView animation** — `animate-[width_2s_infinite]` referenced a non-existent keyframe. Replaced with `animate-pulse`.
+5. **useLongPress handlers** — returned `handlers` object was recreated every render. Wrapped in `useMemo`.
+
+**Code Deduplication**
+6. **INITIAL_PERSONA** — identical object defined in both `store/presenceState.ts` and `hooks/usePersonaLogic.ts`. Exported from store as single source of truth; hook now imports it.
+7. **getPromptContext()** — same 3-line helper was inlined in both `useAiActions` and `useQuestionFlow`. Extracted to `services/prompts/promptContext.ts` as shared utility.
+8. **CSS variables** — `:root` block with 4 color vars was duplicated in both `index.html` and `index.css`. Removed the `index.css` copy (index.html is the source of truth since it also defines atmosphere vars).
+
+**Accessibility**
+9. **ActionDock aria-labels** — all 7 emoji-only buttons now have `aria-label` attributes for screen readers.
+
+**Cleanup**
+10. Removed 10-line dead comment block and unused `useSession` import from ActionDock.
+
+### Files Changed (12)
+- `hooks/useInnerMonologue.ts` — timer ref + cleanup
+- `services/geminiService.ts` — MAX_RETRY_DELAY cap
+- `components/DateHUD.tsx` — height → scaleY animation
+- `components/views/LoadingView.tsx` — pulse animation
+- `hooks/useLongPress.ts` — useMemo for handlers
+- `store/presenceState.ts` — export INITIAL_PERSONA
+- `hooks/usePersonaLogic.ts` — import from store
+- `services/prompts/promptContext.ts` — added getPromptContext()
+- `hooks/useAiActions.ts` — use shared getPromptContext
+- `hooks/useQuestionFlow.ts` — use shared getPromptContext
+- `index.css` — removed duplicate :root vars
+- `components/ActionDock.tsx` — aria-labels, dead code removal
+
+### Verification
+- `npx tsc --noEmit`: 0 errors (only pre-existing env type defs)
