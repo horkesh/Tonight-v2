@@ -60,6 +60,7 @@ export function useSessionState() {
     setClinkActive: broadcasting.rawSetters.setClinkActive,
     setLatestReaction: broadcasting.rawSetters.setLatestReaction,
     setLastChoiceText: broadcasting.rawSetters.setLastChoiceTextState,
+    setDraftOpen: broadcasting.rawSetters.setIsDraftOpenState,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []);
 

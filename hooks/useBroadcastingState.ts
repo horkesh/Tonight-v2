@@ -201,7 +201,7 @@ export function useBroadcastingState(
     // Raw setters (for network sync — updates without re-broadcasting)
     rawSetters: {
       setViewState, setClinkActive, setLatestReaction,
-      setIncomingToastRequest, setLastChoiceTextState,
+      setIncomingToastRequest, setLastChoiceTextState, setIsDraftOpenState,
     },
 
     // Broadcasting wrappers

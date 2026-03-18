@@ -231,15 +231,16 @@ export const FinishSentenceView: React.FC = () => {
             >
               {(() => {
                 const matched = subjectPick !== undefined && guesserPick !== undefined && subjectPick === guesserPick;
+                const heading = matched
+                  ? amSubject
+                    ? `${partner?.name || 'Partner'} read you like a book`
+                    : `You read ${subjectName} like a book`
+                  : 'Not even close...';
+
                 return (
                   <>
                     <span className="text-5xl">{matched ? '\uD83D\uDCD6' : '\uD83C\uDF0A'}</span>
-                    <h3 className="text-2xl font-serif italic text-white">
-                      {matched
-                        ? `${guesserName === 'You' ? 'You read' : `${amSubject ? (partner?.name || 'Partner') : 'You'} read`} ${amSubject ? 'you' : subjectName} like a book`
-                        : 'Not even close...'
-                      }
-                    </h3>
+                    <h3 className="text-2xl font-serif italic text-white">{heading}</h3>
                     <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">
                       {matched ? 'Frighteningly accurate' : 'Still full of surprises'}
                     </p>

@@ -38,6 +38,7 @@ export interface NetworkSyncActions {
   setLastChoiceText: (t: string) => void;
   setSceneChoices: (updater: (prev: Record<string, string>) => Record<string, string>) => void;
   setGuestProfileConfirmed: (b: boolean) => void;
+  setDraftOpen: (b: boolean) => void;
 }
 
 type SyncHandlerMap = Partial<Record<NetworkMessage['type'], (payload: any) => void>>;
@@ -335,6 +336,7 @@ function createSyncHandlers({
           const duration = typeof payload === 'string' ? 2000 : (payload.duration || 2000);
           actions.setLatestReaction({ content, timestamp: Date.now(), duration });
       },
+      SYNC_DRAFT_STATE: (payload: boolean) => actions.setDraftOpen(payload),
       SYNC_LAST_CHOICE: (payload: string) => actions.setLastChoiceText(payload),
       SYNC_SCENE_CHOICE: (payload: { userId: string; choiceId: string }) => {
         actions.setSceneChoices((prev: Record<string, string>) => ({ ...prev, [payload.userId]: payload.choiceId }));

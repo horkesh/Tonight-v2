@@ -2,11 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateLocation } from '../types';
-import { NOISE_TEXTURE_URI } from '../constants';
-
-const LOCATION_ICONS: Record<string, string> = {
-  sax: '🎷', city: '🌃', book: '📚', wave: '🌊', car: '🚘'
-};
+import { NOISE_TEXTURE_URI, LOCATION_ICONS } from '../constants';
 
 interface LocationWindowProps {
   location: DateLocation | null;
@@ -14,7 +10,17 @@ interface LocationWindowProps {
 }
 
 export const LocationWindow: React.FC<LocationWindowProps> = ({ location, generatedImage }) => {
-  if (!location) return null;
+  if (!location) return (
+    <div className="relative w-full h-48 rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-rose-950/20 to-slate-900 flex items-center justify-center">
+        <span className="text-5xl opacity-15">🌙</span>
+      </div>
+      <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay" style={{ backgroundImage: `url("${NOISE_TEXTURE_URI}")`, backgroundRepeat: "repeat", backgroundSize: "48px 48px" }} />
+      <div className="absolute bottom-4 left-6 z-10 pointer-events-none">
+        <h3 className="text-xl font-serif text-white/30 italic">Tonight</h3>
+      </div>
+    </div>
+  );
 
   const [imgFailed, setImgFailed] = useState(false);
   const displayImage = generatedImage || location.image;

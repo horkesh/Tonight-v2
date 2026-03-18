@@ -171,7 +171,12 @@ export const ArrivalOverlay: React.FC<ArrivalOverlayProps> = ({ event, dateConte
                 transition={{ duration: 2, ease: 'easeOut' }}
                 className="w-36 h-36 rounded-full border-2 border-rose-500/40 overflow-hidden shadow-[0_0_80px_rgba(225,29,72,0.4)]"
               >
-                <img src={event.avatar} className="w-full h-full object-cover" alt={event.name} />
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-950 to-slate-900 flex items-center justify-center">
+                  <span className="text-4xl font-serif text-white/40">{event.name?.[0] || '?'}</span>
+                </div>
+                {event.avatar && (
+                  <img src={event.avatar} className="relative w-full h-full object-cover" alt={event.name} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                )}
               </motion.div>
             </div>
 

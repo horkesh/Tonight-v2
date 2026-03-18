@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
 import { useSession } from '../../context/SessionContext';
+import { soundManager } from '../../services/soundManager';
 
 const getCardStyle = (showResult: boolean, isLie: boolean, subjectKnows: boolean, isSelected: boolean, amSubject: boolean): string => {
   if (showResult && isLie) return 'bg-red-950/40 border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]';
@@ -48,6 +49,7 @@ export const TwoTruthsView: React.FC = () => {
       // Small delay for dramatic effect
       const timer = setTimeout(() => {
         setReveal(true);
+        soundManager.play('milestone');
       }, 800);
       return () => clearTimeout(timer);
     }
@@ -111,9 +113,13 @@ export const TwoTruthsView: React.FC = () => {
           </p>
         )}
         {!amSubject && !reveal && myGuess !== undefined && (
-          <p className="text-[10px] text-white/30 uppercase tracking-widest mt-3 font-bold">
-            Locked in.
-          </p>
+          <motion.p
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="text-[10px] text-rose-500/80 uppercase tracking-widest mt-3 font-bold"
+          >
+            Locked in...
+          </motion.p>
         )}
       </div>
 

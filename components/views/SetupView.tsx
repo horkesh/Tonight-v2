@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
-import { PAGE_VARIANTS, DATE_VIBES, DATE_LOCATIONS, HOST_PROFILE } from '../../constants';
+import { PAGE_VARIANTS, DATE_VIBES, DATE_LOCATIONS, HOST_PROFILE, LOCATION_ICONS } from '../../constants';
 import { DateLocation, DateVibe } from '../../types';
 import { PastDates } from '../PastDates';
 import { ProfileCard } from '../ProfileCard';
@@ -15,10 +15,6 @@ import { venueToDateLocation } from '../../utils/venueToLocation';
 import { useProfileStore } from '../../store/profileStore';
 import type { PartnerProfile, VenueProfile, DateConfig } from '../../types/profiles';
 import { getDateNumber } from '../../utils/dateHistory';
-
-const LOCATION_ICONS: Record<string, string> = {
-  sax: '🎷', city: '🌃', book: '📚', wave: '🌊', car: '🚘'
-};
 
 interface SetupViewProps {
   onStart: (hostData: any, guestData: any, vibe: DateVibe | null, location: DateLocation | null, roomId: string, isHost: boolean, avatar?: string, partnerAvatar?: string, hostTraits?: string[], partnerTraits?: string[]) => void;
@@ -87,6 +83,16 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
     setProfiles(getProfiles());
     setVenues(getVenues());
   }, []);
+
+  // Resolve last venue name for quick launch display
+  const lastVenueName = useMemo(() => {
+    const lastSetup = getLastSetup();
+    if (!lastSetup?.venueId) return null;
+    const custom = venues.find(v => v.id === lastSetup.venueId);
+    if (custom) return custom.name;
+    const premade = DATE_LOCATIONS.find(l => l.id === lastSetup.venueId);
+    return premade?.title || null;
+  }, [venues]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -347,7 +353,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-serif text-lg group-hover:text-rose-200 transition-colors">{p.name}</p>
                           <p className="text-[9px] text-white/30 uppercase tracking-widest truncate">
-                            {[p.job, p.aiEstimatedAge].filter(Boolean).join(' · ') || 'Tap to begin'}
+                            {[p.job, p.aiEstimatedAge, lastVenueName].filter(Boolean).join(' · ') || 'Tap to begin'}
                           </p>
                         </div>
                         <span className="text-rose-500/50 group-hover:text-rose-400 text-xl transition-colors">→</span>
@@ -428,12 +434,13 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
                   <button
                     key={loc.id}
                     onClick={() => handleSelectPremadeLocation(loc)}
-                    className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left flex items-center gap-4 group"
+                    className="relative w-full p-4 rounded-2xl border border-white/10 hover:border-white/20 transition-all text-left flex items-center gap-4 group overflow-hidden"
                   >
-                    <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <img src={loc.image} alt="" className="absolute inset-0 w-full h-full object-cover opacity-15 blur-[2px] group-hover:opacity-25 transition-opacity" />
+                    <div className="relative w-12 h-12 rounded-full bg-black/40 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                       {LOCATION_ICONS[loc.icon] || '📍'}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="relative flex-1 min-w-0">
                       <span className="text-white font-serif text-lg truncate block">{loc.title}</span>
                       <span className="text-[9px] text-white/30 truncate block">{loc.description}</span>
                     </div>
