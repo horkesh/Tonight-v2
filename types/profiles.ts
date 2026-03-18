@@ -141,6 +141,8 @@ export type RelationshipHistory =
   | 'single_long_time'
   | 'recently_single'
   | 'dating_around'
+  | 'in_relationship'
+  | 'married'
   | 'complicated'
   | 'prefer_not_say';
 
