@@ -16,6 +16,10 @@ import { useProfileStore } from '../../store/profileStore';
 import type { PartnerProfile, VenueProfile, DateConfig } from '../../types/profiles';
 import { getDateNumber } from '../../utils/dateHistory';
 
+const LOCATION_ICONS: Record<string, string> = {
+  sax: '🎷', city: '🌃', book: '📚', wave: '🌊', car: '🚘'
+};
+
 interface SetupViewProps {
   onStart: (hostData: any, guestData: any, vibe: DateVibe | null, location: DateLocation | null, roomId: string, isHost: boolean, avatar?: string, partnerAvatar?: string, hostTraits?: string[], partnerTraits?: string[]) => void;
 }
@@ -221,20 +225,15 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
     };
 
     let locationData: DateLocation | null = null;
-    let vibeData: DateVibe | null = null;
+    const selectedVibes = config.vibes
+      .map(id => DATE_VIBES.find(v => v.id === id))
+      .filter((v): v is DateVibe => v !== undefined);
+    const vibeData: DateVibe | null = selectedVibes[0] || null;
 
     if (premadeLocation) {
       locationData = premadeLocation;
-      const selectedVibes = config.vibes
-        .map(id => DATE_VIBES.find(v => v.id === id))
-        .filter((v): v is DateVibe => v !== undefined);
-      vibeData = selectedVibes[0] || null;
-    } else if (venue && config) {
-      const selectedVibes = config.vibes
-        .map(id => DATE_VIBES.find(v => v.id === id))
-        .filter((v): v is DateVibe => v !== undefined);
+    } else if (venue) {
       locationData = venueToDateLocation(venue, selectedVibes);
-      vibeData = selectedVibes[0] || null;
     }
 
     const finalRoomId = roomId.trim().replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -432,7 +431,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
                     className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left flex items-center gap-4 group"
                   >
                     <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                      {loc.icon === 'sax' ? '🎷' : loc.icon === 'city' ? '🌃' : loc.icon === 'book' ? '📖' : loc.icon === 'wave' ? '🌊' : loc.icon === 'car' ? '🚗' : '📍'}
+                      {LOCATION_ICONS[loc.icon] || '📍'}
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="text-white font-serif text-lg truncate block">{loc.title}</span>

@@ -119,6 +119,12 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     a.setUsers(prev => prev.map(u => u.isSelf ? { ...u, status: 'online' } : u));
   };
 
+  // Labels are always from the HOST's perspective: 'user' = host, 'partner' = guest
+  const getLogLabels = (isBot: boolean) => ({
+    answeredBy: (isBot ? 'partner' : s.isHost ? 'user' : 'partner') as 'user' | 'partner',
+    askedBy: (isBot ? 'user' : s.isHost ? 'partner' : 'user') as 'user' | 'partner',
+  });
+
   const handleRefuse = (isBot = false) => {
     const targetAction = isBot ? a.setPartnerPersona : a.setUserPersona;
     const question = s.activeQuestion;
@@ -129,15 +135,13 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     }));
 
     // Record refusal in conversation log
-    // Labels are always from the HOST's perspective: 'user' = host, 'partner' = guest
     if (question) {
       const newEntry: ConversationEntry = {
         round: s.round,
         category: question.category,
         questionText: question.text,
         answer: "[Refused — took a sip instead]",
-        answeredBy: isBot ? 'partner' : (s.isHost ? 'user' : 'partner'),
-        askedBy: isBot ? 'user' : (s.isHost ? 'partner' : 'user'),
+        ...getLogLabels(isBot),
       };
       a.setConversationLog(prev => [...prev, newEntry].slice(-20));
     }
@@ -192,15 +196,13 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     });
 
     // 2. Record structured conversation entry
-    // Labels are always from the HOST's perspective: 'user' = host, 'partner' = guest
     if (question) {
       const newEntry: ConversationEntry = {
         round: s.round,
         category: question.category,
         questionText: question.text,
         answer: opt,
-        answeredBy: isBot ? 'partner' : (s.isHost ? 'user' : 'partner'),
-        askedBy: isBot ? 'user' : (s.isHost ? 'partner' : 'user'),
+        ...getLogLabels(isBot),
       };
       a.setConversationLog(prev => [...prev, newEntry].slice(-20));
     }

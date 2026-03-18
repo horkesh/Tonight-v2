@@ -4,6 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PAGE_VARIANTS } from '../../constants';
 import { useSession } from '../../context/SessionContext';
 
+const getCardStyle = (showResult: boolean, isLie: boolean, subjectKnows: boolean, isSelected: boolean, amSubject: boolean): string => {
+  if (showResult && isLie) return 'bg-red-950/40 border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]';
+  if (showResult) return 'bg-emerald-950/30 border-emerald-500/30';
+  if (subjectKnows) return 'bg-amber-950/20 border-amber-500/20';
+  if (isSelected) return 'bg-rose-950/40 border-rose-500/40 shadow-[0_0_20px_rgba(225,29,72,0.2)]';
+  if (amSubject) return 'bg-white/[0.03] border-white/10';
+  return 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20';
+};
+
 export const TwoTruthsView: React.FC = () => {
   const { state, aiState, aiActions } = useSession();
   const { users, isConnected } = state;
@@ -125,21 +134,7 @@ export const TwoTruthsView: React.FC = () => {
               transition={{ delay: 0.3 + i * 0.15 }}
               onClick={() => !reveal && !amSubject && handleGuess(i)}
               disabled={amSubject || myGuess !== undefined || reveal}
-              className={`
-                relative w-full p-6 rounded-3xl border text-left transition-all duration-500
-                ${showResult && isLie
-                  ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]'
-                  : showResult && !isLie
-                    ? 'bg-emerald-950/30 border-emerald-500/30'
-                    : subjectKnows
-                      ? 'bg-amber-950/20 border-amber-500/20'
-                      : isSelected
-                        ? 'bg-rose-950/40 border-rose-500/40 shadow-[0_0_20px_rgba(225,29,72,0.2)]'
-                        : amSubject
-                          ? 'bg-white/[0.03] border-white/10'
-                          : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20'
-                }
-              `}
+              className={`relative w-full p-6 rounded-3xl border text-left transition-all duration-500 ${getCardStyle(showResult, isLie, subjectKnows, isSelected, amSubject)}`}
             >
               {/* Statement number */}
               <div className="flex items-start gap-4">
