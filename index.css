@@ -5,12 +5,7 @@
   --font-serif: "Playfair Display", serif;
 }
 
-:root {
-    --color-bg-base: #020617;
-    --color-bg-card: #0f172a;
-    --color-primary: #e11d48;
-    --color-primary-light: #f43f5e;
-}
+/* Theme variables defined in index.html <style> — single source of truth */
 
 body {
     background-color: var(--color-bg-base);

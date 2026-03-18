@@ -6,8 +6,7 @@ import { generateDynamicQuestions, extractTraitFromInteraction } from '../servic
 import { useQuestionStore } from '../store/aiState';
 import { applyVibeDeltas } from '../utils/helpers';
 import { VULNERABLE_CATEGORIES } from '../constants';
-import { buildPromptContext } from '../services/prompts/promptContext';
-import { useProfileStore } from '../store/profileStore';
+import { getPromptContext } from '../services/prompts/promptContext';
 import { soundManager } from '../services/soundManager';
 
 const VIBE_WEIGHTS: Record<string, Partial<VibeStats>> = {
@@ -97,10 +96,7 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
         round: s.round,
         vibe: s.vibe,
       },
-      (() => {
-        const ps = useProfileStore.getState();
-        return buildPromptContext(ps.activeProfile, ps.activeVenue, ps.activeDateConfig);
-      })()
+      getPromptContext()
     );
 
     setAvailableQuestions(questions);

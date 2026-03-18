@@ -45,6 +45,8 @@ const callProxy = async (endpoint: string, body: object): Promise<any> => {
   return res.json();
 };
 
+const MAX_RETRY_DELAY = 30000;
+
 const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
   try {
     return await fn();
@@ -56,9 +58,10 @@ const callWithRetry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000)
         error?.message?.includes('RESOURCE_EXHAUSTED');
 
     if (retries > 0 && isRateLimit) {
-      console.warn(`Gemini Rate Limit (429). Retrying in ${delay}ms... (Attempts left: ${retries})`);
-      await new Promise(r => setTimeout(r, delay));
-      return callWithRetry(fn, retries - 1, delay * 2);
+      const cappedDelay = Math.min(delay, MAX_RETRY_DELAY);
+      console.warn(`Gemini Rate Limit (429). Retrying in ${cappedDelay}ms... (Attempts left: ${retries})`);
+      await new Promise(r => setTimeout(r, cappedDelay));
+      return callWithRetry(fn, retries - 1, cappedDelay * 2);
     }
     throw error;
   }

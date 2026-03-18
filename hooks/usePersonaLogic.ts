@@ -4,12 +4,7 @@ import { generateAbstractAvatar, analyzeUserPhotoForAvatar, generateLocationImag
 import { compressImage } from '../utils/helpers';
 import { DateContext } from '../types';
 import { DEFAULT_AVATAR } from '../constants';
-
-const INITIAL_PERSONA: PersonaState = {
-  traits: [], memories: [], secrets: [], imageUrl: null, lastGeneratedRound: 0, isGenerating: false, 
-  revealProgress: 0, chemistry: 0, drunkFactor: 0, appearance: "",
-  isProfileComplete: false
-};
+import { INITIAL_PERSONA } from '../store/presenceState';
 
 type PersonaSetter = (updater: React.SetStateAction<PersonaState>) => void;
 

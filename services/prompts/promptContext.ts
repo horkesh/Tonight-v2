@@ -1,6 +1,7 @@
 import type { PromptContext, PartnerProfile, VenueProfile, DateConfig } from '../../types/profiles';
 import type { DateHistoryEntry } from '../../utils/dateHistory';
 import { getHistoryForProfile } from '../../utils/dateHistory';
+import { useProfileStore } from '../../store/profileStore';
 
 const ZODIAC_TRAITS: Record<string, string> = {
   aries: 'bold, competitive, passionate, impatient',
@@ -44,6 +45,14 @@ export function buildPromptContext(
     config: activeDateConfig,
     dateHistory: history,
   };
+}
+
+/**
+ * Convenience: read current profile store and build prompt context in one call.
+ */
+export function getPromptContext(): PromptContext | null {
+  const { activeProfile, activeVenue, activeDateConfig } = useProfileStore.getState();
+  return buildPromptContext(activeProfile, activeVenue, activeDateConfig);
 }
 
 /**

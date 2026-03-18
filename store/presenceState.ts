@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { User, PersonaState } from '../types';
 
-const INITIAL_PERSONA: PersonaState = {
+export const INITIAL_PERSONA: PersonaState = {
   traits: [], memories: [], secrets: [], imageUrl: null, lastGeneratedRound: 0, isGenerating: false, 
   revealProgress: 0, chemistry: 0, drunkFactor: 0, appearance: "",
   isProfileComplete: false

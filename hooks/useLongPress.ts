@@ -1,5 +1,5 @@
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useMemo } from 'react';
 
 interface Options {
   onLongPress: () => void;
@@ -42,14 +42,13 @@ export function useLongPress({ onLongPress, onClick, ms = 800 }: Options) {
     }
   }, [onClick]);
 
-  return {
-    handlers: {
-      onMouseDown: start,
-      onMouseUp: onMouseUp,
-      onMouseLeave: stop,
-      onTouchStart: start,
-      onTouchEnd: onMouseUp,
-    },
-    isPressed
-  };
+  const handlers = useMemo(() => ({
+    onMouseDown: start,
+    onMouseUp: onMouseUp,
+    onMouseLeave: stop,
+    onTouchStart: start,
+    onTouchEnd: onMouseUp,
+  }), [start, onMouseUp, stop]);
+
+  return { handlers, isPressed };
 }

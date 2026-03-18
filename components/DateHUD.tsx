@@ -41,9 +41,9 @@ export const DateHUD: React.FC<DateHUDProps> = ({ vibe, sipLevel }) => {
 
       <div className="flex items-center gap-6">
         <div className="relative w-8 h-10 border border-white/5 rounded-b-2xl rounded-t-lg overflow-hidden bg-white/[0.01] backdrop-blur-xl">
-           <motion.div 
-             animate={{ height: `${100 - sipLevel}%` }}
-             className="absolute bottom-0 w-full bg-gradient-to-t from-rose-900/40 via-rose-500/20 to-transparent"
+           <motion.div
+             animate={{ scaleY: (100 - sipLevel) / 100 }}
+             className="absolute bottom-0 w-full h-full origin-bottom bg-gradient-to-t from-rose-900/40 via-rose-500/20 to-transparent"
              transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
            />
            <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
