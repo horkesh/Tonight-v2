@@ -79,15 +79,23 @@ export const VenueEditorView: React.FC<VenueEditorViewProps> = ({
   onCancel,
 }) => {
   const [v, setV] = useState<VenueProfile>(existingVenue || createEmptyVenue());
+  const [error, setError] = useState<string | null>(null);
 
   const update = <K extends keyof VenueProfile>(key: K, value: VenueProfile[K]) => {
     setV((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = () => {
-    if (!v.name.trim()) return;
+    setError(null);
+    if (!v.name.trim()) {
+      setError('Venue name is required');
+      return;
+    }
     const saved = { ...v, updatedAt: Date.now() };
-    saveVenue(saved);
+    if (!saveVenue(saved)) {
+      setError('Storage full — try deleting old venues');
+      return;
+    }
     onSave(saved);
   };
 
@@ -215,6 +223,11 @@ export const VenueEditorView: React.FC<VenueEditorViewProps> = ({
       </div>
 
       {/* Save */}
+      {error && (
+        <div className="mt-2 px-4 py-3 bg-red-500/20 border border-red-500/40 rounded-xl text-red-300 text-xs text-center">
+          {error}
+        </div>
+      )}
       <button
         disabled={!v.name.trim()}
         onClick={handleSave}

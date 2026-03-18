@@ -22,13 +22,8 @@ import { useAiStore } from '../store/aiState';
 import { applyVibeDeltas } from '../utils/helpers';
 import { saveDateToHistory, buildHistoryEntry, extractHighlights } from '../utils/dateHistory';
 import { useProfileStore } from '../store/profileStore';
-import { buildPromptContext } from '../services/prompts/promptContext';
+import { getPromptContext } from '../services/prompts/promptContext';
 import { soundManager } from '../services/soundManager';
-
-const getPromptContext = () => {
-  const { activeProfile, activeVenue, activeDateConfig } = useProfileStore.getState();
-  return buildPromptContext(activeProfile, activeVenue, activeDateConfig);
-};
 
 export function useAiActions(session: ReturnType<typeof useSessionState>) {
   const { state: s, actions: a } = session;

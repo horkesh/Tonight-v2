@@ -53,6 +53,14 @@
     Do instead: before defining a string constant in a hook, check `constants.ts` first. `DEFAULT_AVATAR`, `INITIAL_VIBE`, `PAGE_VARIANTS` etc. are all there.
 13. **[2026-03-12] Use `getDominantVibe()` for vibe stat comparisons**
     Do instead: import `getDominantVibe` from `utils/helpers` instead of inline `Object.entries(vibe).reduce(...)` or `.sort(...)` patterns.
+14. **[2026-03-18] Use `getPromptContext()` for profile store reads in AI calls**
+    Do instead: import `getPromptContext` from `services/prompts/promptContext` instead of inlining `useProfileStore.getState()` + `buildPromptContext()`. Single source of truth.
+15. **[2026-03-18] `INITIAL_PERSONA` lives in `store/presenceState.ts` — don't duplicate**
+    Do instead: import `INITIAL_PERSONA` from `store/presenceState`. Never redefine it in hooks.
+16. **[2026-03-18] Storage functions return boolean — always check the result**
+    Do instead: `saveProfile()` and `saveVenue()` return `false` on quota errors. Show an error to the user; don't assume success.
+17. **[2026-03-18] Prefer transform animations over layout properties**
+    Do instead: animate `scaleX`/`scaleY`/`opacity`/`translate` instead of `width`/`height`/`top`/`left`. Layout properties trigger expensive reflow.
 
 ## Shell & Environment
 1. **[2026-03-12] This is a Windows machine with bash shell**

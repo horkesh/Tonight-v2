@@ -38,7 +38,7 @@ export function getProfiles(): PartnerProfile[] {
   }
 }
 
-export function saveProfile(profile: PartnerProfile): void {
+export function saveProfile(profile: PartnerProfile): boolean {
   const profiles = getProfiles();
   const idx = profiles.findIndex((p) => p.id === profile.id);
   if (idx >= 0) {
@@ -48,8 +48,10 @@ export function saveProfile(profile: PartnerProfile): void {
   }
   try {
     localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+    return true;
   } catch (e) {
     console.warn('Failed to save profile:', e);
+    return false;
   }
 }
 
@@ -74,7 +76,7 @@ export function getVenues(): VenueProfile[] {
   }
 }
 
-export function saveVenue(venue: VenueProfile): void {
+export function saveVenue(venue: VenueProfile): boolean {
   const venues = getVenues();
   const idx = venues.findIndex((v) => v.id === venue.id);
   if (idx >= 0) {
@@ -84,8 +86,10 @@ export function saveVenue(venue: VenueProfile): void {
   }
   try {
     localStorage.setItem(VENUES_KEY, JSON.stringify(venues));
+    return true;
   } catch (e) {
     console.warn('Failed to save venue:', e);
+    return false;
   }
 }
 

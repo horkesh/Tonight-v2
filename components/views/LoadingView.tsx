@@ -16,7 +16,7 @@ export const LoadingView: React.FC = () => {
 
   return (
     <motion.div variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col items-center justify-center py-52 gap-6">
-        <div className="w-24 h-[2px] bg-rose-600 animate-[width_2s_infinite] mx-auto" />
+        <div className="w-24 h-[2px] bg-rose-600 animate-pulse mx-auto origin-left" />
         <span className="text-[10px] text-rose-500 tracking-[0.6em] uppercase mt-8 font-black">
           {timedOut ? 'Taking longer than expected...' : 'Drafting Files'}
         </span>

@@ -132,6 +132,7 @@ export const ProfileEditorView: React.FC<ProfileEditorViewProps> = ({
 }) => {
   const [p, setP] = useState<PartnerProfile>(existingProfile || createEmptyProfile());
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const update = <K extends keyof PartnerProfile>(key: K, value: PartnerProfile[K]) => {
@@ -187,9 +188,16 @@ export const ProfileEditorView: React.FC<ProfileEditorViewProps> = ({
   };
 
   const handleSave = () => {
-    if (!p.name.trim()) return;
+    setError(null);
+    if (!p.name.trim()) {
+      setError('Name is required');
+      return;
+    }
     const saved = { ...p, updatedAt: Date.now() };
-    saveProfile(saved);
+    if (!saveProfile(saved)) {
+      setError('Storage full — try deleting old profiles or photos');
+      return;
+    }
     onSave(saved);
   };
 
@@ -393,6 +401,8 @@ export const ProfileEditorView: React.FC<ProfileEditorViewProps> = ({
                 { value: 'single_long_time', label: 'Single (long)' },
                 { value: 'recently_single', label: 'Recently Single' },
                 { value: 'dating_around', label: 'Dating Around' },
+                { value: 'in_relationship', label: 'In Relationship' },
+                { value: 'married', label: 'Married' },
                 { value: 'complicated', label: 'Complicated' },
                 { value: 'prefer_not_say', label: 'Unknown' },
               ],
@@ -608,6 +618,11 @@ export const ProfileEditorView: React.FC<ProfileEditorViewProps> = ({
       </CollapsibleSection>
 
       {/* Save button */}
+      {error && (
+        <div className="mt-2 px-4 py-3 bg-red-500/20 border border-red-500/40 rounded-xl text-red-300 text-xs text-center">
+          {error}
+        </div>
+      )}
       <button
         disabled={!p.name.trim()}
         onClick={handleSave}
