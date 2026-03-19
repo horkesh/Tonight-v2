@@ -114,7 +114,36 @@ export const ACTIVITIES = [
     title: 'Finish My Sentence',
     description: 'How well do you really read me?',
     icon: '✍️'
+  },
+  {
+    id: 'playlist',
+    title: 'Our Playlist',
+    description: 'Build tonight\'s soundtrack together.',
+    icon: '🎵'
   }
+];
+
+export const WHISPER_DARES = [
+  "Tell her the first thing you noticed about her.",
+  "Ask her what she's afraid to ask you.",
+  "Describe how she makes you feel in three words.",
+  "Tell her a secret you haven't told anyone this year.",
+  "Ask her what she'd do if this was your last night together.",
+  "Tell her the moment tonight you felt most nervous.",
+  "Ask her what she's pretending not to feel right now.",
+  "Confess something you almost said earlier but held back.",
+  "Tell her what her voice does to you.",
+  "Ask her where she'd take you if she could go anywhere right now.",
+  "Tell her something about herself she probably doesn't know.",
+  "Ask her what she wants to happen next.",
+  "Describe the version of her you see that she doesn't show anyone.",
+  "Tell her the honest answer to the last question you dodged.",
+  "Ask her to tell you one thing she needs to hear tonight.",
+  "Look at her and say exactly what you're thinking. No filter.",
+  "Tell her what you'd write about tonight in your journal.",
+  "Ask her what part of tonight she'll replay in her head later.",
+  "Tell her the thing about her that scares you a little.",
+  "Ask her what she wishes you'd notice.",
 ];
 
 export const TRUTH_SEEDS = [
@@ -219,7 +248,7 @@ export const CATEGORY_ICONS: Record<string, string> = {
 };
 
 export const ACTIVITY_ICONS: Record<string, string> = {
-  twoTruths: '🎭', finishSentence: '✍️', truth: '🥃',
+  twoTruths: '🎭', finishSentence: '✍️', truth: '🥃', playlist: '🎵',
 };
 
 export const NOISE_TEXTURE_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwBAMAAAClLOS0AAAAElBMVEUAAAAAAAAAAAAAAAAAAAAAAADgKxmiAAAABnRSTlMFCA0RFRkMN4ZOAAAAgUlEQVQ4y83SMQ6AMAxE0YjCBbj/WcggZbBlp2GBhv+b0SjFLGnlqFa75RkQkGgFGBRgE2BpEwCTAPssAI8EYFCAoQDTCF6vAN8F4GbAl+tz/wTwLICjhICEgETzXwBO5R93AXjht28B/uiPBHiUcF2A3RR7AphqOe8CcA7Aow81SM4LXHZ2tQAAAABJRU5ErkJggg==";
