@@ -25,7 +25,8 @@ export function useSessionState() {
   const activityCallbacksRef = useRef<{
     onData: ((payload: ActivityPayload) => void) | null;
     onChoice: ((payload: { userId: string; choice: number }) => void) | null;
-  }>({ onData: null, onChoice: null });
+    onPlaylistChoice: ((payload: { userId: string; choices: number[] }) => void) | null;
+  }>({ onData: null, onChoice: null, onPlaylistChoice: null });
 
   // --- Broadcasting State (all P2P-broadcasting wrappers + local UI state) ---
   const broadcasting = useBroadcastingState(gameState, presence);
@@ -98,8 +99,12 @@ export function useSessionState() {
   usePersonaEffects(gameState, presence, broadcasting.triggerFlash);
 
   // --- Activity callback registration ---
-  const registerActivityCallbacks = (onData: (payload: ActivityPayload) => void, onChoice: (payload: { userId: string; choice: number }) => void) => {
-    activityCallbacksRef.current = { onData, onChoice };
+  const registerActivityCallbacks = (
+    onData: (payload: ActivityPayload) => void,
+    onChoice: (payload: { userId: string; choice: number }) => void,
+    onPlaylistChoice?: (payload: { userId: string; choices: number[] }) => void
+  ) => {
+    activityCallbacksRef.current = { onData, onChoice, onPlaylistChoice: onPlaylistChoice || null };
   };
 
   // --- Compose return ---
@@ -165,6 +170,7 @@ export function useSessionState() {
     takeSip: broadcasting.takeSip,
     broadcastActivityData: broadcasting.broadcastActivityData,
     broadcastActivityChoice: broadcasting.broadcastActivityChoice,
+    broadcastPlaylistChoice: broadcasting.broadcastPlaylistChoice,
     triggerFlash: broadcasting.triggerFlash,
     updatePersonaImage,
     regenerateAvatarFromPhoto: async (base64: string) => {

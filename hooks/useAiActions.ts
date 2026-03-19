@@ -15,7 +15,8 @@ import {
   analyzeImageAction,
   generateSilentReaction,
   generateTwoTruthsOneLie,
-  generateFinishSentence
+  generateFinishSentence,
+  generatePlaylistSongs
 } from '../services/geminiService';
 import { useSessionState } from './useSessionState';
 import { useAiStore } from '../store/aiState';
@@ -32,7 +33,9 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     intelligenceReport, setIntelligenceReport,
     twoTruthsData, setTwoTruthsData,
     finishSentenceData, setFinishSentenceData,
-    activityChoices, setActivityChoices
+    activityChoices, setActivityChoices,
+    playlistData, setPlaylistData,
+    playlistChoices, setPlaylistChoices
   } = useAiStore();
 
   // --- Activity P2P Handlers ---
@@ -49,11 +52,19 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
           setFinishSentenceData(payload.data);
           setActivityChoices({});
           a.setView('finishSentence', false);
+        } else if (payload.type === 'playlist') {
+          setPlaylistData(payload.data);
+          setPlaylistChoices({});
+          a.setView('playlist', false);
         }
       },
       // onChoice
       (payload) => {
         setActivityChoices(prev => ({ ...prev, [payload.userId]: payload.choice }));
+      },
+      // onPlaylistChoice
+      (payload) => {
+        setPlaylistChoices(prev => ({ ...prev, [payload.userId]: payload.choices }));
       }
     );
   }, []);
@@ -122,6 +133,16 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
         setActivityChoices({});
         a.setView('finishSentence');
         a.broadcastActivityData({ type: 'finishSentence', data: fullData });
+
+      } else if (activityId === 'playlist') {
+        const data = await generatePlaylistSongs(
+          s.userPersona, s.partnerPersona, s.vibe,
+          s.conversationLog, s.dateContext, getPromptContext()
+        );
+        setPlaylistData(data);
+        setPlaylistChoices({});
+        a.setView('playlist');
+        a.broadcastActivityData({ type: 'playlist', data });
 
       } else {
         // Standard Scene-based Activity (Truth or Drink, etc)
@@ -263,6 +284,22 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     setTimeout(() => a.setView('hub'), 2000);
   };
 
+  const submitPlaylistChoice = (choices: number[]) => {
+    const selfId = a.getSelf()?.id;
+    if (!selfId) return;
+    setPlaylistChoices(prev => ({ ...prev, [selfId]: choices }));
+    a.broadcastPlaylistChoice(selfId, choices);
+  };
+
+  const handlePlaylistComplete = (matchCount: number) => {
+    const labels = ['Different wavelengths', 'Found common ground', 'Tuned in', 'Same frequency'];
+    a.triggerFlash(labels[Math.min(matchCount, 3)]);
+    if (matchCount >= 2) {
+      a.setVibe(v => ({ ...v, comfortable: Math.min(100, v.comfortable + 10), flirty: Math.min(100, v.flirty + 5) }));
+    }
+    setTimeout(() => a.setView('hub'), 2000);
+  };
+
   const simulateActivityPartner = () => {
     const partner = a.getPartner();
     if (!partner) return;
@@ -283,7 +320,9 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
         currentScene: s.currentScene,
         twoTruthsData,
         finishSentenceData,
-        activityChoices
+        activityChoices,
+        playlistData,
+        playlistChoices
     },
     aiActions: {
         handleActivitySelect,
@@ -294,7 +333,9 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
         finalizeReport,
         handleTwoTruthsComplete,
         handleFinishSentenceComplete,
-        simulateActivityPartner
+        simulateActivityPartner,
+        submitPlaylistChoice,
+        handlePlaylistComplete
     }
   };
 }

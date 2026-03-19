@@ -50,6 +50,7 @@ interface SyncHandlerInput {
   activityCallbacksRef: React.MutableRefObject<{
     onData: ((payload: ActivityPayload) => void) | null;
     onChoice: ((payload: { userId: string; choice: number }) => void) | null;
+    onPlaylistChoice: ((payload: { userId: string; choices: number[] }) => void) | null;
   }>;
   hasSeenArrival: React.MutableRefObject<boolean>;
   setIsSynced: React.Dispatch<React.SetStateAction<boolean>>;
@@ -66,6 +67,7 @@ export function useNetworkSync(
   activityCallbacksRef: React.MutableRefObject<{
     onData: ((payload: ActivityPayload) => void) | null;
     onChoice: ((payload: { userId: string; choice: number }) => void) | null;
+    onPlaylistChoice: ((payload: { userId: string; choices: number[] }) => void) | null;
   }>,
   sessionInfo: { userId: string; isHost: boolean; roomId: string } | null
 ) {
@@ -346,6 +348,9 @@ function createSyncHandlers({
       },
       SYNC_ACTIVITY_CHOICE: (payload: { userId: string; choice: number }) => {
         if (activityCallbacksRef.current.onChoice) activityCallbacksRef.current.onChoice(payload);
+      },
+      SYNC_PLAYLIST_CHOICE: (payload: { userId: string; choices: number[] }) => {
+        if (activityCallbacksRef.current.onPlaylistChoice) activityCallbacksRef.current.onPlaylistChoice(payload);
       },
       SYNC_FINISHED: () => {
         if (!sessionInfo?.isHost) {

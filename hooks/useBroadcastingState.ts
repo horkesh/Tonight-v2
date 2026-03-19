@@ -193,6 +193,10 @@ export function useBroadcastingState(
       p2p.send({ type: 'SYNC_ACTIVITY_CHOICE', payload: { userId, choice } });
   }, []);
 
+  const broadcastPlaylistChoice = useCallback((userId: string, choices: number[]) => {
+      p2p.send({ type: 'SYNC_PLAYLIST_CHOICE', payload: { userId, choices } });
+  }, []);
+
   return {
     // UI state
     view, clinkActive, lastChoiceText, latestReaction, flashMessage,
@@ -212,6 +216,6 @@ export function useBroadcastingState(
 
     // Helpers
     triggerFlash, getSelf, getPartner, takeSip,
-    broadcastActivityData, broadcastActivityChoice,
+    broadcastActivityData, broadcastActivityChoice, broadcastPlaylistChoice,
   };
 }

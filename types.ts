@@ -1,5 +1,5 @@
 
-export type AppView = 'setup' | 'onboarding' | 'hub' | 'activity' | 'question' | 'loading' | 'rating' | 'twoTruths' | 'finishSentence';
+export type AppView = 'setup' | 'onboarding' | 'hub' | 'activity' | 'question' | 'loading' | 'rating' | 'twoTruths' | 'finishSentence' | 'playlist';
 
 export interface User {
   id: string;

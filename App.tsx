@@ -44,6 +44,7 @@ const RatingView = lazy(() => import('./components/views/RatingView').then(m => 
 const ActivityView = lazy(() => import('./components/views/ActivityView').then(m => ({ default: m.ActivityView })));
 const TwoTruthsView = lazy(() => import('./components/views/TwoTruthsView').then(m => ({ default: m.TwoTruthsView })));
 const FinishSentenceView = lazy(() => import('./components/views/FinishSentenceView').then(m => ({ default: m.FinishSentenceView })));
+const PlaylistView = lazy(() => import('./components/views/PlaylistView').then(m => ({ default: m.PlaylistView })));
 const LoadingView = lazy(() => import('./components/views/LoadingView').then(m => ({ default: m.LoadingView })));
 
 function AppContent() {
@@ -308,6 +309,10 @@ function AppContent() {
 
             {s.view === 'finishSentence' && as.finishSentenceData && s.isSynced && (
                 <FinishSentenceView />
+            )}
+
+            {s.view === 'playlist' && as.playlistData && s.isSynced && (
+                <PlaylistView />
             )}
 
             {s.view === 'loading' && s.isSynced && (

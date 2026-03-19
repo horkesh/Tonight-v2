@@ -1,5 +1,5 @@
 
-import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData, NarrativeSuggestion } from "../types";
+import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData, NarrativeSuggestion, PlaylistData } from "../types";
 import type { PromptContext } from "../types/profiles";
 import {
   SYSTEM_INSTRUCTION
@@ -938,6 +938,51 @@ export const generateNarrativeSuggestion = async (
   } catch (error) {
     console.error("Narrative suggestion failed:", error);
     throw error;
+  }
+};
+
+// ── Shared Playlist ──────────────────────────────────────────────────────────
+export const generatePlaylistSongs = async (
+  userPersona: PersonaState,
+  partnerPersona: PersonaState,
+  vibe: VibeStats,
+  conversationLog: ConversationEntry[],
+  dateContext: DateContext | null,
+  promptContext?: PromptContext | null
+): Promise<PlaylistData> => {
+  const dominant = getDominantVibe(vibe);
+  const location = dateContext?.location?.title || 'a night out';
+  const partnerTraits = partnerPersona.traits.join(', ') || 'mysterious';
+  const userTraits = userPersona.traits.join(', ') || 'unknown';
+  const recentTopics = conversationLog.slice(-5).map(e => e.category).join(', ');
+
+  const prompt = `Generate a playlist of 8 songs for a date night. The setting: ${location}. The mood is ${dominant}. Partner traits: ${partnerTraits}. Host traits: ${userTraits}. Recent conversation topics: ${recentTopics || 'getting to know each other'}.
+
+Mix genres. Include recognizable songs that evoke emotion. Each song should feel intentional, not random.
+
+Return JSON array of exactly 8 objects: [{"title": "Song Name", "artist": "Artist Name", "vibe": "one-word mood descriptor"}]`;
+
+  try {
+    const result = await callProxy('/api/gemini/text', { prompt });
+    const text = typeof result === 'string' ? result : result?.text || '';
+    const songs = JSON.parse(text.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+    if (Array.isArray(songs) && songs.length >= 6) {
+      return { songs: songs.slice(0, 8) };
+    }
+    throw new Error('Invalid song array');
+  } catch {
+    return {
+      songs: [
+        { title: 'Wicked Game', artist: 'Chris Isaak', vibe: 'longing' },
+        { title: 'Kiss of Life', artist: 'Sade', vibe: 'smooth' },
+        { title: 'Slow Dancing in a Burning Room', artist: 'John Mayer', vibe: 'bittersweet' },
+        { title: 'Do I Wanna Know?', artist: 'Arctic Monkeys', vibe: 'tension' },
+        { title: 'Love on the Brain', artist: 'Rihanna', vibe: 'raw' },
+        { title: 'The Night We Met', artist: 'Lord Huron', vibe: 'nostalgic' },
+        { title: 'Earned It', artist: 'The Weeknd', vibe: 'dark' },
+        { title: 'Something', artist: 'The Beatles', vibe: 'timeless' },
+      ]
+    };
   }
 };
 
