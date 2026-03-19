@@ -17,6 +17,7 @@ import { Soundscape } from './components/Soundscape';
 import { GuestProfileOverlay } from './components/GuestProfileOverlay';
 import { ArrivalOverlay } from './components/ArrivalOverlay';
 import { FlashMessage } from './components/FlashMessage';
+import { WhisperOverlay } from './components/WhisperOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useSession } from './context/SessionContext';
@@ -60,6 +61,7 @@ function AppContent() {
   const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
   const [activeReaction, setActiveReaction] = useState<string | null>(null);
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+  const [whisperActive, setWhisperActive] = useState(false);
   
   const reactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -71,7 +73,8 @@ function AppContent() {
   
   useDeviceSensors({
     onPour: () => { if (a.handleDrinkAction()) qa.showFlash("Sip Detected 🥃"); },
-    onGlanceBack: () => qa.showFlash("Lost you for a second there...", 3000)
+    onGlanceBack: () => qa.showFlash("Lost you for a second there...", 3000),
+    onWhisper: () => { if (s.isHost && s.isSynced) setWhisperActive(true); },
   });
   const monologue = useInnerMonologue(s.round, s.view, s.vibe);
 
@@ -352,6 +355,9 @@ function AppContent() {
         dateContext={s.dateContext}
         onDismiss={a.clearArrivalEvent}
       />
+
+      {/* Whisper mode — lean-in dare overlay (host only) */}
+      <WhisperOverlay isActive={whisperActive} onDismiss={() => setWhisperActive(false)} />
 
       <ConfirmationModal 
         isOpen={showEndSessionConfirm} onClose={() => setShowEndSessionConfirm(false)} 

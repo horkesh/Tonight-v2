@@ -4,10 +4,12 @@ import { useEffect, useRef } from 'react';
 interface UseDeviceSensorsProps {
   onPour: () => void;
   onGlanceBack: () => void;
+  onWhisper?: () => void;
 }
 
-export function useDeviceSensors({ onPour, onGlanceBack }: UseDeviceSensorsProps) {
+export function useDeviceSensors({ onPour, onGlanceBack, onWhisper }: UseDeviceSensorsProps) {
   const lastPourRef = useRef(0);
+  const lastWhisperRef = useRef(0);
 
   // "Pour" Gesture (Gyroscope)
   useEffect(() => {
@@ -25,6 +27,23 @@ export function useDeviceSensors({ onPour, onGlanceBack }: UseDeviceSensorsProps
     window.addEventListener('deviceorientation', handleOrientation);
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [onPour]);
+
+  // "Whisper" Gesture — lean-in detected via same tilt, 60s cooldown
+  useEffect(() => {
+    if (!onWhisper) return;
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+        const beta = e.beta;
+        if (beta && beta > 55) {
+           const now = Date.now();
+           if (now - lastWhisperRef.current > 60000) {
+               lastWhisperRef.current = now;
+               onWhisper();
+           }
+        }
+    };
+    window.addEventListener('deviceorientation', handleOrientation);
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
+  }, [onWhisper]);
 
   // "Glance Away" Detection (Visibility API)
   useEffect(() => {
