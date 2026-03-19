@@ -714,7 +714,7 @@ Respond as JSON: {"narrative": "...", "imagePrompt": "..."}`;
   try {
     const result = await callProxy('/api/gemini/text', { prompt });
     const text = typeof result === 'string' ? result : result?.text || '';
-    const parsed = JSON.parse(text.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+    const parsed = cleanAndParseJSON(text, { narrative: '', imagePrompt: currentEnvironmentPrompt });
     return { narrative: parsed.narrative || '', imagePrompt: parsed.imagePrompt || currentEnvironmentPrompt };
   } catch {
     return { narrative: '', imagePrompt: currentEnvironmentPrompt };
@@ -965,7 +965,7 @@ Return JSON array of exactly 8 objects: [{"title": "Song Name", "artist": "Artis
   try {
     const result = await callProxy('/api/gemini/text', { prompt });
     const text = typeof result === 'string' ? result : result?.text || '';
-    const songs = JSON.parse(text.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+    const songs = cleanAndParseJSON(text, []);
     if (Array.isArray(songs) && songs.length >= 6) {
       return { songs: songs.slice(0, 8) };
     }
@@ -1013,7 +1013,7 @@ Respond as JSON: {"salutation": "short greeting (2-3 words)", "body": "the lette
   try {
     const result = await callProxy('/api/gemini/text', { prompt });
     const text = typeof result === 'string' ? result : result?.text || '';
-    return JSON.parse(text.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+    return cleanAndParseJSON(text, { salutation: 'Tonight', body: 'The words escaped before the ink could catch them.', signoff: '—' });
   } catch {
     return { salutation: 'Tonight', body: 'The words escaped before the ink could catch them.', signoff: '—' };
   }

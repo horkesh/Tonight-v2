@@ -123,6 +123,13 @@ export const ACTIVITIES = [
   }
 ];
 
+export const PLAYLIST_RESULT_LABELS = [
+  'Different wavelengths',
+  'Found common ground',
+  'Tuned in',
+  'Same frequency',
+];
+
 export const WHISPER_DARES = [
   "Tell her the first thing you noticed about her.",
   "Ask her what she's afraid to ask you.",

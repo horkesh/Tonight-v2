@@ -17,9 +17,12 @@ export const WhisperOverlay: React.FC<WhisperOverlayProps> = ({ isActive, onDism
       setShowDare(false);
       return;
     }
-    const available = WHISPER_DARES.map((_, i) => i).filter(i => !usedIndices.has(i));
-    const pool = available.length > 0 ? available : WHISPER_DARES.map((_, i) => i);
-    const idx = pool[Math.floor(Math.random() * pool.length)];
+    let available = WHISPER_DARES.map((_, i) => i).filter(i => !usedIndices.has(i));
+    if (available.length === 0) {
+      available = WHISPER_DARES.map((_, i) => i);
+      setUsedIndices(new Set());
+    }
+    const idx = available[Math.floor(Math.random() * available.length)];
     setDare(WHISPER_DARES[idx]);
     setUsedIndices(prev => new Set([...prev, idx]));
     const timer = setTimeout(() => setShowDare(true), 1500);

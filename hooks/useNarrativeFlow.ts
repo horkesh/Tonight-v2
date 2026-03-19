@@ -42,6 +42,7 @@ export function useNarrativeFlow(session: ReturnType<typeof useSessionState>) {
   const [locationNarrative, setLocationNarrative] = useState<string | null>(null);
   const lastSuggestionRound = useRef(-1);
   const insightShownRef = useRef(false);
+  const narrativeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Snapshot latest values for the async fetch to avoid stale closures
   const stateRef = useRef(s);
@@ -144,7 +145,7 @@ export function useNarrativeFlow(session: ReturnType<typeof useSessionState>) {
 
         if (narrative) {
           setLocationNarrative(narrative);
-          setTimeout(() => setLocationNarrative(null), 4000);
+          narrativeTimerRef.current = setTimeout(() => setLocationNarrative(null), 4000);
         }
 
         // Image generation is expensive — fire and forget
@@ -155,6 +156,7 @@ export function useNarrativeFlow(session: ReturnType<typeof useSessionState>) {
     };
 
     evolveLocation();
+    return () => { if (narrativeTimerRef.current) clearTimeout(narrativeTimerRef.current); };
   }, [s.view, s.round, s.isHost]);
 
   const overrideSuggestion = useCallback(() => {

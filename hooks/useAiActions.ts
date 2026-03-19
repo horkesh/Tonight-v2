@@ -21,6 +21,7 @@ import {
   generateFollowUpText
 } from '../services/geminiService';
 import { useSessionState } from './useSessionState';
+import { PLAYLIST_RESULT_LABELS } from '../constants';
 import { useAiStore } from '../store/aiState';
 import { applyVibeDeltas } from '../utils/helpers';
 import { saveDateToHistory, buildHistoryEntry, extractHighlights } from '../utils/dateHistory';
@@ -313,8 +314,7 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
   };
 
   const handlePlaylistComplete = (matchCount: number) => {
-    const labels = ['Different wavelengths', 'Found common ground', 'Tuned in', 'Same frequency'];
-    a.triggerFlash(labels[Math.min(matchCount, 3)]);
+    a.triggerFlash(PLAYLIST_RESULT_LABELS[Math.min(matchCount, 3)]);
     if (matchCount >= 2) {
       a.setVibe(v => ({ ...v, comfortable: Math.min(100, v.comfortable + 10), flirty: Math.min(100, v.flirty + 5) }));
     }

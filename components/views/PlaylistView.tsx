@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PAGE_VARIANTS } from '../../constants';
+import { PAGE_VARIANTS, PLAYLIST_RESULT_LABELS } from '../../constants';
 import { useSession } from '../../context/SessionContext';
 import { soundManager } from '../../services/soundManager';
 
@@ -80,8 +80,6 @@ export const PlaylistView: React.FC = () => {
     handlePlaylistComplete(matchCount);
   }, [matchCount, handlePlaylistComplete]);
 
-  const labels = ['Different wavelengths', 'Found common ground', 'Tuned in', 'Same frequency'];
-
   return (
     <motion.div
       key="playlist"
@@ -97,7 +95,7 @@ export const PlaylistView: React.FC = () => {
           Shared Playlist
         </span>
         <h2 className="text-3xl font-serif text-white italic">
-          {phase === 'selecting' ? 'Pick 3 songs' : phase === 'waiting' ? 'Locked in' : phase === 'revealing' ? 'Revealing...' : labels[Math.min(matchCount, 3)]}
+          {phase === 'selecting' ? 'Pick 3 songs' : phase === 'waiting' ? 'Locked in' : phase === 'revealing' ? 'Revealing...' : PLAYLIST_RESULT_LABELS[Math.min(matchCount, 3)]}
         </h2>
         {phase === 'selecting' && (
           <p className="text-[10px] text-white/30 uppercase tracking-widest mt-3 font-bold">
@@ -230,7 +228,7 @@ export const PlaylistView: React.FC = () => {
               {matchCount >= 3 ? '\uD83C\uDFB6' : matchCount >= 2 ? '\uD83C\uDFA7' : matchCount >= 1 ? '\uD83C\uDFB5' : '\uD83D\uDD07'}
             </span>
             <h3 className="text-2xl font-serif italic text-white">
-              {labels[Math.min(matchCount, 3)]}
+              {PLAYLIST_RESULT_LABELS[Math.min(matchCount, 3)]}
             </h3>
             <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">
               {matchCount} of 3 songs matched
