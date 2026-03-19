@@ -16,7 +16,9 @@ import {
   generateSilentReaction,
   generateTwoTruthsOneLie,
   generateFinishSentence,
-  generatePlaylistSongs
+  generatePlaylistSongs,
+  generateEndOfNightLetter,
+  generateFollowUpText
 } from '../services/geminiService';
 import { useSessionState } from './useSessionState';
 import { useAiStore } from '../store/aiState';
@@ -35,7 +37,9 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     finishSentenceData, setFinishSentenceData,
     activityChoices, setActivityChoices,
     playlistData, setPlaylistData,
-    playlistChoices, setPlaylistChoices
+    playlistChoices, setPlaylistChoices,
+    letterData, setLetterData,
+    followUpText, setFollowUpText
   } = useAiStore();
 
   // --- Activity P2P Handlers ---
@@ -237,9 +241,24 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     };
 
     try {
-      const report = await generateIntelligenceReport(s.vibe, s.partnerPersona, rating, s.dateContext, getPromptContext());
+      // Report in parallel with letter→text chain
+      const [report, letterAndText] = await Promise.all([
+        generateIntelligenceReport(s.vibe, s.partnerPersona, rating, s.dateContext, getPromptContext()),
+        (async () => {
+          const letter = await generateEndOfNightLetter(
+            s.vibe, s.partnerPersona, rating, s.conversationLog, s.dateContext, getPromptContext()
+          );
+          const text = await generateFollowUpText(
+            s.partnerPersona, s.conversationLog, s.vibe, rating, letter.body, getPromptContext()
+          );
+          return { letter, text };
+        })(),
+      ]);
+
       report.caseNumber = `TNT-${Date.now().toString(36).toUpperCase()}`;
       setIntelligenceReport(report);
+      setLetterData(letterAndText.letter);
+      setFollowUpText(letterAndText.text);
       saveHistory(report);
       return true;
     } catch (error) {
@@ -258,6 +277,8 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
         caseNumber: `TNT-${Date.now().toString(36).toUpperCase()}`
       } satisfies IntelligenceReport;
       setIntelligenceReport(fallback);
+      setLetterData({ salutation: 'Tonight', body: 'The words escaped before the ink could catch them.', signoff: '—' });
+      setFollowUpText('I had a great time tonight.');
       saveHistory(fallback);
       return true;
     }
@@ -322,7 +343,9 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
         finishSentenceData,
         activityChoices,
         playlistData,
-        playlistChoices
+        playlistChoices,
+        letterData,
+        followUpText
     },
     aiActions: {
         handleActivitySelect,

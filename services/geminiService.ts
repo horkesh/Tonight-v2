@@ -1,5 +1,5 @@
 
-import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData, NarrativeSuggestion, PlaylistData } from "../types";
+import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData, NarrativeSuggestion, PlaylistData, LetterData } from "../types";
 import type { PromptContext } from "../types/profiles";
 import {
   SYSTEM_INSTRUCTION
@@ -983,6 +983,71 @@ Return JSON array of exactly 8 objects: [{"title": "Song Name", "artist": "Artis
         { title: 'Something', artist: 'The Beatles', vibe: 'timeless' },
       ]
     };
+  }
+};
+
+export const generateEndOfNightLetter = async (
+  vibe: VibeStats,
+  partnerPersona: PersonaState,
+  rating: number,
+  conversationLog: ConversationEntry[],
+  dateContext: DateContext | null,
+  promptContext?: PromptContext | null
+): Promise<LetterData> => {
+  const partnerName = promptContext?.profile?.name || 'your date';
+  const location = dateContext?.location?.title || 'tonight';
+  const highlights = conversationLog.slice(-8).map(e => `"${e.answer}"`).join(', ');
+  const dominant = getDominantVibe(vibe);
+
+  const prompt = `Write a short letter about tonight's date as if you're a close, perceptive friend who watched the whole evening. Address it to "You" (the host). Reference specific moments from the conversation highlights below. Tone: warm but sharp, like a friend who sees through both of you. Max 100 words.
+
+PARTNER: ${partnerName}
+LOCATION: ${location}
+MOOD: ${dominant} (chemistry ${partnerPersona.chemistry}%)
+RATING: ${rating}/10
+CONVERSATION HIGHLIGHTS: ${highlights || 'a night of discovery'}
+PARTNER TRAITS: ${partnerPersona.traits.join(', ') || 'still emerging'}
+
+Respond as JSON: {"salutation": "short greeting (2-3 words)", "body": "the letter text", "signoff": "short sign-off (1-3 words)"}`;
+
+  try {
+    const result = await callProxy('/api/gemini/text', { prompt });
+    const text = typeof result === 'string' ? result : result?.text || '';
+    return JSON.parse(text.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+  } catch {
+    return { salutation: 'Tonight', body: 'The words escaped before the ink could catch them.', signoff: '—' };
+  }
+};
+
+export const generateFollowUpText = async (
+  partnerPersona: PersonaState,
+  conversationLog: ConversationEntry[],
+  vibe: VibeStats,
+  rating: number,
+  letterBody: string,
+  promptContext?: PromptContext | null
+): Promise<string> => {
+  const partnerName = promptContext?.profile?.name || 'them';
+  const highlights = conversationLog.slice(-5).map(e =>
+    `Q: "${e.questionText}" A: "${e.answer}"`
+  ).join('\n');
+
+  const prompt = `Write ONE follow-up text message to send after a date. It should reference a specific moment from the conversation — not be generic. 1-2 sentences, SMS length (under 200 chars). Match the tone of this letter that was just written about the night: "${letterBody}"
+
+PARTNER: ${partnerName}
+CHEMISTRY: ${partnerPersona.chemistry}%
+RATING: ${rating}/10
+KEY MOMENTS:
+${highlights || 'a memorable evening'}
+
+Respond with ONLY the text message. No quotes, no preamble, no explanation.`;
+
+  try {
+    const result = await callProxy('/api/gemini/text', { prompt });
+    const text = typeof result === 'string' ? result : result?.text || '';
+    return text.trim().slice(0, 280);
+  } catch {
+    return 'I had a great time tonight.';
   }
 };
 

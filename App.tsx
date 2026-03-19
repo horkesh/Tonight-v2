@@ -46,6 +46,8 @@ const TwoTruthsView = lazy(() => import('./components/views/TwoTruthsView').then
 const FinishSentenceView = lazy(() => import('./components/views/FinishSentenceView').then(m => ({ default: m.FinishSentenceView })));
 const PlaylistView = lazy(() => import('./components/views/PlaylistView').then(m => ({ default: m.PlaylistView })));
 const LoadingView = lazy(() => import('./components/views/LoadingView').then(m => ({ default: m.LoadingView })));
+const LetterView = lazy(() => import('./components/LetterView').then(m => ({ default: m.LetterView })));
+const TextSuggestionView = lazy(() => import('./components/TextSuggestionView').then(m => ({ default: m.TextSuggestionView })));
 
 function AppContent() {
   const session = useSession();
@@ -54,11 +56,11 @@ function AppContent() {
   const { qState: qs, qActions: qa } = useQuestionFlow(session);
   const { aiState: as, aiActions: aa } = useAiActions(session);
 
+  const [postReportPhase, setPostReportPhase] = useState<'briefing' | 'letter' | 'text' | null>(null);
   const [sharedDraft, setSharedDraft] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraType, setCameraType] = useState<'drink' | 'selfie' | 'general'>('general');
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
   const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
   const [activeReaction, setActiveReaction] = useState<string | null>(null);
@@ -292,7 +294,7 @@ function AppContent() {
 
             {s.view === 'rating' && s.isSynced && (
                 <RatingView
-                    onFinalize={async (n) => { if(await aa.finalizeReport(n)) setReportOpen(true); }}
+                    onFinalize={async (n) => { if(await aa.finalizeReport(n)) setPostReportPhase('briefing'); }}
                     onCancel={() => a.setView('hub')}
                 />
             )}
@@ -343,8 +345,41 @@ function AppContent() {
           onSelect={handleAvatarModifier} 
           onPhotoSelect={handleAvatarRegeneration}
       />
-      <IntelligenceBriefing report={as.intelligenceReport} isOpen={reportOpen} onClose={() => setReportOpen(false)} />
+      <IntelligenceBriefing
+        report={as.intelligenceReport}
+        isOpen={postReportPhase === 'briefing'}
+        onClose={() => {
+          if (as.letterData) setPostReportPhase('letter');
+          else if (as.followUpText) setPostReportPhase('text');
+          else { setPostReportPhase(null); }
+        }}
+      />
       <ToastOverlay isOpen={toastOpen} onClose={() => setToastOpen(false)} onClink={handleToastComplete} />
+
+      {postReportPhase === 'letter' && as.letterData && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center">
+          <Suspense fallback={<LazyFallback />}>
+            <LetterView
+              letter={as.letterData}
+              onContinue={() => {
+                if (as.followUpText) setPostReportPhase('text');
+                else setPostReportPhase(null);
+              }}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {postReportPhase === 'text' && as.followUpText && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center">
+          <Suspense fallback={<LazyFallback />}>
+            <TextSuggestionView
+              text={as.followUpText}
+              onEndSession={() => { setPostReportPhase(null); a.clearSession(); }}
+            />
+          </Suspense>
+        </div>
+      )}
 
       {/* Guest profile enhancement — shown once after first sync */}
       {s.isSynced && !s.isHost && !s.guestProfileConfirmed && s.hasSeenArrivalOverlay && (
