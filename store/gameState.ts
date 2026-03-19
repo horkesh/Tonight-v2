@@ -14,6 +14,7 @@ export interface GameState {
   sipLevel: number;
   myRating: number | null;
   partnerRating: number | null;
+  lastLocationImageRound: number;
 
   setRound: (round: number | ((prev: number) => number)) => void;
   setCurrentScene: (scene: Scene | null) => void;
@@ -26,6 +27,7 @@ export interface GameState {
   setSipLevel: (level: number | ((prev: number) => number)) => void;
   setMyRating: (rating: number | null) => void;
   setPartnerRating: (rating: number | null) => void;
+  setLastLocationImageRound: (round: number) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -40,6 +42,7 @@ export const useGameStore = create<GameState>((set) => ({
   sipLevel: 0,
   myRating: null,
   partnerRating: null,
+  lastLocationImageRound: 0,
 
   setRound: (round) => set((state) => ({ round: typeof round === 'function' ? round(state.round) : round })),
   setCurrentScene: (scene) => set({ currentScene: scene }),
@@ -52,4 +55,5 @@ export const useGameStore = create<GameState>((set) => ({
   setSipLevel: (level) => set((state) => ({ sipLevel: typeof level === 'function' ? level(state.sipLevel) : level })),
   setMyRating: (rating) => set({ myRating: rating }),
   setPartnerRating: (rating) => set({ partnerRating: rating }),
+  setLastLocationImageRound: (round) => set({ lastLocationImageRound: round }),
 }));

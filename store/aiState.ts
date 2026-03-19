@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Question, Scene } from '../types';
+import { Question, Scene, PlaylistData, LetterData } from '../types';
 
 interface QuestionState {
   selectedCategory: Question['category'] | null;
@@ -32,6 +32,10 @@ interface AiState {
   finishSentenceData: any | null;
   activityChoices: Record<string, number>;
   intelligenceReport: any | null;
+  playlistData: PlaylistData | null;
+  playlistChoices: Record<string, number[]>;
+  letterData: LetterData | null;
+  followUpText: string | null;
 
   setIsGenerating: (isGenerating: boolean) => void;
   setCurrentScene: (scene: Scene | null) => void;
@@ -39,6 +43,10 @@ interface AiState {
   setFinishSentenceData: (data: any | null) => void;
   setActivityChoices: (choices: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
   setIntelligenceReport: (report: any | null) => void;
+  setPlaylistData: (data: PlaylistData | null) => void;
+  setPlaylistChoices: (updater: Record<string, number[]> | ((prev: Record<string, number[]>) => Record<string, number[]>)) => void;
+  setLetterData: (data: LetterData | null) => void;
+  setFollowUpText: (text: string | null) => void;
 }
 
 export const useAiStore = create<AiState>((set) => ({
@@ -55,4 +63,14 @@ export const useAiStore = create<AiState>((set) => ({
   setFinishSentenceData: (data) => set({ finishSentenceData: data }),
   setActivityChoices: (choices) => set((state) => ({ activityChoices: typeof choices === 'function' ? choices(state.activityChoices) : choices })),
   setIntelligenceReport: (report) => set({ intelligenceReport: report }),
+  playlistData: null,
+  setPlaylistData: (data) => set({ playlistData: data }),
+  playlistChoices: {},
+  setPlaylistChoices: (updater) => set((state) => ({
+    playlistChoices: typeof updater === 'function' ? updater(state.playlistChoices) : updater,
+  })),
+  letterData: null,
+  setLetterData: (data) => set({ letterData: data }),
+  followUpText: null,
+  setFollowUpText: (text) => set({ followUpText: text }),
 }));
