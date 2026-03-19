@@ -183,6 +183,7 @@ export type NetworkMessage =
   | { type: 'SYNC_CONVERSATION_LOG'; payload: ConversationEntry[] }
   | { type: 'SYNC_ACTIVITY_DATA'; payload: ActivityPayload }
   | { type: 'SYNC_ACTIVITY_CHOICE'; payload: { userId: string; choice: number } }
+  | { type: 'SYNC_PLAYLIST_CHOICE'; payload: { userId: string; choices: number[] } }
   | { type: 'SYNC_LAST_CHOICE'; payload: string }
   | { type: 'REQUEST_SYNC'; payload?: never }
   | { type: 'PING'; payload?: never }
@@ -191,11 +192,12 @@ export type NetworkMessage =
 export type NetworkMessageType = NetworkMessage['type'];
 
 // --- Activity Types ---
-export type ActivityId = 'twoTruths' | 'finishSentence';
+export type ActivityId = 'twoTruths' | 'finishSentence' | 'playlist';
 
 export type ActivityPayload =
   | { type: 'twoTruths'; data: TwoTruthsData }
-  | { type: 'finishSentence'; data: FinishSentenceData };
+  | { type: 'finishSentence'; data: FinishSentenceData }
+  | { type: 'playlist'; data: PlaylistData };
 
 // --- Activity: Two Truths & A Lie ---
 export interface TwoTruthsData {
@@ -210,4 +212,16 @@ export interface FinishSentenceData {
   options: string[];          // 3 AI-generated completions
   subjectId: string; // Who the sentence is about (userId)
   subjectName: string;
+}
+
+// --- Activity: Shared Playlist ---
+export interface PlaylistData {
+  songs: { title: string; artist: string; vibe: string }[];
+}
+
+// --- End-of-Night Letter ---
+export interface LetterData {
+  salutation: string;
+  body: string;
+  signoff: string;
 }
