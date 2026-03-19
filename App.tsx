@@ -18,6 +18,7 @@ import { GuestProfileOverlay } from './components/GuestProfileOverlay';
 import { ArrivalOverlay } from './components/ArrivalOverlay';
 import { FlashMessage } from './components/FlashMessage';
 import { WhisperOverlay } from './components/WhisperOverlay';
+import { InsightCard } from './components/InsightCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useSession } from './context/SessionContext';
@@ -47,8 +48,8 @@ const LoadingView = lazy(() => import('./components/views/LoadingView').then(m =
 
 function AppContent() {
   const session = useSession();
-  const { state: s, actions: a } = session;
-  
+  const { state: s, actions: a, narrativeState, narrativeActions } = session;
+
   const { qState: qs, qActions: qa } = useQuestionFlow(session);
   const { aiState: as, aiActions: aa } = useAiActions(session);
 
@@ -358,6 +359,9 @@ function AppContent() {
 
       {/* Whisper mode — lean-in dare overlay (host only) */}
       <WhisperOverlay isActive={whisperActive} onDismiss={() => setWhisperActive(false)} />
+
+      {/* Private AI insight — host only, after round 4 */}
+      <InsightCard text={narrativeState.insightText} onDismiss={narrativeActions.clearInsight} />
 
       <ConfirmationModal 
         isOpen={showEndSessionConfirm} onClose={() => setShowEndSessionConfirm(false)} 

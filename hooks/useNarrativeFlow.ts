@@ -1,9 +1,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { NarrativeSuggestion, Question } from '../types';
-import { generateNarrativeSuggestion } from '../services/geminiService';
+import { generateNarrativeSuggestion, generatePartnerInsight, generateLocationTransition } from '../services/geminiService';
 import { getNarrativeArcForRound } from '../constants';
 import { useProfileStore } from '../store/profileStore';
+import { useGameStore } from '../store/gameState';
 import { buildPromptContext } from '../services/prompts/promptContext';
 import { useSessionState } from './useSessionState';
 
@@ -37,7 +38,10 @@ export function useNarrativeFlow(session: ReturnType<typeof useSessionState>) {
   const [narrativeSuggestion, setNarrativeSuggestion] = useState<NarrativeSuggestion | null>(null);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [overrideActive, setOverrideActive] = useState(false);
+  const [insightText, setInsightText] = useState<string | null>(null);
+  const [locationNarrative, setLocationNarrative] = useState<string | null>(null);
   const lastSuggestionRound = useRef(-1);
+  const insightShownRef = useRef(false);
 
   // Snapshot latest values for the async fetch to avoid stale closures
   const stateRef = useRef(s);
@@ -99,6 +103,60 @@ export function useNarrativeFlow(session: ReturnType<typeof useSessionState>) {
     fetchSuggestion();
   }, [s.view, s.round, s.isHost]);
 
+  // Insight card — one-shot AI observation after round 4 (host only)
+  useEffect(() => {
+    if (s.view !== 'hub' || !s.isHost) return;
+    if (s.round < 4 || insightShownRef.current) return;
+    insightShownRef.current = true;
+
+    const fetchInsight = async () => {
+      try {
+        const { activeProfile, activeVenue, activeDateConfig } = useProfileStore.getState();
+        const promptContext = buildPromptContext(activeProfile, activeVenue, activeDateConfig);
+        const snap = stateRef.current;
+        const text = await generatePartnerInsight(snap.partnerPersona, snap.conversationLog, snap.vibe, promptContext);
+        if (text) setInsightText(text);
+      } catch { /* silent */ }
+    };
+    fetchInsight();
+  }, [s.view, s.round, s.isHost]);
+
+  // Location evolution — narrated scene transition every 3 rounds (host only)
+  useEffect(() => {
+    if (s.view !== 'hub' || !s.isHost) return;
+    if (s.round < 3 || s.round % 3 !== 0) return;
+
+    // Read directly from store to avoid stale closure
+    const { lastLocationImageRound, setLastLocationImageRound } = useGameStore.getState();
+    if (lastLocationImageRound === s.round) return;
+
+    const evolveLocation = async () => {
+      const snap = stateRef.current;
+      if (!snap.dateContext?.location) return;
+
+      try {
+        const { narrative, imagePrompt } = await generateLocationTransition(
+          snap.vibe, snap.round, snap.conversationLog,
+          snap.dateContext.location.environmentPrompt
+        );
+
+        setLastLocationImageRound(snap.round);
+
+        if (narrative) {
+          setLocationNarrative(narrative);
+          setTimeout(() => setLocationNarrative(null), 4000);
+        }
+
+        // Image generation is expensive — fire and forget
+        // The environment prompt evolves but we don't regenerate the image inline
+      } catch {
+        // Silent failure per spec
+      }
+    };
+
+    evolveLocation();
+  }, [s.view, s.round, s.isHost]);
+
   const overrideSuggestion = useCallback(() => {
     setOverrideActive(true);
   }, []);
@@ -108,9 +166,12 @@ export function useNarrativeFlow(session: ReturnType<typeof useSessionState>) {
       narrativeSuggestion,
       isLoadingSuggestion,
       overrideActive,
+      insightText,
+      locationNarrative,
     },
     narrativeActions: {
       overrideSuggestion,
+      clearInsight: () => setInsightText(null),
     },
   };
 }

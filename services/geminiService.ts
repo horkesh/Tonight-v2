@@ -655,6 +655,72 @@ OUTPUT: JSON with "sentence" (string ending in "...") and "options" (array of ex
   }
 };
 
+export const generatePartnerInsight = async (
+  partnerPersona: PersonaState,
+  conversationLog: ConversationEntry[],
+  vibe: VibeStats,
+  promptContext?: PromptContext | null
+): Promise<string> => {
+  const traits = partnerPersona.traits.join(', ') || 'unknown';
+  const secrets = partnerPersona.secrets.slice(-3).join('; ') || 'none revealed';
+  const memories = partnerPersona.memories.slice(-5).join('; ') || 'none yet';
+  const recentAnswers = conversationLog.slice(-5).map(e =>
+    `[${e.category}] "${e.questionText}" → "${e.answer}"`
+  ).join('\n');
+
+  const prompt = `You are an expert psychologist observing a date. Based on the data below, write ONE observation about the partner — something the host might not notice themselves. Max 20 words. Be specific, not generic. Observational, not flattering. Focus on behavioral patterns, defense mechanisms, or hidden desires.
+
+PARTNER TRAITS: ${traits}
+REVEALED SECRETS: ${secrets}
+KNOWN FACTS: ${memories}
+RECENT ANSWERS:
+${recentAnswers}
+
+VIBE: playful=${vibe.playful}, flirty=${vibe.flirty}, deep=${vibe.deep}, comfortable=${vibe.comfortable}
+
+${promptContext ? `PARTNER PROFILE: ${promptContext.profile?.name || 'Unknown'}, ${promptContext.profile?.job || ''}, interests: ${promptContext.profile?.interests?.join(', ') || 'unknown'}` : ''}
+
+Respond with ONLY the observation sentence. No quotes, no preamble.`;
+
+  try {
+    const result = await callProxy('/api/gemini/text', { prompt });
+    const text = typeof result === 'string' ? result : result?.text || result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return text.trim().slice(0, 150);
+  } catch {
+    return '';
+  }
+};
+
+export const generateLocationTransition = async (
+  vibe: VibeStats,
+  round: number,
+  conversationLog: ConversationEntry[],
+  currentEnvironmentPrompt: string
+): Promise<{ narrative: string; imagePrompt: string }> => {
+  const recentAnswers = conversationLog.slice(-3).map(e =>
+    `[${e.category}] "${e.answer}"`
+  ).join(', ');
+
+  const dominant = getDominantVibe(vibe);
+
+  const prompt = `You are a cinematographer directing a date scene. The current setting: "${currentEnvironmentPrompt}". The mood is ${dominant} (playful=${vibe.playful}, flirty=${vibe.flirty}, deep=${vibe.deep}, comfortable=${vibe.comfortable}). Round ${round}. Recent answers: ${recentAnswers}.
+
+Write TWO things:
+1. "narrative": A short atmospheric transition line (max 10 words). Something that could appear as a subtitle in a film. Examples: "The bartender dims the lights." "Rain starts against the window."
+2. "imagePrompt": An updated environment description for image generation. Keep the same location but shift the atmosphere to match the current mood. Max 30 words.
+
+Respond as JSON: {"narrative": "...", "imagePrompt": "..."}`;
+
+  try {
+    const result = await callProxy('/api/gemini/text', { prompt });
+    const text = typeof result === 'string' ? result : result?.text || '';
+    const parsed = JSON.parse(text.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+    return { narrative: parsed.narrative || '', imagePrompt: parsed.imagePrompt || currentEnvironmentPrompt };
+  } catch {
+    return { narrative: '', imagePrompt: currentEnvironmentPrompt };
+  }
+};
+
 export const generateScene = async (
   currentVibe: VibeStats,
   round: number,
