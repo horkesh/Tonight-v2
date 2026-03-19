@@ -71,6 +71,7 @@ export const HubView: React.FC<HubViewProps> = ({ onOpenReactionPicker }) => {
              <LocationWindow
                 location={state.dateContext?.location || null}
                 generatedImage={state.dateContext?.generatedImage}
+                narrativeText={narrativeState.locationNarrative}
              />
         </section>
 

@@ -7,9 +7,10 @@ import { NOISE_TEXTURE_URI, LOCATION_ICONS } from '../constants';
 interface LocationWindowProps {
   location: DateLocation | null;
   generatedImage?: string;
+  narrativeText?: string;
 }
 
-export const LocationWindow: React.FC<LocationWindowProps> = ({ location, generatedImage }) => {
+export const LocationWindow: React.FC<LocationWindowProps> = ({ location, generatedImage, narrativeText }) => {
   if (!location) return (
     <div className="relative w-full h-48 rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black">
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-rose-950/20 to-slate-900 flex items-center justify-center">
@@ -64,6 +65,21 @@ export const LocationWindow: React.FC<LocationWindowProps> = ({ location, genera
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-blue-500/10 mix-blend-overlay pointer-events-none"
       />
+
+      {/* Narrative Overlay */}
+      <AnimatePresence>
+        {narrativeText && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5 }}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-black/40"
+          >
+            <p className="text-sm font-serif italic text-white/70 text-center px-6">{narrativeText}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Info Label */}
       <div className="absolute bottom-4 left-6 z-10 pointer-events-none">
