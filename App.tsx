@@ -283,6 +283,7 @@ function AppContent() {
             {s.view === 'hub' && s.isSynced && (
                 <HubView
                     onOpenReactionPicker={() => setReactionPickerOpen(true)}
+                    onChangeGesture={() => setAvatarEditorOpen(true)}
                 />
             )}
 
@@ -339,11 +340,12 @@ function AppContent() {
       <CameraModal isOpen={cameraOpen} onClose={() => setCameraOpen(false)} onCapture={handleCameraCapture} instruction="Send Photo" />
       <SharedDraft isOpen={s.isDraftOpen} onClose={() => a.setDraftOpen(false)} value={sharedDraft} onChange={setSharedDraft} />
       <ReactionPicker isOpen={reactionPickerOpen} onClose={() => setReactionPickerOpen(false)} onSelect={handleReactionSelect} persona={s.userPersona} />
-      <AvatarEditor 
-          isOpen={avatarEditorOpen} 
-          onClose={() => setAvatarEditorOpen(false)} 
-          onSelect={handleAvatarModifier} 
+      <AvatarEditor
+          isOpen={avatarEditorOpen}
+          onClose={() => setAvatarEditorOpen(false)}
+          onSelect={handleAvatarModifier}
           onPhotoSelect={handleAvatarRegeneration}
+          currentAvatar={s.userPersona.imageUrl}
       />
       <IntelligenceBriefing
         report={as.intelligenceReport}
