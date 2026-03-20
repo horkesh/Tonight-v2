@@ -7,6 +7,7 @@ interface PersonaRevealProps {
   persona: PersonaState;
   name: string;
   isSelf?: boolean;
+  onChangeGesture?: () => void;
 }
 
 const FLIP_THRESHOLD = 60; // px drag before flip triggers
@@ -15,7 +16,8 @@ const DRAG_ELASTICITY = 0.4;
 export const PersonaReveal: React.FC<PersonaRevealProps> = ({
   persona,
   name,
-  isSelf = false
+  isSelf = false,
+  onChangeGesture
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [activeTraitIndex, setActiveTraitIndex] = useState<number | null>(null);
@@ -290,6 +292,21 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
                   <span className="px-3 py-1 bg-white/[0.02] border border-white/5 rounded-full text-[9px] uppercase tracking-widest text-white/15 font-bold">Unanalyzed</span>
                 )}
              </div>
+             {/* Change Gesture button — only on self card */}
+             {isSelf && onChangeGesture && (
+               <motion.button
+                 whileTap={{ scale: 0.95 }}
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   onChangeGesture();
+                 }}
+                 className="mb-4 px-4 py-2 bg-white/5 hover:bg-white/10 active:bg-rose-900/30 border border-white/10 rounded-full text-[10px] uppercase tracking-widest text-white/60 font-bold backdrop-blur-xl transition-all flex items-center gap-2 pointer-events-auto w-fit"
+               >
+                 <span className="text-sm">🎭</span>
+                 Change Gesture
+               </motion.button>
+             )}
+
              <div className="flex items-center gap-5">
                 <div className="flex-1 h-[3px] bg-white/10 rounded-full overflow-hidden">
                    <motion.div

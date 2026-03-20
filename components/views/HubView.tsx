@@ -10,9 +10,10 @@ import { Question } from '../../types';
 
 interface HubViewProps {
   onOpenReactionPicker: () => void;
+  onChangeGesture?: () => void;
 }
 
-export const HubView: React.FC<HubViewProps> = ({ onOpenReactionPicker }) => {
+export const HubView: React.FC<HubViewProps> = ({ onOpenReactionPicker, onChangeGesture }) => {
   const { state, actions, qActions, aiActions, narrativeState, narrativeActions } = useSession();
 
   const handleAskQuestion = () => {
@@ -77,7 +78,7 @@ export const HubView: React.FC<HubViewProps> = ({ onOpenReactionPicker }) => {
 
         <section className="flex flex-col gap-6">
             <motion.div layoutId="persona-card">
-                <PersonaReveal persona={state.activePersonaTab === 'partner' ? state.partnerPersona : state.userPersona} name={state.activePersonaTab === 'partner' ? actions.getPartner()?.name || "Partner" : "You"} isSelf={state.activePersonaTab === 'self'} />
+                <PersonaReveal persona={state.activePersonaTab === 'partner' ? state.partnerPersona : state.userPersona} name={state.activePersonaTab === 'partner' ? actions.getPartner()?.name || "Partner" : "You"} isSelf={state.activePersonaTab === 'self'} onChangeGesture={state.activePersonaTab === 'self' ? onChangeGesture : undefined} />
             </motion.div>
             <div className="flex justify-center gap-4 bg-white/[0.02] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl">
                 {['partner', 'self'].map(tab => (
