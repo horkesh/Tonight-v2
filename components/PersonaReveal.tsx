@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { PersonaState } from '../types';
 
 interface PersonaRevealProps {
@@ -9,8 +9,11 @@ interface PersonaRevealProps {
   isSelf?: boolean;
 }
 
-export const PersonaReveal: React.FC<PersonaRevealProps> = ({ 
-  persona, 
+const FLIP_THRESHOLD = 60; // px drag before flip triggers
+const DRAG_ELASTICITY = 0.4;
+
+export const PersonaReveal: React.FC<PersonaRevealProps> = ({
+  persona,
   name,
   isSelf = false
 }) => {
@@ -19,22 +22,67 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
   const [isGlitching, setIsGlitching] = useState(false);
   const [isTakingTooLong, setIsTakingTooLong] = useState(false);
   const [forceShowPlaceholder, setForceShowPlaceholder] = useState(false);
-  
+  const [hintVisible, setHintVisible] = useState(true);
+
   const { imageUrl, traits, memories, secrets, revealProgress, chemistry, isGenerating } = persona;
-  
+
   const lastProgress = useRef(revealProgress);
   const lastSecretCount = useRef(secrets.length);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pulse, setPulse] = useState(0);
 
+  // Drag state for swipe-to-flip
+  const dragY = useMotionValue(0);
+  const isDragging = useRef(false);
+
+  // Transform drag into visual feedback — slight rotation as user drags
+  const dragRotateX = useTransform(dragY, [-120, 0, 120], [8, 0, -8]);
+  const dragScale = useTransform(dragY, [-120, 0, 120], [0.97, 1, 0.97]);
+  const hintOpacity = useTransform(dragY, [-40, 0, 40], [0, 1, 0]);
+
   const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop";
+
+  // Hide swipe hint after first flip
+  const doFlip = useCallback((toFlipped: boolean) => {
+    setIsFlipped(toFlipped);
+    if (toFlipped) {
+      setActiveTraitIndex(null);
+      setHintVisible(false);
+    }
+    if (navigator.vibrate) navigator.vibrate(10);
+  }, []);
+
+  // Handle drag end — flip if past threshold
+  const handleDragEnd = useCallback((_: unknown, info: PanInfo) => {
+    isDragging.current = false;
+    const { offset, velocity } = info;
+    const swipedUp = offset.y < -FLIP_THRESHOLD || velocity.y < -300;
+    const swipedDown = offset.y > FLIP_THRESHOLD || velocity.y > 300;
+
+    if (!isFlipped && swipedUp) {
+      doFlip(true);
+    } else if (isFlipped && swipedDown) {
+      doFlip(false);
+    }
+  }, [isFlipped, doFlip]);
+
+  const handleDragStart = useCallback(() => {
+    isDragging.current = true;
+  }, []);
+
+  // Tap fallback — still works if user taps instead of swiping
+  const handleTap = useCallback(() => {
+    if (!isDragging.current) {
+      doFlip(!isFlipped);
+    }
+  }, [isFlipped, doFlip]);
 
   // Watch for stalled image sync
   useEffect(() => {
     if (!imageUrl && !forceShowPlaceholder) {
         const t = setTimeout(() => {
             setForceShowPlaceholder(true);
-        }, 8000); // 8 second timeout before forcing placeholder
+        }, 8000);
         return () => clearTimeout(t);
     }
   }, [imageUrl, forceShowPlaceholder]);
@@ -46,7 +94,7 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
           if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
           loadingTimerRef.current = setTimeout(() => {
               setIsTakingTooLong(true);
-          }, 15000); // 15s UI timeout
+          }, 15000);
       } else {
           setIsTakingTooLong(false);
           if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
@@ -67,7 +115,6 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
 
     if (shouldGlitch) {
         setIsGlitching(true);
-        // Haptic buzz
         if (navigator.vibrate) navigator.vibrate([30, 30, 30]);
         setTimeout(() => setIsGlitching(false), 600);
     }
@@ -76,13 +123,21 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
     lastSecretCount.current = secrets.length;
   }, [revealProgress, secrets.length]);
 
+  // Auto-dismiss hint after 4s
+  useEffect(() => {
+    if (hintVisible) {
+      const t = setTimeout(() => setHintVisible(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [hintVisible]);
+
   // Derived styles for better performance
   const cardFilters = useMemo(() => {
     if (isSelf) {
       return `blur(0px) brightness(1) grayscale(0%)`;
     }
     const blur = Math.max(0, 16 - (revealProgress / 5));
-    const bright = 0.4 + (revealProgress / 100); 
+    const bright = 0.4 + (revealProgress / 100);
     const gray = Math.max(0, 80 - revealProgress);
     return `blur(${blur}px) brightness(${bright}) grayscale(${gray}%)`;
   }, [revealProgress, isSelf]);
@@ -97,40 +152,47 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
   const displayImage = imageUrl || (forceShowPlaceholder ? DEFAULT_PLACEHOLDER : null);
 
   return (
-    <div className="relative w-full h-[460px] [perspective:1500px] z-10 select-none">
+    <div className="relative w-full h-[460px] [perspective:1500px] z-10 select-none touch-none">
       <motion.div
         className="w-full h-full relative [transform-style:preserve-3d]"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ type: "spring", stiffness: 180, damping: 24 }}
       >
         {/* Front: Avatar Card */}
-        <div 
-          className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-[48px] overflow-hidden bg-slate-900/40 border border-white/10 shadow-2xl cursor-pointer group"
-          onClick={() => {
-            setIsFlipped(true);
-            setActiveTraitIndex(null);
+        <motion.div
+          className="absolute inset-0 w-full h-full [backface-visibility:hidden] rounded-[48px] overflow-hidden bg-slate-900/40 border border-white/10 shadow-2xl cursor-grab active:cursor-grabbing group"
+          style={{
+            transform: 'rotateY(0deg)',
+            WebkitBackfaceVisibility: 'hidden',
+            rotateX: isFlipped ? 0 : dragRotateX,
+            scale: isFlipped ? 1 : dragScale,
           }}
-          style={{ transform: 'rotateY(0deg)', WebkitBackfaceVisibility: 'hidden' }}
+          drag={!isFlipped ? "y" : false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={DRAG_ELASTICITY}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onTap={!isFlipped ? handleTap : undefined}
         >
           <AnimatePresence mode="wait">
             {displayImage && !isTakingTooLong ? (
               <motion.div
                 key="image-content"
                 className={`absolute inset-0 w-full h-full ${isGlitching ? 'glitch-active' : ''}`}
-                animate={{ 
+                animate={{
                   scale: [1, 1.02, 1],
                   filter: isGlitching ? 'contrast(2) brightness(1.5)' : cardFilters
                 }}
-                transition={{ 
+                transition={{
                     scale: { duration: 15, repeat: Infinity, repeatType: "mirror" },
-                    filter: { duration: 0.2 } // Fast snap for glitch
+                    filter: { duration: 0.2 }
                 }}
-                data-text={name} // Used by CSS glitch pseudo-elements
+                data-text={name}
               >
-                <img src={displayImage} className="w-full h-full object-cover" alt={name} />
-                
+                <img src={displayImage} className="w-full h-full object-cover pointer-events-none" alt={name} />
+
                 {/* Reveal Spark Glow */}
-                <motion.div 
+                <motion.div
                   key={`pulse-${pulse}`}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={pulse > 0 ? { opacity: [0, 0.6, 0], scale: [1, 1.4, 1.8] } : {}}
@@ -138,7 +200,7 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
                   className="absolute inset-0 bg-rose-500 pointer-events-none mix-blend-screen"
                 />
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-black/10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-black/10 pointer-events-none" />
               </motion.div>
             ) : (
               <div key="placeholder-content" className="absolute inset-0 w-full h-full bg-slate-950 flex flex-col items-center justify-center gap-8">
@@ -150,10 +212,10 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
                     ) : (
                         <>
                             <div className="w-20 h-20 border-2 border-white/5 rounded-full" />
-                            <motion.div 
+                            <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                            className="absolute inset-0 w-20 h-20 border-t-2 border-rose-500 rounded-full" 
+                            className="absolute inset-0 w-20 h-20 border-t-2 border-rose-500 rounded-full"
                             />
                         </>
                     )}
@@ -186,8 +248,8 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
           </div>
 
           {/* Reveal Content Footer */}
-          <div className="absolute bottom-0 left-0 right-0 p-10 bg-gradient-to-t from-black via-black/40 to-transparent z-20">
-             <div className="flex flex-wrap gap-2.5 mb-8">
+          <div className="absolute bottom-0 left-0 right-0 p-10 bg-gradient-to-t from-black via-black/40 to-transparent z-20 pointer-events-none">
+             <div className="flex flex-wrap gap-2.5 mb-8 pointer-events-auto">
                 {traits.length > 0 ? traits.slice(0, 4).map((t, i) => (
                   <div key={i} className="relative">
                     <motion.button
@@ -198,14 +260,14 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
                         setActiveTraitIndex(activeTraitIndex === i ? null : i);
                       }}
                       className={`px-3.5 py-1.5 border rounded-full text-[10px] uppercase tracking-widest font-bold backdrop-blur-3xl transition-colors ${
-                        activeTraitIndex === i 
-                          ? 'bg-rose-600 border-rose-400 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]' 
+                        activeTraitIndex === i
+                          ? 'bg-rose-600 border-rose-400 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]'
                           : 'bg-white/5 border-white/10 text-white/80'
                       }`}
                     >
                       {t}
                     </motion.button>
-                    
+
                     <AnimatePresence>
                       {activeTraitIndex === i && (
                         <motion.div
@@ -230,15 +292,41 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
              </div>
              <div className="flex items-center gap-5">
                 <div className="flex-1 h-[3px] bg-white/10 rounded-full overflow-hidden">
-                   <motion.div 
-                    animate={{ width: `${revealProgress}%` }} 
+                   <motion.div
+                    animate={{ width: `${revealProgress}%` }}
                     transition={{ type: "spring", bounce: 0, duration: 1.5 }}
-                    className="h-full bg-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]" 
+                    className="h-full bg-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]"
                    />
                 </div>
                 <span className="text-[11px] text-white/40 font-mono tracking-tighter w-12 text-right">{revealProgress}%</span>
              </div>
           </div>
+
+          {/* Swipe Hint — animated indicator at bottom of card */}
+          <AnimatePresence>
+            {hintVisible && !isFlipped && displayImage && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{ opacity: hintOpacity }}
+                className="absolute bottom-[120px] left-0 right-0 z-30 flex flex-col items-center gap-2 pointer-events-none"
+              >
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <div className="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-white/40">
+                      <path d="M6 2L6 10M6 2L3 5M6 2L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <span className="text-[8px] uppercase tracking-[0.4em] text-white/25 font-bold">Swipe for intel</span>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Generating Indicator (Non-Blocking if image exists) */}
           <AnimatePresence>
@@ -250,7 +338,7 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
                 </div>
               </motion.div>
             )}
-            
+
             {/* Subtle refreshing indicator if image DOES exist */}
             {isGenerating && displayImage && (
               <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="absolute top-10 right-10 z-50">
@@ -258,20 +346,41 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
 
         {/* Back: Dossier Card */}
-        <div 
-          className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-[48px] overflow-hidden bg-slate-950 border border-white/10 shadow-2xl p-12 flex flex-col cursor-pointer"
-          onClick={() => setIsFlipped(false)}
-          style={{ WebkitBackfaceVisibility: 'hidden' }}
+        <motion.div
+          className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-[48px] overflow-hidden bg-slate-950 border border-white/10 shadow-2xl p-12 flex flex-col cursor-grab active:cursor-grabbing"
+          style={{
+            WebkitBackfaceVisibility: 'hidden',
+            rotateX: isFlipped ? dragRotateX : 0,
+            scale: isFlipped ? dragScale : 1,
+          }}
+          drag={isFlipped ? "y" : false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={DRAG_ELASTICITY}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onTap={isFlipped ? handleTap : undefined}
         >
+          {/* Swipe-down hint at top of dossier */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 2, repeat: 2, ease: "easeInOut" }}
+            className="absolute top-3 left-0 right-0 flex justify-center pointer-events-none z-30"
+          >
+            <div className="w-10 h-1 bg-white/15 rounded-full" />
+          </motion.div>
+
           <header className="flex justify-between items-center mb-12">
             <span className="text-[10px] tracking-[0.5em] text-rose-500 uppercase font-black">
                 {isSelf ? "Your Digital Footprint" : "Classified Intel"}
             </span>
             <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-               <span className="text-white/20 text-xs">✕</span>
+               <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="text-white/30">
+                 <path d="M6 10L6 2M6 10L3 7M6 10L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+               </svg>
             </div>
           </header>
 
@@ -318,7 +427,7 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
               <span className="text-3xl font-serif text-white/80">{revealProgress}<span className="text-sm opacity-30 ml-1">%</span></span>
             </div>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
