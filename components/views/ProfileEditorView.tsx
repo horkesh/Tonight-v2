@@ -155,6 +155,8 @@ export const ProfileEditorView: React.FC<ProfileEditorViewProps> = ({
     if (!file) return;
 
     setIsProcessing(true);
+    let analysis: { estimatedAge: string; gender: string; appearance: string; traits: string[] } | null = null;
+    let compressed: string | null = null;
     try {
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve) => {
@@ -162,26 +164,43 @@ export const ProfileEditorView: React.FC<ProfileEditorViewProps> = ({
         reader.readAsDataURL(file);
       });
 
-      const compressed = await compressImage(base64, 0.5, 400);
-      update('photo', compressed);
+      compressed = await compressImage(base64, 0.5, 400);
+      // Don't set profile.photo yet — we want to overwrite it with the AI avatar so the
+      // user never ends up with the raw photo persisted if save races the AI.
 
-      // AI analysis
+      // AI analysis (best-effort — if it fails we still generate an avatar from existing
+      // profile context so the user doesn't get left with their raw selfie).
       const raw = compressed.includes(',') ? compressed.split(',')[1] : compressed;
-      const { appearance, traits, estimatedAge, gender } = await analyzeUserPhotoForAvatar(raw);
+      try {
+        analysis = await analyzeUserPhotoForAvatar(raw);
+      } catch (analyzeErr) {
+        console.warn('Photo analysis failed, generating avatar from profile context instead.', analyzeErr);
+      }
 
-      // Generate avatar (stored as photo if no existing)
+      const traits = analysis?.traits?.length ? analysis.traits : (p.personalityTraits.length ? p.personalityTraits : ['mysterious']);
+      const appearance = analysis?.appearance || `${p.name || 'Person'} in a cinematic portrait`;
+
       const avatarUrl = await generateAbstractAvatar(traits, 15, appearance);
 
       setP((prev) => ({
         ...prev,
-        photo: avatarUrl || compressed,
-        aiAppearance: appearance,
-        aiTraits: traits,
-        aiEstimatedAge: estimatedAge,
-        aiGender: gender,
+        photo: avatarUrl || compressed!,
+        aiAppearance: analysis?.appearance ?? prev.aiAppearance,
+        aiTraits: analysis?.traits ?? prev.aiTraits,
+        aiEstimatedAge: analysis?.estimatedAge ?? prev.aiEstimatedAge,
+        aiGender: analysis?.gender ?? prev.aiGender,
       }));
     } catch (err) {
       console.error('Photo processing failed:', err);
+      // Last-resort fallback: try a context-only avatar so the user isn't stuck with no avatar.
+      if (compressed) {
+        try {
+          const fallbackAvatar = await generateAbstractAvatar(['mysterious'], 15, `${p.name || 'Person'} in a cinematic portrait`);
+          setP((prev) => ({ ...prev, photo: fallbackAvatar || compressed! }));
+        } catch {
+          setP((prev) => ({ ...prev, photo: compressed! }));
+        }
+      }
     } finally {
       setIsProcessing(false);
     }

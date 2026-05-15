@@ -111,24 +111,24 @@ export const ArrivalOverlay: React.FC<ArrivalOverlayProps> = ({ event, dateConte
           exit={{ opacity: 0 }}
           transition={{ duration: 1 }}
           onClick={handleDismiss}
-          className="fixed inset-0 z-[130] flex flex-col items-center justify-center cursor-pointer overflow-hidden"
+          className="fixed inset-0 z-[130] bg-slate-950 flex flex-col items-center justify-center cursor-pointer overflow-hidden"
         >
           {/* Stage 0: Location art full-bleed with Ken Burns */}
           {bgImage && (
             <motion.img
               src={bgImage}
               initial={{ scale: 1.3, opacity: 0 }}
-              animate={{ scale: 1.05, opacity: 0.5 }}
+              animate={{ scale: 1.05, opacity: 1 }}
               transition={{ duration: 4, ease: 'easeOut' }}
               className="absolute inset-0 w-full h-full object-cover"
               alt=""
             />
           )}
 
-          {/* Dark overlay that lifts gradually */}
+          {/* Dark overlay that lifts gradually — stays opaque enough that the hub never shows through */}
           <motion.div
-            initial={{ opacity: 0.9 }}
-            animate={{ opacity: 0.55 }}
+            initial={{ opacity: 0.95 }}
+            animate={{ opacity: 0.75 }}
             transition={{ duration: 3, delay: 0.5 }}
             className="absolute inset-0 bg-black backdrop-blur-sm"
           />
