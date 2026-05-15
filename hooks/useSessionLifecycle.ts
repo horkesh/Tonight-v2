@@ -122,7 +122,7 @@ export function useSessionLifecycle(
             age: hostData.age,
             appearance: fullAppearanceSelf,
             background: hostData.desc,
-            traits: [],
+            traits: hostTraits || [],
             isProfileComplete: true,
             imageUrl: initialAvatar || DEFAULT_AVATAR
         }));
@@ -133,7 +133,7 @@ export function useSessionLifecycle(
             age: guestData.age,
             appearance: fullAppearancePartner,
             background: guestData.desc,
-            traits: [],
+            traits: partnerTraits || [],
             isProfileComplete: true,
             imageUrl: partnerAvatar || DEFAULT_AVATAR
         }));
