@@ -251,11 +251,32 @@ export class P2PService {
       this.connectionAttemptCount = 0;
       this.isConnecting = false;
 
+      const scheduleNext = () => {
+          if (this.isDestroyed) return;
+          if (this.conn && this.conn.open) return;
+          if (this.connectionAttemptCount >= P2PService.MAX_CONNECTION_ATTEMPTS) return;
+          // Backoff based on attempts so far; if we haven't dialed yet (skipped due to isConnecting),
+          // fall back to the base delay so we poll soon.
+          const exponent = Math.max(0, this.connectionAttemptCount - 1);
+          const delay = Math.min(
+              P2PService.CONNECTION_BASE_DELAY * Math.pow(1.5, exponent),
+              30000
+          );
+          this.connectionRetryInterval = setTimeout(attempt, delay);
+      };
+
       const attempt = () => {
           if (this.isDestroyed) return;
           if (!this.peer || this.peer.destroyed) return;
-          if (this.conn && this.conn.open) return; 
-          if (this.isConnecting) return; 
+          if (this.conn && this.conn.open) return;
+
+          // If a previous dial is still in flight, skip this round but DO reschedule
+          // so the loop keeps polling. (The 5s safety timeout resets isConnecting; without
+          // rescheduling here, the loop would deadlock if the in-flight dial silently stalled.)
+          if (this.isConnecting) {
+              scheduleNext();
+              return;
+          }
 
           this.connectionAttemptCount++;
           if (this.connectionAttemptCount > P2PService.MAX_CONNECTION_ATTEMPTS) {
@@ -267,8 +288,9 @@ export class P2PService {
           console.log(`P2P: Dialing Host (${targetId}) attempt ${this.connectionAttemptCount}/${P2PService.MAX_CONNECTION_ATTEMPTS}...`);
           this.emitStatus(`Searching for Host (${this.connectionAttemptCount})...`);
 
+          // Clean up any stale (non-open) connection before creating a new one.
           if (this.conn) {
-              this.conn.close();
+              try { this.conn.close(); } catch {}
               this.conn = null;
           }
 
@@ -278,12 +300,12 @@ export class P2PService {
                   reliable: true,
                   serialization: 'binary'  // Binary supports auto-chunking for large messages (images)
               });
-              
+
               if (conn) {
                   this.handleConnection(conn);
                   // Safety timeout to reset connecting flag if 'open' never fires (common peerjs bug)
-                  setTimeout(() => { 
-                      if (!this.conn || !this.conn.open) this.isConnecting = false; 
+                  setTimeout(() => {
+                      if (!this.conn || !this.conn.open) this.isConnecting = false;
                   }, 5000);
               } else {
                   this.isConnecting = false;
@@ -293,14 +315,7 @@ export class P2PService {
               this.isConnecting = false;
           }
 
-          // Schedule next attempt with escalating backoff (3s → 4.5s → 6.75s → ... → cap 30s)
-          if (!this.isDestroyed && this.connectionAttemptCount <= P2PService.MAX_CONNECTION_ATTEMPTS) {
-              const delay = Math.min(
-                  P2PService.CONNECTION_BASE_DELAY * Math.pow(1.5, this.connectionAttemptCount - 1),
-                  30000
-              );
-              this.connectionRetryInterval = setTimeout(attempt, delay);
-          }
+          scheduleNext();
       };
 
       attempt();
