@@ -3,6 +3,7 @@ import type { PartnerProfile, VenueProfile, DateConfig } from '../types/profiles
 const PROFILES_KEY = 'tonight_profiles';
 const VENUES_KEY = 'tonight_venues';
 const LAST_SETUP_KEY = 'tonight_last_setup';
+const HOST_AVATAR_KEY = 'tonight_host_avatar';
 
 export interface LastSetup {
   profileId: string;
@@ -100,4 +101,31 @@ export function deleteVenue(id: string): void {
   } catch (e) {
     console.warn('Failed to delete venue:', e);
   }
+}
+
+// ── Host Avatar ──────────────────────────────────────────────────────
+// User-uploaded photo for the host (Haris). Overrides HOST_PROFILE.avatarPath.
+
+export function getHostAvatar(): string | null {
+  try {
+    return localStorage.getItem(HOST_AVATAR_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveHostAvatar(dataUrl: string): boolean {
+  try {
+    localStorage.setItem(HOST_AVATAR_KEY, dataUrl);
+    return true;
+  } catch (e) {
+    console.warn('Failed to save host avatar:', e);
+    return false;
+  }
+}
+
+export function clearHostAvatar(): void {
+  try {
+    localStorage.removeItem(HOST_AVATAR_KEY);
+  } catch {}
 }
