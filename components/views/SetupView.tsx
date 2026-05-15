@@ -152,6 +152,11 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
         premade = DATE_LOCATIONS.find(l => l.id === lastSetup.venueId) || null;
       }
     }
+    // First-time Quick Launch (no saved venue): pick a random premade location so the
+    // date has a setting instead of falling back to the "Tonight" placeholder.
+    if (!venue && !premade) {
+      premade = DATE_LOCATIONS[Math.floor(Math.random() * DATE_LOCATIONS.length)] || null;
+    }
     setActiveVenue(venue);
     setPremadeLocation(premade);
 
