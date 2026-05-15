@@ -143,24 +143,31 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
     const lastSetup = getLastSetup();
     const dateNumber = getDateNumber(profile.id);
 
-    // Resolve venue from last setup
+    // Resolve venue from last setup — could be either a custom venue or a premade location.
     let venue: VenueProfile | null = null;
+    let premade: DateLocation | null = null;
     if (lastSetup?.venueId) {
       venue = venues.find(v => v.id === lastSetup.venueId) || null;
+      if (!venue) {
+        premade = DATE_LOCATIONS.find(l => l.id === lastSetup.venueId) || null;
+      }
     }
     setActiveVenue(venue);
+    setPremadeLocation(premade);
 
     // Build config: reuse last config if available, otherwise defaults
+    const resolvedVenueId = venue?.id || premade?.id || null;
     let config: DateConfig;
     if (lastSetup?.config) {
-      config = { ...lastSetup.config, profileId: profile.id, venueId: venue?.id || null, dateNumber };
+      config = { ...lastSetup.config, profileId: profile.id, venueId: resolvedVenueId, dateNumber };
     } else {
-      config = buildDefaultConfig(profile.id, venue?.id || null, dateNumber);
+      config = buildDefaultConfig(profile.id, resolvedVenueId, dateNumber);
     }
     setActiveDateConfig(config);
 
-    // Finalize immediately
-    finalizeWithProfile(profile, venue, config);
+    // Finalize immediately — pass the resolved premade through so finalizeWithProfile can use it
+    // even though our setPremadeLocation state update won't have flushed yet.
+    finalizeWithProfile(profile, venue, config, premade);
   };
 
   // Full customize flow: select profile then go through venue → config → room code
@@ -201,11 +208,12 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
     alert("Link copied! Send it to your date.");
   };
 
-  const finalizeWithProfile = (profile: PartnerProfile, venue: VenueProfile | null, config: DateConfig) => {
+  const finalizeWithProfile = (profile: PartnerProfile, venue: VenueProfile | null, config: DateConfig, overridePremade?: DateLocation | null) => {
     setIsLoading(true);
 
-    // Save setup for next time
-    saveLastSetup({ profileId: profile.id, venueId: venue?.id || null, config });
+    // Save setup for next time — record the venueId regardless of whether it's a custom venue or premade location.
+    const lastVenueId = venue?.id || overridePremade?.id || premadeLocation?.id || null;
+    saveLastSetup({ profileId: profile.id, venueId: lastVenueId, config });
 
     const hData = {
       name: HOST_PROFILE.name,
@@ -236,8 +244,11 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
       .filter((v): v is DateVibe => v !== undefined);
     const vibeData: DateVibe | null = selectedVibes[0] || null;
 
-    if (premadeLocation) {
-      locationData = premadeLocation;
+    // overridePremade lets the quick-launch path pass a freshly-resolved premade location
+    // without waiting for setPremadeLocation to flush.
+    const effectivePremade = overridePremade ?? premadeLocation;
+    if (effectivePremade) {
+      locationData = effectivePremade;
     } else if (venue) {
       locationData = venueToDateLocation(venue, selectedVibes);
     }

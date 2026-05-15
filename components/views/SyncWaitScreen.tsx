@@ -20,7 +20,14 @@ export const SyncWaitScreen: React.FC<SyncWaitScreenProps> = ({ onRetry, onCance
   const displayStatus = isConnected ? 'Syncing with Host...' : (status || 'Connecting...');
 
   return (
-    <motion.div key="syncing" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="flex flex-col items-center justify-center pt-32 gap-6">
+    <motion.div
+      key="syncing"
+      variants={PAGE_VARIANTS}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-6 bg-slate-950"
+    >
       <div className="relative">
         <div className="w-16 h-16 border-2 border-white/10 rounded-full" />
         <div className="absolute inset-0 border-t-2 border-rose-500 rounded-full animate-spin" />
