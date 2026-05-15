@@ -155,7 +155,12 @@ export function useSessionLifecycle(
             });
         }
 
-        if (!initialAvatar) updatePersonaImage('self', hostTraits || [], 0, 0, fullAppearanceSelf);
+        // Always generate an AI-styled avatar for the host. The static avatarPath
+        // (e.g. /haris.jpg) acts as the initial placeholder, then the AI portrait
+        // replaces it once it's ready.
+        updatePersonaImage('self', hostTraits || [], 0, 0, fullAppearanceSelf);
+        // For the partner, only run AI generation when the profile has no photo —
+        // ProfileEditorView already processes uploaded photos into AI avatars at upload time.
         if (!partnerAvatar) updatePersonaImage('partner', partnerTraits || [], 0, 0, fullAppearancePartner);
 
         setView('hub');
