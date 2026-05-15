@@ -75,7 +75,16 @@ export class P2PService {
   constructor() {
       // Ensure cleanup on page unload to release Peer ID
       if (typeof window !== 'undefined') {
-          window.addEventListener('beforeunload', () => this.teardown());
+          window.addEventListener('beforeunload', () => {
+              console.log('P2P: beforeunload — tearing down.');
+              this.teardown();
+          });
+          window.addEventListener('pagehide', (e) => {
+              console.log(`P2P: pagehide (persisted=${(e as PageTransitionEvent).persisted})`);
+          });
+          document.addEventListener('visibilitychange', () => {
+              console.log(`P2P: document visibility → ${document.visibilityState}`);
+          });
       }
   }
 
@@ -608,6 +617,8 @@ export class P2PService {
   }
 
   teardown() {
+      console.log(`P2P: teardown() called (isHost=${this.isHost}, hadPeer=${!!this.peer}, hadConn=${!!this.conn})`);
+      console.trace('P2P teardown stack');
       this.isDestroyed = true;
       this.stopHeartbeat();
       if (this.visibilityHandler) {

@@ -14,7 +14,8 @@ const CHUNK_ERROR_RX = /Failed to fetch dynamically imported module|Importing a 
 
 // Wraps the lazy-Suspense subtree so a missing or stale bundle doesn't crash the
 // whole React root (which would unmount SessionProvider and tear down P2P).
-// On chunk-load errors specifically, schedules one self-healing reload.
+// We intentionally do NOT auto-reload: a reload tears down the P2P peer, which
+// would kill an active session. The user gets a manual "Refresh" button instead.
 export class LazyChunkErrorBoundary extends React.Component<Props, State> {
   state: State = { hasError: false, isChunkError: false };
 
@@ -25,36 +26,40 @@ export class LazyChunkErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: unknown) {
-    const msg = (error as Error)?.message || String(error);
-    if (CHUNK_ERROR_RX.test(msg)) {
-      const KEY = 'tonight_chunk_reload_at';
-      try {
-        const last = Number(sessionStorage.getItem(KEY) || 0);
-        if (Date.now() - last > 30_000) {
-          sessionStorage.setItem(KEY, String(Date.now()));
-          console.warn('LazyChunkErrorBoundary: reloading to recover from stale chunk.');
-          window.location.reload();
-          return;
-        }
-      } catch {}
-      // If we just reloaded and still got the error, fall through to fallback UI.
-    } else {
-      console.error('LazyChunkErrorBoundary caught:', error);
-    }
+    console.error('LazyChunkErrorBoundary caught:', (error as Error)?.message || error);
   }
+
+  private handleRefresh = () => {
+    window.location.reload();
+  };
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
+      const { isChunkError } = this.state;
       return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-6">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-6">
           <div className="w-12 h-12 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" />
-          <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">
-            {this.state.isChunkError ? 'Updating to latest version…' : 'Something went wrong'}
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">
+              {isChunkError ? 'New version available' : 'Something went wrong'}
+            </p>
+            <p className="text-[10px] text-white/30 max-w-xs">
+              {isChunkError
+                ? 'A newer build was deployed. Refresh to pick it up.'
+                : 'Try refreshing the page.'}
+            </p>
+          </div>
+          <button
+            onClick={this.handleRefresh}
+            className="mt-4 text-[9px] uppercase tracking-widest text-white/60 border border-white/15 px-6 py-3 rounded-full hover:bg-white/10 transition-colors"
+          >
+            Refresh
+          </button>
         </div>
       );
     }
     return this.props.children;
   }
 }
+
