@@ -204,7 +204,10 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
                   src={displayImage}
                   className="w-full h-full object-cover pointer-events-none"
                   alt={name}
-                  onError={() => setImgLoadFailed(true)}
+                  onError={() => {
+                    console.warn('PersonaReveal: image failed to load', displayImage?.slice(0, 80));
+                    setImgLoadFailed(true);
+                  }}
                 />
 
                 {/* Reveal Spark Glow */}

@@ -155,10 +155,12 @@ export function useSessionLifecycle(
             });
         }
 
-        // Always generate an AI-styled avatar for the host. The static avatarPath
-        // (e.g. /haris.jpg) acts as the initial placeholder, then the AI portrait
-        // replaces it once it's ready.
-        updatePersonaImage('self', hostTraits || [], 0, 0, fullAppearanceSelf);
+        // Only generate a fresh AI avatar when the host hasn't provided one. When the
+        // user uploads a custom photo from the setup screen it has already been
+        // processed through the same AI styling pipeline as partner profiles, so
+        // re-running updatePersonaImage here would clobber their choice with a
+        // text-only generation that looks like a different person.
+        if (!initialAvatar) updatePersonaImage('self', hostTraits || [], 0, 0, fullAppearanceSelf);
         // For the partner, only run AI generation when the profile has no photo —
         // ProfileEditorView already processes uploaded photos into AI avatars at upload time.
         if (!partnerAvatar) updatePersonaImage('partner', partnerTraits || [], 0, 0, fullAppearancePartner);
