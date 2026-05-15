@@ -232,18 +232,24 @@ export class P2PService {
   private setupPeerEvents(peer: Peer) {
       peer.on('connection', (conn) => {
           console.log('P2P: Incoming connection from', conn.peer);
-          // Host Logic: Accept connection.
-          // If we already have a healthy or in-flight conn from the same peer, don't preempt —
-          // each preemption restarts the WebRTC handshake from scratch and can prevent it
-          // from ever completing when the guest is dialing on a 3–6s cadence.
+          // Host Logic: Accept connection. Be conservative about preemption — closing
+          // a live conn can propagate down to the underlying RTCPeerConnection and kill
+          // a working session on the remote side.
           if (this.conn) {
               const sameRemote = this.conn.peer === conn.peer;
-              const stillNegotiating = !this.conn.open;
-              if (sameRemote && stillNegotiating) {
-                  console.log('P2P: Ignoring duplicate incoming connection from same peer (handshake in progress).');
-                  try { conn.close(); } catch {}
+              // (1) We already have a healthy conn. Drop the new one, don't touch the live one.
+              if (this.conn.open) {
+                  console.log('P2P: Already connected. Dropping duplicate incoming.');
+                  // Discard — don't call close() on the live or the new one.
                   return;
               }
+              // (2) Same peer, still negotiating. Likely a re-dial racing with the current handshake;
+              // let the existing one finish.
+              if (sameRemote) {
+                  console.log('P2P: Duplicate incoming from same peer mid-handshake — ignoring.');
+                  return;
+              }
+              // (3) Different peer / abandoned conn — replace it.
               console.log('P2P: Closing previous connection to accept new one.');
               this.conn.close();
           }
