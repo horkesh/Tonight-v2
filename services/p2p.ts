@@ -202,9 +202,18 @@ export class P2PService {
   private setupPeerEvents(peer: Peer) {
       peer.on('connection', (conn) => {
           console.log('P2P: Incoming connection from', conn.peer);
-          // Host Logic: Accept connection. 
-          // If a previous connection exists, close it (single partner model).
+          // Host Logic: Accept connection.
+          // If we already have a healthy or in-flight conn from the same peer, don't preempt —
+          // each preemption restarts the WebRTC handshake from scratch and can prevent it
+          // from ever completing when the guest is dialing on a 3–6s cadence.
           if (this.conn) {
+              const sameRemote = this.conn.peer === conn.peer;
+              const stillNegotiating = !this.conn.open;
+              if (sameRemote && stillNegotiating) {
+                  console.log('P2P: Ignoring duplicate incoming connection from same peer (handshake in progress).');
+                  try { conn.close(); } catch {}
+                  return;
+              }
               console.log('P2P: Closing previous connection to accept new one.');
               this.conn.close();
           }
@@ -271,9 +280,10 @@ export class P2PService {
           if (this.conn && this.conn.open) return;
 
           // If a previous dial is still in flight, skip this round but DO reschedule
-          // so the loop keeps polling. (The 5s safety timeout resets isConnecting; without
-          // rescheduling here, the loop would deadlock if the in-flight dial silently stalled.)
-          if (this.isConnecting) {
+          // so the loop keeps polling. (Without rescheduling here, the loop would deadlock
+          // if the in-flight dial silently stalled.) Don't preempt the in-flight conn —
+          // WebRTC ICE negotiation can take 10–15s and closing the conn restarts it.
+          if (this.isConnecting || (this.conn && !this.conn.open)) {
               scheduleNext();
               return;
           }
@@ -288,11 +298,8 @@ export class P2PService {
           console.log(`P2P: Dialing Host (${targetId}) attempt ${this.connectionAttemptCount}/${P2PService.MAX_CONNECTION_ATTEMPTS}...`);
           this.emitStatus(`Searching for Host (${this.connectionAttemptCount})...`);
 
-          // Clean up any stale (non-open) connection before creating a new one.
-          if (this.conn) {
-              try { this.conn.close(); } catch {}
-              this.conn = null;
-          }
+          // Any leftover (closed/dead) conn at this point — drop the reference.
+          this.conn = null;
 
           try {
               this.isConnecting = true;
@@ -303,10 +310,19 @@ export class P2PService {
 
               if (conn) {
                   this.handleConnection(conn);
-                  // Safety timeout to reset connecting flag if 'open' never fires (common peerjs bug)
+                  // Safety timeout: if the conn still hasn't opened after 20s, treat as stuck.
+                  // (PeerJS doesn't time ICE negotiation out on its own.) 20s is well past typical
+                  // STUN exchange (3–8s) but short enough that users aren't stuck for a full minute.
                   setTimeout(() => {
-                      if (!this.conn || !this.conn.open) this.isConnecting = false;
-                  }, 5000);
+                      if (this.conn === conn && !conn.open) {
+                          console.warn('P2P: Dial stuck after 20s, tearing down to retry.');
+                          try { conn.close(); } catch {}
+                          this.conn = null;
+                          this.isConnecting = false;
+                      } else if (!this.conn || !this.conn.open) {
+                          this.isConnecting = false;
+                      }
+                  }, 20000);
               } else {
                   this.isConnecting = false;
               }
@@ -393,6 +409,9 @@ export class P2PService {
 
     conn.on('error', (err: any) => {
         console.warn("P2P Connection Error:", err);
+        // Drop the dead conn so the reconnect loop will re-dial. (Otherwise the loop's
+        // "in-flight conn, skip dial" guard would block all future attempts.)
+        if (this.conn === conn) this.conn = null;
         this.isConnecting = false;
     });
   }
