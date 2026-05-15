@@ -2,13 +2,36 @@
 import { Peer } from 'peerjs';
 import { NetworkMessage } from '../types';
 
-const ICE_SERVERS: any[] = [
+interface IceServer {
+    urls: string | string[];
+    username?: string;
+    credential?: string;
+}
+
+const STUN_ONLY: IceServer[] = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
     { urls: 'stun:stun4.l.google.com:19302' },
 ];
+
+// Fetch STUN + Cloudflare TURN credentials from our serverless endpoint.
+// Falls back to STUN-only on any failure so init never blocks on a flaky API.
+async function fetchIceServers(): Promise<IceServer[]> {
+    try {
+        const resp = await fetch('/api/turn-credentials', { method: 'GET' });
+        if (!resp.ok) throw new Error(`status ${resp.status}`);
+        const data = await resp.json();
+        if (Array.isArray(data?.iceServers) && data.iceServers.length > 0) {
+            console.log(`P2P: ICE servers loaded (TURN=${data.turn ? 'yes' : 'no'})`);
+            return data.iceServers;
+        }
+    } catch (e: any) {
+        console.warn('P2P: Could not load TURN credentials, falling back to STUN.', e?.message || e);
+    }
+    return STUN_ONLY;
+}
 
 export class P2PService {
   private peer: Peer | null = null;
@@ -56,7 +79,7 @@ export class P2PService {
       }
   }
 
-  init(userId: string, roomId: string, isHostMode: boolean, onError?: (err: string) => void) {
+  async init(userId: string, roomId: string, isHostMode: boolean, onError?: (err: string) => void) {
     if (this.peer && !this.peer.destroyed) {
         console.warn("P2P: Already initialized. Destroying previous instance.");
         // Preserve external listeners across re-init (Fix: teardown clears them)
@@ -73,15 +96,19 @@ export class P2PService {
 
     this.isDestroyed = false;
     this.onErrorCallback = onError || null;
+    console.log(`P2P: Initializing. Room: ${roomId}, Mode: ${isHostMode ? 'HOST' : 'GUEST'}`);
+    this.emitStatus('Registering...');
+
+    // Fetch fresh ICE servers (STUN + Cloudflare TURN). Falls back to STUN-only on failure.
+    const iceServers = await fetchIceServers();
+    if (this.isDestroyed) return;
+
     const sanitizedRoom = roomId.replace(/[^a-z0-9]/gi, '').toLowerCase();
-    
+
     // Host uses a fixed ID based on room. Guest uses random or user-based ID.
     // NOTE: If Host refreshes, they might need to wait for the old peer to timeout on the server.
     const hostId = `tonight-v2-${sanitizedRoom}-host`;
-    const peerId = isHostMode ? hostId : undefined; 
-    
-    console.log(`P2P: Initializing. Room: ${roomId}, Mode: ${isHostMode ? 'HOST' : 'GUEST'}`);
-    this.emitStatus('Registering...');
+    const peerId = isHostMode ? hostId : undefined;
 
     const initTimeout = setTimeout(() => {
         if (!this.peer || !this.peer.open) {
@@ -103,9 +130,12 @@ export class P2PService {
         }
 
         const peer = new Peer(peerId, {
-            debug: 2, 
+            debug: 2,
             config: {
-                iceServers: ICE_SERVERS
+                iceServers,
+                // Force relay candidates when only TURN works (symmetric NAT, restrictive firewalls).
+                // PeerJS/RTCPeerConnection's default 'all' will still try direct first; this just
+                // ensures TURN candidates are gathered.
             }
         });
 
