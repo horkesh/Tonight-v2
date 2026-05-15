@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateLocation } from '../types';
 import { NOISE_TEXTURE_URI, LOCATION_ICONS } from '../constants';
@@ -23,25 +23,47 @@ export const LocationWindow: React.FC<LocationWindowProps> = ({ location, genera
     </div>
   );
 
-  const [imgFailed, setImgFailed] = useState(false);
-  const displayImage = generatedImage || location.image;
+  // Progressive fallback: try generatedImage first, then location.image, then icon.
+  // If either of the first two fails to load (e.g. broken data URI, blocked CDN),
+  // log it and step down to the next candidate instead of jumping straight to the icon.
+  const [primaryFailed, setPrimaryFailed] = useState(false);
+  const [secondaryFailed, setSecondaryFailed] = useState(false);
+
+  // Reset when sources change so a new image gets a fresh try.
+  useEffect(() => { setPrimaryFailed(false); setSecondaryFailed(false); }, [generatedImage, location.image]);
+
+  const primarySrc = generatedImage;
+  const secondarySrc = location.image;
+  const activeSrc = !primaryFailed && primarySrc
+    ? primarySrc
+    : !secondaryFailed && secondarySrc
+      ? secondarySrc
+      : null;
   const icon = LOCATION_ICONS[location.icon] || '🌙';
 
   return (
     <div className="relative w-full h-48 rounded-3xl overflow-hidden border border-white/10 shadow-2xl group bg-black">
       {/* The View - Image or Fallback */}
       <AnimatePresence mode="popLayout">
-        {displayImage && !imgFailed ? (
+        {activeSrc ? (
           <motion.img
-            key={displayImage}
+            key={activeSrc}
             initial={{ scale: 1.1, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.5 }}
-            src={displayImage}
+            src={activeSrc}
             alt={location.title}
             className="absolute inset-0 w-full h-full object-cover opacity-80"
-            onError={() => setImgFailed(true)}
+            onError={() => {
+              if (activeSrc === primarySrc) {
+                console.warn('LocationWindow: primary image failed to load', primarySrc?.slice(0, 80));
+                setPrimaryFailed(true);
+              } else {
+                console.warn('LocationWindow: fallback image failed to load', secondarySrc?.slice(0, 80));
+                setSecondaryFailed(true);
+              }
+            }}
           />
         ) : (
           <motion.div
