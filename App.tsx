@@ -19,6 +19,7 @@ import { ArrivalOverlay } from './components/ArrivalOverlay';
 import { FlashMessage } from './components/FlashMessage';
 import { WhisperOverlay } from './components/WhisperOverlay';
 import { InsightCard } from './components/InsightCard';
+import { LazyChunkErrorBoundary } from './components/LazyChunkErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useSession } from './context/SessionContext';
@@ -256,6 +257,7 @@ function AppContent() {
             )}
         </AnimatePresence>
 
+        <LazyChunkErrorBoundary>
         <Suspense fallback={<LazyFallback />}>
           <AnimatePresence mode="wait">
             {s.view === 'setup' && (
@@ -323,6 +325,7 @@ function AppContent() {
             )}
           </AnimatePresence>
         </Suspense>
+        </LazyChunkErrorBoundary>
       </main>
 
       {/* Conditionally Render ActionDock - Hides in Setup or Syncing */}
