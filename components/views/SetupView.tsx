@@ -10,11 +10,13 @@ import { VenueCard } from '../VenueCard';
 import { ProfileEditorView } from './ProfileEditorView';
 import { VenueEditorView } from './VenueEditorView';
 import { DateConfigView } from './DateConfigView';
-import { getProfiles, deleteProfile, getVenues, deleteVenue, getLastSetup, saveLastSetup } from '../../utils/profileStorage';
+import { getProfiles, deleteProfile, getVenues, deleteVenue, getLastSetup, saveLastSetup, getHostAvatar, saveHostAvatar, clearHostAvatar } from '../../utils/profileStorage';
 import { venueToDateLocation } from '../../utils/venueToLocation';
 import { useProfileStore } from '../../store/profileStore';
 import type { PartnerProfile, VenueProfile, DateConfig } from '../../types/profiles';
 import { getDateNumber } from '../../utils/dateHistory';
+import { analyzeUserPhotoForAvatar, generateAbstractAvatar } from '../../services/geminiService';
+import { compressImage } from '../../utils/helpers';
 
 interface SetupViewProps {
   onStart: (hostData: any, guestData: any, vibe: DateVibe | null, location: DateLocation | null, roomId: string, isHost: boolean, avatar?: string, partnerAvatar?: string, hostTraits?: string[], partnerTraits?: string[]) => void;
@@ -78,10 +80,16 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
   // Guest data
   const [guestName, setGuestName] = useState('');
 
+  // Host avatar (user-uploaded photo for "you" / Haris). null = use built-in /haris.jpg
+  const [hostAvatar, setHostAvatar] = useState<string | null>(null);
+  const [hostAvatarProcessing, setHostAvatarProcessing] = useState(false);
+  const hostAvatarInputRef = useRef<HTMLInputElement | null>(null);
+
   // Load profiles and venues
   useEffect(() => {
     setProfiles(getProfiles());
     setVenues(getVenues());
+    setHostAvatar(getHostAvatar());
   }, []);
 
   // Resolve last venue name for quick launch display
@@ -121,6 +129,49 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
   }, []);
 
   const handleManage = () => setStep(20);
+
+  const handleHostAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+
+    setHostAvatarProcessing(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+
+      const compressed = await compressImage(base64, 0.5, 400);
+
+      // Best-effort AI styling — falls through to compressed photo if anything fails.
+      let finalAvatar = compressed;
+      try {
+        const raw = compressed.includes(',') ? compressed.split(',')[1] : compressed;
+        const analysis = await analyzeUserPhotoForAvatar(raw, HOST_PROFILE.appearance).catch(() => null);
+        const traits = analysis?.traits?.length ? analysis.traits : ['enigmatic', 'magnetic'];
+        const appearance = analysis?.appearance || HOST_PROFILE.appearance;
+        const aiUrl = await generateAbstractAvatar(traits, 15, appearance);
+        if (aiUrl) finalAvatar = aiUrl;
+      } catch (aiErr) {
+        console.warn('Host avatar AI styling failed; using uploaded photo as-is.', aiErr);
+      }
+
+      saveHostAvatar(finalAvatar);
+      setHostAvatar(finalAvatar);
+    } catch (err) {
+      console.error('Host avatar upload failed:', err);
+    } finally {
+      setHostAvatarProcessing(false);
+    }
+  };
+
+  const handleHostAvatarReset = () => {
+    clearHostAvatar();
+    setHostAvatar(null);
+  };
 
   const handleHostStart = () => {
     setIsHost(true);
@@ -263,7 +314,7 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
     setTimeout(() => {
       onStart(
         hData, gData, vibeData, locationData, finalRoomId, true,
-        HOST_PROFILE.avatarPath || undefined,
+        hostAvatar || HOST_PROFILE.avatarPath || undefined,
         profile.photo || undefined,
         [],
         profile.aiTraits
@@ -300,6 +351,49 @@ export const SetupView: React.FC<SetupViewProps> = ({ onStart }) => {
           <motion.div key="intro" variants={PAGE_VARIANTS} initial="initial" animate="animate" exit="exit" className="w-full">
             <div className="flex flex-col items-center gap-6 w-full">
               <h1 className="text-6xl font-serif text-white tracking-tighter mb-4">Tonight</h1>
+
+              {/* Host avatar — tap to upload a custom photo. Falls back to /haris.jpg. */}
+              <div className="flex flex-col items-center gap-2 -mt-2">
+                <button
+                  type="button"
+                  onClick={() => hostAvatarInputRef.current?.click()}
+                  disabled={hostAvatarProcessing}
+                  className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white/15 hover:border-rose-500/60 transition-colors bg-slate-900 disabled:opacity-50"
+                  aria-label="Change your photo"
+                >
+                  <img
+                    src={hostAvatar || HOST_PROFILE.avatarPath}
+                    alt="Your photo"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center text-xl">📷</div>
+                  {hostAvatarProcessing && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <div className="w-6 h-6 border-2 border-white/20 border-t-rose-500 rounded-full animate-spin" />
+                    </div>
+                  )}
+                </button>
+                <input
+                  ref={hostAvatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleHostAvatarUpload}
+                />
+                <div className="flex items-center gap-3 text-[9px] uppercase tracking-[0.3em] font-black">
+                  <span className="text-white/40">{hostAvatarProcessing ? 'Processing…' : 'You'}</span>
+                  {hostAvatar && !hostAvatarProcessing && (
+                    <button
+                      type="button"
+                      onClick={handleHostAvatarReset}
+                      className="text-white/20 hover:text-rose-400 transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <button onClick={handleHostStart} className="w-full p-6 bg-rose-600 rounded-[32px] border border-rose-500/30 hover:bg-rose-500 transition-all text-left group relative overflow-hidden">
                 <span className="relative z-10 text-[10px] uppercase tracking-[0.4em] font-black text-white/80 block mb-2">Host</span>
                 <span className="relative z-10 text-2xl font-serif italic text-white">Create Experience</span>
