@@ -32,6 +32,10 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
   const lastSecretCount = useRef(secrets.length);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pulse, setPulse] = useState(0);
+  const [imgLoadFailed, setImgLoadFailed] = useState(false);
+
+  // Reset the load-failure flag whenever the image URL changes so a new src gets a fresh try.
+  useEffect(() => { setImgLoadFailed(false); }, [persona.imageUrl]);
 
   // Drag state for swipe-to-flip
   const dragY = useMotionValue(0);
@@ -43,6 +47,11 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
   const hintOpacity = useTransform(dragY, [-40, 0, 40], [0, 1, 0]);
 
   const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop";
+
+  // If the persona's imageUrl is set but the browser failed to load it (broken data
+  // URI, 404, MIME mismatch, etc.), treat it like no image so the loading/error
+  // placeholder UI shows instead of an empty card with just text.
+  const effectiveImageUrl = imgLoadFailed ? null : imageUrl;
 
   // Hide swipe hint after first flip
   const doFlip = useCallback((toFlipped: boolean) => {
@@ -151,7 +160,7 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
     return match || pool[0] || "No associated data found.";
   };
 
-  const displayImage = imageUrl || (forceShowPlaceholder ? DEFAULT_PLACEHOLDER : null);
+  const displayImage = effectiveImageUrl || (forceShowPlaceholder ? DEFAULT_PLACEHOLDER : null);
 
   return (
     <div className="relative w-full h-[460px] [perspective:1500px] z-10 select-none touch-none">
@@ -191,7 +200,12 @@ export const PersonaReveal: React.FC<PersonaRevealProps> = ({
                 }}
                 data-text={name}
               >
-                <img src={displayImage} className="w-full h-full object-cover pointer-events-none" alt={name} />
+                <img
+                  src={displayImage}
+                  className="w-full h-full object-cover pointer-events-none"
+                  alt={name}
+                  onError={() => setImgLoadFailed(true)}
+                />
 
                 {/* Reveal Spark Glow */}
                 <motion.div
