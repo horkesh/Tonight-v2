@@ -21,22 +21,49 @@ Tonight is a premium, synchronized two-person virtual date experience built with
 App.tsx             Main app wrapper — view router, lazy loading, provider composition
 index.tsx           React DOM entry
 index.html          HTML shell with CDN fonts, theme CSS vars, background layers
-constants.ts        Vibes, locations, activities, prompt seeds, system instruction
-types.ts            All shared type definitions (MessageType, ActivityPayload, etc.)
-types/profiles.ts   Profile, venue, and date config type definitions
-components/         UI components (26 feature + views/ + ui/)
-  views/            Full-screen route views (13 views, most lazy-loaded)
+constants.ts        Vibes, locations, activities, prompt seeds, baseline system instruction
+types.ts            Shared type definitions (AppView, MessageType, ActivityPayload, etc.)
+types/              Domain-typed modules
+  profiles.ts       Profile, venue, and date config types
+  personality.ts    ModeId, ArchetypeId, PersonalityConfig, SessionStatus
+  chemistry.ts      ChemistryProfile (6-dim) + INITIAL_CHEMISTRY
+  questions.ts      BankQuestion + QuestionOption with chemistry_signals
+  sessionArc.ts     ArcPhaseConfig + SessionArc
+  memory.ts, wrap.ts — Scaffolding for future memory/wrap features (not all wired)
+data/               Curated content assets
+  questionBank.json — 200 BankQuestions across modes (ported from Tonight Commercial)
+  loadQuestionBank.ts — QUESTION_BANK + getQuestionsForMode()
+config/             Mode-aware configuration layer
+  personalityConfigs.ts — PERSONALITY_CONFIGS keyed by ModeId (tone, word limits, ceiling, pacing, etc.)
+  sessionArcs.ts    — SESSION_ARCS phase progressions per mode
+  modeThemes.ts, modeSounds.ts, personaStyles.ts — UI/audio/style hooks per mode
+components/         UI components (feature + views/ + ui/)
+  views/            Full-screen route views (most lazy-loaded; ModeSelectView is eager)
   ui/               Low-level primitives (GlassCard, TextRenderer, CollapsibleSection, CheckboxGrid)
 context/            SessionContext provider
-hooks/              Custom hooks (14 hooks, core orchestration layer)
-services/           Gemini AI proxy client + PeerJS networking + sound
-  prompts/          Prompt builder functions (promptContext, gamePrompts, narrativePrompts)
-store/              Zustand stores (gameState, presenceState, aiState, profileStore)
+hooks/              Custom hooks (core orchestration layer)
+                    Notable: useSessionState (composition), useQuestionFlow, useAiActions,
+                    useBroadcastingState, useNetworkSync, useSessionLifecycle, useChemistry, useSessionArc
+services/           Gemini AI proxy client + PeerJS networking + sound + engines
+  prompts/          Prompt builders (promptContext, gamePrompts, narrativePrompts, personalityPrompt)
+  chemistryEngine.ts — Bank-driven (applyAnswerToChemistry) + heuristic (applyCategoryToChemistry) paths
+  questionSelector.ts — Scored bank-question selection (mode/depth/tag-aware)
+store/              Zustand stores (gameState — mode/arc/chemistry/etc., presenceState, aiState, profileStore)
 utils/              Helpers (astrology, dateHistory, profileStorage, image compression, venueToLocation)
-api/                Vercel serverless routes (gemini/text, gemini/image)
+api/                Vercel serverless routes (gemini/text, gemini/image, turn-credentials)
 tests/              Vitest tests (helpers, geminiParsing, p2p, syncHandlers)
 docs/               Planning, architecture notes, project ledger
 ```
+
+## Personality / Mode System
+
+`ModeSelectView` is the entry screen. Picking a mode writes `PERSONALITY_CONFIGS[mode]` + `SESSION_ARCS[mode]` to `gameState`. From there:
+- `getSystemInstruction()` in `services/prompts/personalityPrompt.ts` reads the active config and prepends a mode overlay onto every Gemini call's system instruction (archetype, tone keywords, word limits, vulnerability ceiling, follow-up probability).
+- `services/geminiService.ts` reads the config inline where needed (length limits, vulnerability cap, Q1 follow-up gating, mode-aware report framing).
+- The curated `QUESTION_BANK` powers two things: voice anchors injected into the question prompt as STYLE ANCHORS for the AI, and a fallback when AI generation fails or returns empty.
+- `chemistryEngine.applyCategoryToChemistry()` updates the 6-dim profile on every answer in `useQuestionFlow.handleAnswerSelect`.
+- `useChemistry` and `useSessionArc` hooks wrap the engine + arc state for bank-driven flows (currently dormant pending date_night bank integration).
+- Active mode label appears under the PresenceBar's "Tonight" header; the IntelligenceBriefing report header shows mode + chemistry trajectory.
 
 ## Key Entrypoints
 

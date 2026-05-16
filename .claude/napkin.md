@@ -93,3 +93,5 @@
    Do instead: after landing fixes or making decisions, append a dated entry to `docs/project_ledger.md` before ending the session.
 5. **[2026-05-16] Big WIP belongs on a feature branch, not main**
    Do instead: if a session's work spans new types, new services, new views, and >10 modified+untracked files, commit it to `feature/<name>` rather than letting it pile up on `main`. OneDrive sync and aborted git ops here make uncommitted state lossy; a branch makes the work atomic and recoverable.
+6. **[2026-05-16] Check workspace-only deps before porting files from `Tonight Commercial`**
+   Do instead: when porting a file from `~/Documents/Personal/Enterprise/Tonight Commercial`, grep its imports for `@firetold/*` or other `"workspace:*"` packages first. The Commercial repo is a monorepo with workspace packages that aren't on npm — RecapCard/TherapistSummary/VaultPrompt all import `@firetold/studio` and can't be ported as-is. Porting them requires rewriting the export/share surface to drop that dep, which is a much bigger lift than it looks at first glance. See `reference-tonight-commercial` memory.
