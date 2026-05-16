@@ -41,7 +41,7 @@ const MODE_CARDS: ModeCardData[] = [
     tagline: 'Warm, curious, gradual discovery.',
     icon: '\u{1F331}', // seedling
     durationLabel: '20-30 min',
-    available: false,
+    available: true,
   },
   {
     id: 'ldr',
@@ -49,7 +49,7 @@ const MODE_CARDS: ModeCardData[] = [
     tagline: 'Bridge the miles. Sensory, tender, present.',
     icon: '\u{1F30D}', // globe
     durationLabel: '30-40 min',
-    available: false,
+    available: true,
   },
   {
     id: 'reignite',
@@ -57,7 +57,7 @@ const MODE_CARDS: ModeCardData[] = [
     tagline: 'Rediscover each other. Challenging, surprising.',
     icon: '\u{1F525}', // fire
     durationLabel: '20-40 min',
-    available: false,
+    available: true,
   },
 ];
 
