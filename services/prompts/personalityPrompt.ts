@@ -1,4 +1,6 @@
 import type { PersonalityConfig } from '../../types/personality';
+import { useGameStore } from '../../store/gameState';
+import { SYSTEM_INSTRUCTION } from '../../constants';
 
 export function buildPersonalitySystemInstruction(config: PersonalityConfig): string {
   return `You are the AI host of Tonight, a live two-person connection experience.
@@ -17,4 +19,17 @@ Rules (all modes):
 - Never repeat a question from this session.
 - Always produce valid JSON matching the response schema.
 - Respect the vulnerability ceiling -- questions that exceed it are forbidden.`;
+}
+
+/**
+ * Resolves the system instruction passed to Gemini calls. When the user has
+ * selected a mode, the personality overlay is appended after the brand-voice
+ * baseline so its tighter constraints (word limits, vulnerability ceiling,
+ * archetype) anchor the model's output. Returns the baseline alone when no
+ * mode is active.
+ */
+export function getSystemInstruction(): string {
+  const config = useGameStore.getState().personalityConfig;
+  if (!config) return SYSTEM_INSTRUCTION;
+  return `${SYSTEM_INSTRUCTION}\n\n--- MODE OVERLAY (${config.mode}) ---\n${buildPersonalitySystemInstruction(config)}`;
 }

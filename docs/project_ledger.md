@@ -458,3 +458,42 @@ Local main was 29 commits behind `origin/main` with substantial uncommitted WIP 
 - `npm audit` reports 21 vulnerabilities (1 critical) — not yet investigated.
 - New `modeSelect → setup → hub` flow not yet exercised end-to-end in a real session.
 - Mode-driven personality + chemistry engine + question selector ship as WIP infrastructure — not yet wired into `useAiActions` / `useQuestionFlow`.
+
+---
+
+## 2026-05-16 — Audit fix + personality threaded into AI prompts
+
+Follow-up to the morning session: cleared most of the npm audit findings, then took the smallest high-leverage slice of the personality-modes integration — threading the active mode's personality overlay into every relevant Gemini call.
+
+### `npm audit fix` (non-breaking)
+- Ran `npm audit fix` without `--force`. Lockfile-only change (`package-lock.json` —437/+495 lines). No `package.json` changes.
+- Cleared 12 of 21 vulnerabilities including the critical `protobufjs <= 7.5.5`. Bumped transitives: `vite`, `rollup`, `picomatch`, `serialize-javascript`, `workbox-build`, `lodash`, `@babel/plugin-transform-modules-systemjs`, `@rollup/plugin-terser`.
+- Remaining 9 high-severity vulns are all `@vercel/node` transitives (`undici`, `minimatch`, `path-to-regexp`, `@vercel/build-utils`, `@vercel/python-analysis`). They require `@vercel/node 2.x → 3.0.1` semver-major bump; `api/turn-credentials.ts` and `api/gemini/*.ts` use `@vercel/node` types so the surface may have shifted. Deferred until a dedicated session that can verify the deploy.
+- Verification: `npx tsc --noEmit` clean, `npm test` 35/35, `npm run build` succeeds (5.5s).
+
+### Personality threading
+- The personality-modes scaffold (committed earlier today at `8908bf9`) wrote `personalityConfig` to the game store on mode selection but no AI call consumed it — so mode selection was a no-op in the user-facing experience. This change makes the mode actually shape AI output.
+- Added `getSystemInstruction()` to `services/prompts/personalityPrompt.ts`: reads `useGameStore.getState().personalityConfig`. Returns `SYSTEM_INSTRUCTION` alone when no mode is active (preserves prior behavior for sessions without mode select); returns `SYSTEM_INSTRUCTION + "\n\n--- MODE OVERLAY (mode) ---\n" + buildPersonalitySystemInstruction(config)` when a mode is set. The brand voice anchors first, the mode overlay's tighter constraints (word limits, vulnerability ceiling, archetype) anchor second.
+- Replaced 5 occurrences of `systemInstruction: SYSTEM_INSTRUCTION` in `services/geminiService.ts` (`generateIntelligenceReport`, `generateTwoTruthsOneLie`, `generateFinishSentence`, `generateScene`, `generateNarrativeSuggestion`).
+- Added `systemInstruction: getSystemInstruction()` to `generateDynamicQuestions` (which previously had no system instruction at all — critical since it's the primary question generator).
+- Removed the now-unused `SYSTEM_INSTRUCTION` direct import from `geminiService.ts` (still re-imported by `personalityPrompt.ts`).
+
+### What this means in practice
+- Picking `date_night` mode in `ModeSelectView` → store gets `PERSONALITY_CONFIGS.date_night` (archetype: instigator, max question words: 30, vulnerability ceiling: 80%, etc.) → every subsequent AI call inherits those constraints. Picking no mode → baseline behavior unchanged.
+- Old `vibe`/`chemistry` system continues to drive the inline prompt-side guidance; mode overlay layers on top via the system instruction.
+
+### Files Changed
+- `services/prompts/personalityPrompt.ts` — added `getSystemInstruction()` resolver
+- `services/geminiService.ts` — 5 replacements + 1 addition; dropped direct `SYSTEM_INSTRUCTION` import
+- `package-lock.json` — audit fix transitive bumps
+
+### Verification
+- `npx tsc --noEmit`: clean
+- `npm test`: 35/35 passing
+- `npm run build`: succeeds (6.0s, 1010 KiB PWA precache)
+- Browser test: not run this session
+
+### Open items
+- `@vercel/node 3.0.1` major bump still pending (covers remaining 9 high-severity vulns).
+- New flow still not exercised end-to-end in a real session.
+- Chemistry engine, question selector, session arc phase advancement, and wrap_type rendering remain unwired — these are still scaffolding waiting on either a real `BankQuestion[]` bank or a deliberate decision to integrate without one.

@@ -1,9 +1,7 @@
 
 import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData, NarrativeSuggestion, PlaylistData, LetterData } from "../types";
 import type { PromptContext } from "../types/profiles";
-import {
-  SYSTEM_INSTRUCTION
-} from "../constants";
+import { getSystemInstruction } from "./prompts/personalityPrompt";
 import { buildNarrativePrompt } from "./prompts/narrativePrompts";
 import { getDominantVibe } from "../utils/helpers";
 import {
@@ -327,6 +325,7 @@ OUTPUT: JSON array of 3 objects. Each has: id (string), category (string "${cate
             model: MODEL_TEXT,
             contents: prompt,
             config: {
+                systemInstruction: getSystemInstruction(),
                 responseMimeType: "application/json",
                 maxOutputTokens: 300,
                 temperature: 0.7,
@@ -423,7 +422,7 @@ export const generateIntelligenceReport = async (
       model: MODEL_TEXT,
       contents: prompt,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: getSystemInstruction(),
         responseMimeType: "application/json",
         maxOutputTokens: 500,
         temperature: 0.7,
@@ -512,7 +511,7 @@ OUTPUT: JSON with "statements" array of exactly 3 objects, each with "text" (str
       model: MODEL_TEXT,
       contents: prompt,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: getSystemInstruction(),
         responseMimeType: "application/json",
         maxOutputTokens: 150,
         temperature: 0.7,
@@ -634,7 +633,7 @@ OUTPUT: JSON with "sentence" (string ending in "...") and "options" (array of ex
       model: MODEL_TEXT,
       contents: prompt,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: getSystemInstruction(),
         responseMimeType: "application/json",
         maxOutputTokens: 200,
         temperature: 0.7,
@@ -754,7 +753,7 @@ export const generateScene = async (
       model: MODEL_TEXT,
       contents: prompt,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: getSystemInstruction(),
         responseMimeType: "application/json",
         maxOutputTokens: 200,
         temperature: 0.7,
@@ -933,7 +932,7 @@ export const generateNarrativeSuggestion = async (
       model: MODEL_TEXT,
       contents: prompt,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: getSystemInstruction(),
         responseMimeType: "application/json",
         maxOutputTokens: 250,
         temperature: 0.7,

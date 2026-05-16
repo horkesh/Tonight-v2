@@ -63,6 +63,10 @@
     Do instead: animate `scaleX`/`scaleY`/`opacity`/`translate` instead of `width`/`height`/`top`/`left`. Layout properties trigger expensive reflow.
 18. **[2026-05-16] `@types/react` + `@types/react-dom` must be in devDependencies**
     Do instead: keep both installed at the React major (v19). Without them, functional components and the JSX runtime keep compiling via `@vitejs/plugin-react`, but class components silently lose `this.props` typing (`React.Component<P,S>` becomes a JS class). If you see `Property 'props' does not exist` on an error boundary, suspect missing React types before suspecting the boundary code.
+19. **[2026-05-16] Mode-aware service helpers read from `useGameStore.getState()` directly**
+    Do instead: when a service needs the active personality/mode/arc/chemistry, follow the `getPromptContext()` pattern from `services/prompts/promptContext.ts` — call `useGameStore.getState()` (or `useProfileStore.getState()`) at call time rather than threading the value through every callsite. `getSystemInstruction()` in `services/prompts/personalityPrompt.ts` is the reference example. Keeps `geminiService.ts` callsites short and lets new AI calls pick up mode-awareness with zero argument plumbing.
+20. **[2026-05-16] System-instruction overlay order: brand voice first, mode overlay second**
+    Do instead: when composing system instructions, put `SYSTEM_INSTRUCTION` (brand voice baseline) first, then the mode-specific overlay (word limits, vulnerability ceiling, archetype). The more-specific later instructions anchor the model's output. Don't replace the baseline — append.
 
 ## Shell & Environment
 1. **[2026-03-12] This is a Windows machine with bash shell**
