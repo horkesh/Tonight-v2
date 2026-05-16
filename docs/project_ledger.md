@@ -570,3 +570,52 @@ Push session: closed every gap between mode selection and the user-facing experi
 - `chemistry` (the new ChemistryProfile) is computed but invisible to user and unread by AI prompts. Next push: surface it (UI debug HUD or feed back into question prompt as additional signal alongside legacy `partnerPersona.chemistry`).
 - `computeMetaMetrics` (trajectory/surprise/balance/unlock_rate) still uncalled — needs a `chemistryHistory: number[]` field in gameState to feed `computeTrajectory`.
 - `BankQuestion[]` bank still empty.
+
+---
+
+## 2026-05-16 — Port from Tonight Commercial: question bank + vibe check end-to-end
+
+The user pointed at a sibling repo at `~/Documents/Personal/Enterprise/Tonight Commercial` containing a 200-question curated bank and a complete bank-driven Vibe Check flow. Ported the high-value pieces; deferred QR room flow + `structured_date` mode + alternate post-report phases.
+
+### What got ported
+
+**Data layer**
+- `data/questionBank.json` — 200 curated `BankQuestion`s. Distribution: vibe_check (44), first_date (48), date_night (69), ldr (41), reignite (41). 16 tag types (attraction, commitment, conflict, dreams, future, growth, humor, intimacy, lifestyle, past, playful, rediscovery, sensory, sync, values, vulnerability). Depths 0-5. JSON imports work via Vite default + tsconfig `moduleResolution: bundler`.
+- `data/loadQuestionBank.ts` — exposes `QUESTION_BANK` and `getQuestionsForMode(mode)`.
+
+**Hooks**
+- `hooks/useChemistry.ts` (71 lines) — wraps `applyAnswerToChemistry`/`compoundChemistryScore`/`computeMetaMetrics`. Takes a `broadcastChemistryUpdate` callback so any caller controls P2P sync (Vibe Check uses it).
+- `hooks/useSessionArc.ts` (125 lines) — `checkPhaseTransition(questionCount, elapsedMs)` advances based on `time` / `depth` / `chemistry` triggers. Returns the current phase config + index.
+- `hooks/useVibeCheckFlow.ts` (425 lines) — full bank-driven game loop: 5-minute timer, ~17s per question, scored question selection, chemistry update on dual-answer, highlight moment tracking (biggest chemistry delta), match counter (both picked same option), auto-transition to wrap view at 0:00. Host selects + broadcasts each question; guest looks up by ID from the bank.
+
+**Views**
+- `components/views/VibeCheckGameView.tsx` (196 lines) — timer countdown, chemistry bar, tap-able answer options, "waiting for partner" state.
+- `components/views/VibeCheckFlashView.tsx` (290 lines) — end-of-session wrap with verdict phrases by compound score (`Dangerously Compatible` → `The Night Is Young`), highlight moment, stats.
+
+**Type surface**
+- `types.ts` — `AppView` gained `'vibeCheckGame'` and `'vibeCheckFlash'`.
+- `types.ts` — `NetworkMessage` gained `SYNC_CHEMISTRY_UPDATE`, `SYNC_ARC_PHASE_CHANGE`, `SYNC_VIBE_CHECK_ANSWER`.
+
+**App integration**
+- `App.tsx` — lazy imports for the two new views; `useVibeCheckFlow` called at top-level (returns `vcState`, `vcActions`); two new view routes after the playlist branch; auto-start effect: when `isSynced && sessionMode === 'vibe_check'` and we're not already in a vibe-check view, route to `vibeCheckGame` and call `vcActions.startGame()`.
+- `ModeSelectView.tsx` — `vibe_check.available` flipped to `true`. The card no longer renders the "Soon" pill.
+
+### What was deferred
+- **`qrEntry` view + QR-based room sharing** — Commercial's `vibe_check` does `modeSelect → qrEntry (host shows QR, guest scans) → vibeCheckGame` to deliver on the "no signup needed" pitch. This port uses the regular `setup → hub` bridge instead: host picks mode → setup form → P2P sync → auto-route to game. Less seamless than QR but works without porting the QR rendering / room-id deep-linking surface.
+- **`structured_date` mode** — Commercial has a 6th mode (`structured_date`, `guide` archetype, `structured_summary` wrap). No bank questions assigned to it yet even in Commercial, so the value is low. Skipped.
+- **Alternate post-report phases** — Commercial has `'recap' | 'therapist' | 'vault'` in addition to our `'briefing' | 'letter' | 'text'`. Untouched.
+
+### Files Changed (10)
+- New: `data/questionBank.json`, `data/loadQuestionBank.ts`, `hooks/useChemistry.ts`, `hooks/useSessionArc.ts`, `hooks/useVibeCheckFlow.ts`, `components/views/VibeCheckGameView.tsx`, `components/views/VibeCheckFlashView.tsx`
+- Modified: `App.tsx`, `types.ts`, `components/views/ModeSelectView.tsx`
+
+### Verification
+- `npx tsc --noEmit`: clean
+- `npm test`: 35/35 passing
+- `npm run build`: succeeds (5.0s, PWA precache 1103 KiB / 26 entries — bank adds ~90 KiB)
+- `npm run dev`: boots in 657ms, all new modules transform cleanly via HMR
+
+### Open items unchanged + new
+- Vibe Check uses the existing `setup` flow as a bridge. If we want the no-signup QR experience, port `QrEntryView` + room-deep-link query parsing in a follow-up.
+- The new flow needs a real two-device session to validate end-to-end (single browser tab can verify the views render, but not P2P sync behavior).
+- `useNetworkSync.ts` doesn't have handlers for the 3 new message types — `useVibeCheckFlow` listens directly via `p2p.onData()` and the inbound types fall through useNetworkSync's switch. Works today; could be tidied later if useNetworkSync grows exhaustive checking.

@@ -33,7 +33,7 @@ const MODE_CARDS: ModeCardData[] = [
     tagline: 'Quick-fire chemistry test. No signup needed.',
     icon: '\u26A1', // lightning
     durationLabel: '5-10 min',
-    available: false,
+    available: true,
   },
   {
     id: 'first_date',

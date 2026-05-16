@@ -1,0 +1,423 @@
+{
+  "_meta": {
+    "status": "DRAFT",
+    "version": "0.1.0",
+    "date": "2026-03-23",
+    "author": "Content Factory Agent",
+    "total_questions": 200,
+    "notes": "Draft for Captain's review. Chemistry signal values range -5 to +10. Questions will be refined before Supabase load."
+  },
+  "questions": [
+
+    {"id":"vc_opener_001","text":"Pick one: rooftop sunset or dive bar at midnight?","options":[{"id":"a","text":"Rooftop sunset","chemistry_signals":{"spark":3,"depth":1}},{"id":"b","text":"Dive bar","chemistry_signals":{"play":3,"spark":2}}],"depth":0,"tags":["lifestyle","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_002","text":"Your go-to karaoke song. No lying.","options":null,"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_opener_003","text":"First impression — one word.","options":null,"depth":0,"tags":["attraction","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"vc_opener_004","text":"Morning person or chaos gremlin?","options":[{"id":"a","text":"Morning person","chemistry_signals":{"sync":2,"depth":1}},{"id":"b","text":"Chaos gremlin","chemistry_signals":{"play":3,"spark":1}}],"depth":0,"tags":["lifestyle","humor"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_005","text":"The song playing when you walk in?","options":[{"id":"a","text":"Something smooth","chemistry_signals":{"spark":3}},{"id":"b","text":"Pure chaos energy","chemistry_signals":{"play":4}},{"id":"c","text":"Nobody notices","chemistry_signals":{"depth":2,"trust":1}}],"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_006","text":"Text back immediately or strategic wait?","options":[{"id":"a","text":"Immediately","chemistry_signals":{"trust":3,"spark":1}},{"id":"b","text":"Strategic wait","chemistry_signals":{"play":2,"spark":2}}],"depth":0,"tags":["attraction","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_007","text":"Your red flag that you own?","options":[{"id":"a","text":"Brutally honest","chemistry_signals":{"depth":2,"trust":2}},{"id":"b","text":"Chronically late","chemistry_signals":{"play":3}},{"id":"c","text":"Too intense","chemistry_signals":{"spark":3,"depth":1}}],"depth":0,"tags":["humor","vulnerability"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_008","text":"Airport layover — what are you doing?","options":[{"id":"a","text":"Bar, obviously","chemistry_signals":{"play":3,"spark":1}},{"id":"b","text":"Bookstore browsing","chemistry_signals":{"depth":2}},{"id":"c","text":"People watching","chemistry_signals":{"depth":1,"play":2}}],"depth":0,"tags":["lifestyle","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_009","text":"Last thing you got unreasonably excited about?","options":null,"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_opener_010","text":"Cook dinner or get reservations?","options":[{"id":"a","text":"Cook dinner","chemistry_signals":{"depth":2,"trust":1}},{"id":"b","text":"Get reservations","chemistry_signals":{"spark":2,"play":1}}],"depth":0,"tags":["lifestyle","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_011","text":"Road trip — you're driving or DJ?","options":[{"id":"a","text":"Driving","chemistry_signals":{"trust":2,"sync":1}},{"id":"b","text":"DJ","chemistry_signals":{"play":3,"spark":1}}],"depth":0,"tags":["playful","lifestyle"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_012","text":"Biggest flex that isn't about money?","options":null,"depth":0,"tags":["humor","values"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_opener_013","text":"Dance floor energy?","options":[{"id":"a","text":"Center stage","chemistry_signals":{"spark":3,"play":2}},{"id":"b","text":"Vibing in back","chemistry_signals":{"depth":1,"play":2}},{"id":"c","text":"Watching, judging","chemistry_signals":{"play":3,"spark":1}}],"depth":0,"tags":["playful","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_014","text":"Pick your poison tonight.","options":[{"id":"a","text":"Old fashioned","chemistry_signals":{"depth":1,"spark":2}},{"id":"b","text":"Spicy margarita","chemistry_signals":{"play":2,"spark":2}},{"id":"c","text":"Just water","chemistry_signals":{"trust":2,"depth":1}}],"depth":0,"tags":["lifestyle","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_015","text":"Spontaneous trip tomorrow — where?","options":null,"depth":0,"tags":["dreams","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_opener_016","text":"Fight or flight at a surprise party?","options":[{"id":"a","text":"Love it","chemistry_signals":{"play":3,"spark":1}},{"id":"b","text":"Absolute dread","chemistry_signals":{"depth":2,"trust":1}}],"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_017","text":"Guilty pleasure you'll never apologize for?","options":null,"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_opener_018","text":"Main character or mysterious stranger?","options":[{"id":"a","text":"Main character","chemistry_signals":{"spark":3,"play":1}},{"id":"b","text":"Mysterious stranger","chemistry_signals":{"spark":2,"depth":2}}],"depth":0,"tags":["attraction","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_opener_019","text":"What you order says everything. Go.","options":null,"depth":0,"tags":["playful","lifestyle"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_opener_020","text":"Are you the plans person or the 'I'm down' person?","options":[{"id":"a","text":"Plans person","chemistry_signals":{"trust":2,"sync":1}},{"id":"b","text":"I'm down","chemistry_signals":{"play":3,"spark":1}}],"depth":0,"tags":["lifestyle","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_021","text":"Worst date you've ever survived?","options":null,"depth":1,"tags":["humor","past"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_flirt_022","text":"Three AM — still out or tucked in?","options":[{"id":"a","text":"Still out","chemistry_signals":{"spark":3,"play":2}},{"id":"b","text":"Tucked in","chemistry_signals":{"trust":2,"depth":1}}],"depth":0,"tags":["lifestyle","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_023","text":"Flirt style?","options":[{"id":"a","text":"Eye contact","chemistry_signals":{"spark":4,"depth":1}},{"id":"b","text":"Witty banter","chemistry_signals":{"play":3,"spark":2}},{"id":"c","text":"Oblivious","chemistry_signals":{"play":2,"trust":2}}],"depth":1,"tags":["attraction","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_024","text":"The person across from you — overrated or underrated?","options":[{"id":"a","text":"Underrated","chemistry_signals":{"spark":4,"trust":1}},{"id":"b","text":"Jury's out","chemistry_signals":{"play":3}}],"depth":1,"tags":["attraction","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"tap"},
+
+    {"id":"vc_flirt_025","text":"Hotel minibar or corner store run?","options":[{"id":"a","text":"Minibar","chemistry_signals":{"spark":2,"play":1}},{"id":"b","text":"Corner store run","chemistry_signals":{"play":3,"trust":1}}],"depth":0,"tags":["playful","lifestyle"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_026","text":"Love language in two words.","options":null,"depth":1,"tags":["attraction","values"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"vc_flirt_027","text":"Would you kiss on a first date?","options":[{"id":"a","text":"If it's right","chemistry_signals":{"spark":4,"trust":2}},{"id":"b","text":"Always","chemistry_signals":{"spark":3,"play":2}},{"id":"c","text":"Never","chemistry_signals":{"trust":3,"depth":1}}],"depth":1,"tags":["attraction","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_028","text":"Settle an argument or let it slide?","options":[{"id":"a","text":"Settle it now","chemistry_signals":{"depth":2,"growth":2}},{"id":"b","text":"Let it slide","chemistry_signals":{"play":2,"trust":1}}],"depth":1,"tags":["conflict","values"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_029","text":"Your most used emoji. That's your personality.","options":null,"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_flirt_030","text":"Stay in on Friday or go out every time?","options":[{"id":"a","text":"Stay in","chemistry_signals":{"depth":2,"trust":1}},{"id":"b","text":"Out every time","chemistry_signals":{"spark":3,"play":2}}],"depth":0,"tags":["lifestyle","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_031","text":"The thing about you people always get wrong?","options":null,"depth":1,"tags":["vulnerability","humor"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"vc_flirt_032","text":"Breakfast for dinner — genius or chaos?","options":[{"id":"a","text":"Genius","chemistry_signals":{"play":3,"sync":1}},{"id":"b","text":"Chaos","chemistry_signals":{"play":2,"depth":1}}],"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_033","text":"How do you take your coffee? Or don't you?","options":[{"id":"a","text":"Black","chemistry_signals":{"depth":2,"spark":1}},{"id":"b","text":"Sweet and milky","chemistry_signals":{"play":2,"trust":1}},{"id":"c","text":"Tea, actually","chemistry_signals":{"depth":1,"growth":1}}],"depth":0,"tags":["lifestyle","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_034","text":"A stranger compliments you. Reaction?","options":[{"id":"a","text":"Smooth thank you","chemistry_signals":{"spark":3,"trust":1}},{"id":"b","text":"Total panic","chemistry_signals":{"play":3,"trust":2}},{"id":"c","text":"Compliment back harder","chemistry_signals":{"spark":2,"play":3}}],"depth":0,"tags":["humor","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_035","text":"Second date or second thoughts?","options":[{"id":"a","text":"Second date","chemistry_signals":{"spark":5,"trust":2}},{"id":"b","text":"Still deciding","chemistry_signals":{"play":2,"depth":1}}],"depth":1,"tags":["attraction","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"tap"},
+
+    {"id":"vc_flirt_036","text":"Silence on a date — comfortable or panic?","options":[{"id":"a","text":"Comfortable","chemistry_signals":{"trust":3,"depth":2}},{"id":"b","text":"Panic","chemistry_signals":{"play":2,"spark":1}}],"depth":1,"tags":["attraction","vulnerability"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_037","text":"Your Netflix queue says what about you?","options":null,"depth":0,"tags":["humor","lifestyle"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"vc_flirt_038","text":"Dogs, cats, or something unhinged?","options":[{"id":"a","text":"Dogs","chemistry_signals":{"play":2,"trust":2}},{"id":"b","text":"Cats","chemistry_signals":{"depth":2,"spark":1}},{"id":"c","text":"Something unhinged","chemistry_signals":{"play":4,"spark":1}}],"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"vc_flirt_039","text":"One thing about tonight so far?","options":null,"depth":1,"tags":["attraction","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"vc_flirt_040","text":"Aisle or window?","options":[{"id":"a","text":"Window","chemistry_signals":{"depth":2,"spark":1}},{"id":"b","text":"Aisle","chemistry_signals":{"play":1,"trust":1}}],"depth":0,"tags":["lifestyle","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+
+
+    {"id":"fd_opener_001","text":"What's something you're weirdly passionate about?","options":null,"depth":0,"tags":["values","humor"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_opener_002","text":"Describe your ideal Sunday.","options":null,"depth":0,"tags":["lifestyle","dreams"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_opener_003","text":"What did 16-year-old you think you'd be doing now?","options":null,"depth":1,"tags":["past","dreams"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_opener_004","text":"Biggest green flag in a person?","options":[{"id":"a","text":"They listen well","chemistry_signals":{"depth":3,"trust":2}},{"id":"b","text":"Make me laugh","chemistry_signals":{"play":3,"spark":2}},{"id":"c","text":"Show up consistently","chemistry_signals":{"trust":4,"growth":1}},{"id":"d","text":"Surprise me","chemistry_signals":{"spark":3,"play":2}}],"depth":1,"tags":["values","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"fd_opener_005","text":"What charges you up after a draining day?","options":[{"id":"a","text":"People and noise","chemistry_signals":{"play":2,"spark":1}},{"id":"b","text":"Solitude","chemistry_signals":{"depth":3,"trust":1}},{"id":"c","text":"Moving my body","chemistry_signals":{"spark":2,"growth":1}},{"id":"d","text":"Creating something","chemistry_signals":{"depth":2,"growth":2}}],"depth":0,"tags":["lifestyle","values"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"fd_opener_006","text":"What's the bravest thing you've done in the last year?","options":null,"depth":1,"tags":["values","vulnerability"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_opener_007","text":"If you could master any skill overnight, what?","options":null,"depth":0,"tags":["dreams","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_opener_008","text":"The hill you will die on?","options":null,"depth":1,"tags":["humor","values"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_rising_009","text":"What do people assume about you that's completely wrong?","options":null,"depth":2,"tags":["vulnerability","past"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_rising_010","text":"How do you handle conflict in relationships?","options":[{"id":"a","text":"Head on","chemistry_signals":{"depth":3,"growth":2}},{"id":"b","text":"Need space first","chemistry_signals":{"trust":3,"depth":1}},{"id":"c","text":"Humor and deflect","chemistry_signals":{"play":2,"spark":1}},{"id":"d","text":"Write it down","chemistry_signals":{"depth":3,"growth":1}}],"depth":2,"tags":["conflict","values"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"fd_rising_011","text":"What would you do with a year off and no obligations?","options":null,"depth":1,"tags":["dreams","future"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_rising_012","text":"Last time you changed your mind about something important?","options":null,"depth":2,"tags":["growth","values"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_rising_013","text":"Your closest friend would describe you as?","options":[{"id":"a","text":"The reliable one","chemistry_signals":{"trust":3,"depth":1}},{"id":"b","text":"The wild one","chemistry_signals":{"play":3,"spark":2}},{"id":"c","text":"The deep one","chemistry_signals":{"depth":3,"growth":1}},{"id":"d","text":"The funny one","chemistry_signals":{"play":3,"spark":1}}],"depth":1,"tags":["values","humor"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"fd_rising_014","text":"What's something you want but haven't said out loud yet?","options":null,"depth":2,"tags":["dreams","vulnerability"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_rising_015","text":"How do you know when you trust someone?","options":null,"depth":2,"tags":["values","vulnerability"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_rising_016","text":"What part of your life would surprise people who think they know you?","options":null,"depth":2,"tags":["vulnerability","past"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date"],"follow_up_of":"fd_rising_009","never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_rising_017","text":"Ambition or contentment — which pulls harder?","options":[{"id":"a","text":"Ambition","chemistry_signals":{"growth":3,"spark":2}},{"id":"b","text":"Contentment","chemistry_signals":{"trust":3,"depth":2}},{"id":"c","text":"Depends on the day","chemistry_signals":{"depth":2,"sync":1}}],"depth":1,"tags":["values","future"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"fd_rising_018","text":"Something you've built or created that you're proud of?","options":null,"depth":1,"tags":["values","growth"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_peak_019","text":"What are you most afraid of wanting?","options":null,"depth":3,"tags":["vulnerability","dreams"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_peak_020","text":"When was the last time someone really saw you?","options":null,"depth":3,"tags":["vulnerability","past"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":["fd_peak_019"],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_peak_021","text":"What do you need from someone to feel safe?","options":null,"depth":3,"tags":["vulnerability","values"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":["fd_peak_020"],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_cool_022","text":"What surprised you about tonight?","options":null,"depth":1,"tags":["playful","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_cool_023","text":"One word for this conversation?","options":null,"depth":1,"tags":["playful","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_cool_024","text":"Would you do this again?","options":[{"id":"a","text":"Already planning it","chemistry_signals":{"spark":5,"trust":3}},{"id":"b","text":"Ask me tomorrow","chemistry_signals":{"play":2,"spark":2}},{"id":"c","text":"Depends on them","chemistry_signals":{"spark":3,"play":1}}],"depth":1,"tags":["attraction","future"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"tap"},
+
+    {"id":"fd_opener_025","text":"What's the best meal you've had this year?","options":null,"depth":0,"tags":["lifestyle","sensory"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_rising_026","text":"What topic could you give an unhinged TED talk about?","options":null,"depth":1,"tags":["humor","values"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_rising_027","text":"What relationship pattern are you actively trying to break?","options":null,"depth":2,"tags":["growth","vulnerability"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"fd_rising_028","text":"Tell me a lie about yourself. Make it convincing.","options":null,"depth":1,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_rising_029","text":"Best advice you've received but rarely follow?","options":null,"depth":1,"tags":["humor","values"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"fd_peak_030","text":"What would your younger self think of who you are now?","options":null,"depth":3,"tags":["vulnerability","growth","past"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["first_date"],"follow_up_of":"fd_opener_003","never_after":[],"once_per_partner":true,"response_type":"text"},
+
+
+
+    {"id":"dn_opener_001","text":"How are you — really?","options":[{"id":"a","text":"Better now","chemistry_signals":{"spark":2,"trust":2}},{"id":"b","text":"Honestly, drained","chemistry_signals":{"depth":3,"trust":3}},{"id":"c","text":"Buzzing","chemistry_signals":{"play":2,"spark":2}},{"id":"d","text":"Ask me in 20 minutes","chemistry_signals":{"play":3,"depth":1}}],"depth":1,"tags":["vulnerability","values"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"dn_opener_002","text":"High point of your week — go.","options":null,"depth":1,"tags":["lifestyle","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_opener_003","text":"Something small your partner did this week that mattered?","options":null,"depth":1,"tags":["values","commitment"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_play_004","text":"Your partner's celebrity doppelganger?","options":null,"depth":0,"tags":["humor","playful","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_play_005","text":"If your relationship had a theme song right now?","options":null,"depth":1,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_play_006","text":"Your partner's superpower in this relationship?","options":[{"id":"a","text":"Making me laugh","chemistry_signals":{"play":3,"spark":2}},{"id":"b","text":"Knowing what I need","chemistry_signals":{"sync":4,"trust":2}},{"id":"c","text":"Patience with me","chemistry_signals":{"trust":3,"depth":2}},{"id":"d","text":"Pushing me forward","chemistry_signals":{"growth":3,"spark":2}}],"depth":1,"tags":["values","commitment"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"dn_play_007","text":"What would your partner never forgive you for ordering?","options":null,"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_play_008","text":"Rate your partner's cooking. They'll see this.","options":[{"id":"a","text":"Chef's kiss","chemistry_signals":{"play":2,"spark":2,"trust":1}},{"id":"b","text":"Survivable","chemistry_signals":{"play":4,"spark":1}},{"id":"c","text":"We order in","chemistry_signals":{"play":3,"sync":1}}],"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"dn_play_009","text":"Your partner's most annoying habit — lovingly.","options":null,"depth":1,"tags":["humor","playful","conflict"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_play_010","text":"Movie night: who picks and who vetoes?","options":[{"id":"a","text":"I pick, they veto","chemistry_signals":{"play":2,"sync":2}},{"id":"b","text":"They pick, I veto","chemistry_signals":{"play":2,"trust":1}},{"id":"c","text":"Endless scroll together","chemistry_signals":{"sync":3,"play":2}}],"depth":0,"tags":["playful","lifestyle"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"dn_deep_011","text":"What's something you've been wanting to say but haven't found the moment?","options":null,"depth":3,"tags":["vulnerability","commitment"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_012","text":"Your partner's best quality — and the one that drives you crazy?","options":null,"depth":2,"tags":["values","conflict"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_013","text":"If you could relive one day from your relationship, which one?","options":null,"depth":2,"tags":["past","commitment"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_014","text":"What scares you most about the future together?","options":null,"depth":3,"tags":["vulnerability","future"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_015","text":"Where do you two need more honesty?","options":[{"id":"a","text":"Finances","chemistry_signals":{"depth":3,"trust":3,"growth":1}},{"id":"b","text":"Intimacy","chemistry_signals":{"depth":4,"spark":2,"trust":2}},{"id":"c","text":"Feelings","chemistry_signals":{"depth":4,"trust":3}},{"id":"d","text":"We're pretty honest","chemistry_signals":{"trust":2,"sync":1}}],"depth":3,"tags":["conflict","vulnerability","growth"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"dn_deep_016","text":"What part of yourself did you give up that you want back?","options":null,"depth":4,"tags":["vulnerability","growth"],"requires_sessions":2,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_017","text":"When do you feel most loved by your partner?","options":null,"depth":2,"tags":["intimacy","values"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_018","text":"Something you admire about your partner that you've never said?","options":null,"depth":3,"tags":["vulnerability","commitment"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_peak_019","text":"If this relationship ended tomorrow, what would haunt you?","options":null,"depth":4,"tags":["vulnerability","commitment"],"requires_sessions":2,"requires_depth_reached":3,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":["dn_deep_014"],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_peak_020","text":"What moment made you decide this person was worth the risk?","options":null,"depth":3,"tags":["past","commitment","vulnerability"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_close_021","text":"One thing you're grateful for about tonight?","options":null,"depth":1,"tags":["commitment","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_close_022","text":"What do you want more of this week?","options":[{"id":"a","text":"More laughter","chemistry_signals":{"play":3,"spark":1}},{"id":"b","text":"More quiet time","chemistry_signals":{"depth":2,"trust":2}},{"id":"c","text":"More touch","chemistry_signals":{"spark":4,"intimacy":2}},{"id":"d","text":"More honesty","chemistry_signals":{"depth":3,"growth":2,"trust":2}}],"depth":1,"tags":["future","commitment"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"dn_deep_023","text":"What did falling in love with your partner feel like?","options":null,"depth":2,"tags":["past","intimacy"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_024","text":"What conversation are you two avoiding?","options":null,"depth":4,"tags":["conflict","vulnerability"],"requires_sessions":2,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":["dn_deep_015"],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_play_025","text":"Who said 'I love you' first? Describe the moment.","options":null,"depth":2,"tags":["past","intimacy"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_026","text":"What's the hardest thing about loving someone fully?","options":null,"depth":3,"tags":["vulnerability","commitment"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_play_027","text":"Your partner is stuck on a desert island. Three things you send?","options":null,"depth":1,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_028","text":"What do you think your partner worries about that they don't share?","options":null,"depth":3,"tags":["vulnerability","commitment","sync"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_029","text":"A dream you two share but never act on?","options":null,"depth":2,"tags":["dreams","future"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_play_030","text":"Who's more likely to cry at a movie?","options":[{"id":"a","text":"Me, absolutely","chemistry_signals":{"depth":2,"trust":2}},{"id":"b","text":"Them, every time","chemistry_signals":{"play":2,"sync":1}},{"id":"c","text":"Both, secretly","chemistry_signals":{"sync":3,"trust":2}}],"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"dn_deep_031","text":"What does your partner need from you that you're not giving enough of?","options":null,"depth":3,"tags":["vulnerability","growth","conflict"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_play_032","text":"Who falls asleep first? And what does the other one do?","options":null,"depth":0,"tags":["humor","playful","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_033","text":"When did you last feel truly proud of your partner?","options":null,"depth":2,"tags":["values","commitment"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_034","text":"What's evolving in your relationship right now?","options":[{"id":"a","text":"Getting stronger","chemistry_signals":{"growth":3,"trust":2}},{"id":"b","text":"Finding balance","chemistry_signals":{"sync":3,"depth":1}},{"id":"c","text":"Figuring it out","chemistry_signals":{"depth":3,"growth":2}},{"id":"d","text":"Honestly, not sure","chemistry_signals":{"depth":4,"trust":2,"vulnerability":1}}],"depth":2,"tags":["growth","commitment"],"requires_sessions":1,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"dn_play_035","text":"Describe your partner in three words. They'll see this.","options":null,"depth":1,"tags":["playful","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_036","text":"What's one thing about your relationship you'd never change?","options":null,"depth":2,"tags":["commitment","values"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_037","text":"If your partner could read your mind right now, what would they find?","options":null,"depth":3,"tags":["vulnerability","intimacy"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_038","text":"What lesson has this relationship taught you about yourself?","options":null,"depth":3,"tags":["growth","vulnerability"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_play_039","text":"Your partner's signature move that always works on you?","options":null,"depth":1,"tags":["attraction","playful","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_040","text":"What do you want your partner to know that words can't quite capture?","options":null,"depth":4,"tags":["vulnerability","commitment","intimacy"],"requires_sessions":2,"requires_depth_reached":3,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_play_041","text":"What's a tiny ritual you two have that no one else knows about?","options":null,"depth":1,"tags":["intimacy","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_042","text":"Where do you want this relationship to be in five years?","options":null,"depth":2,"tags":["future","commitment"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_play_043","text":"Recreate your first date right now. What are you wearing?","options":null,"depth":1,"tags":["past","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_044","text":"When was the last time you felt disconnected from each other?","options":null,"depth":3,"tags":["conflict","vulnerability"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_close_045","text":"One thing to carry from tonight into the week?","options":null,"depth":1,"tags":["future","commitment"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_046","text":"What's the most romantic thing your partner has ever done?","options":null,"depth":2,"tags":["past","intimacy","attraction"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_deep_047","text":"What would make you fall in love with your partner all over again?","options":null,"depth":3,"tags":["attraction","rediscovery","vulnerability"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_play_048","text":"Your partner's most quotable line?","options":null,"depth":0,"tags":["humor","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"dn_deep_049","text":"Something you've forgiven but haven't forgotten?","options":null,"depth":4,"tags":["conflict","vulnerability","past"],"requires_sessions":3,"requires_depth_reached":3,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":["dn_deep_024"],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"dn_close_050","text":"Look at your partner right now. First thought?","options":null,"depth":1,"tags":["attraction","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+
+
+    {"id":"ldr_arrival_001","text":"Close your eyes. Describe exactly where you are right now.","options":null,"depth":1,"tags":["sensory","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_arrival_002","text":"What sound do you miss most about being with them?","options":null,"depth":2,"tags":["sensory","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_arrival_003","text":"What's the weather where you are? Wish they could feel it?","options":[{"id":"a","text":"They'd love it","chemistry_signals":{"sync":3,"trust":1}},{"id":"b","text":"They'd hate it","chemistry_signals":{"play":2,"sync":1}},{"id":"c","text":"Wouldn't matter, just want them here","chemistry_signals":{"spark":4,"depth":2}}],"depth":1,"tags":["sensory","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"ldr_arrival_004","text":"What are you wearing right now? Be honest.","options":null,"depth":1,"tags":["sensory","playful","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_sharing_005","text":"Best moment of your week they weren't part of?","options":null,"depth":1,"tags":["lifestyle","vulnerability"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_sharing_006","text":"Something happened this week that only they would understand. What?","options":null,"depth":2,"tags":["sync","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_sharing_007","text":"A song you heard this week that made you think of them?","options":null,"depth":1,"tags":["sensory","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_sharing_008","text":"What's on your nightstand right now?","options":null,"depth":1,"tags":["sensory","lifestyle"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_deep_009","text":"What's the hardest part about this distance right now?","options":[{"id":"a","text":"Missing the small things","chemistry_signals":{"depth":4,"trust":2}},{"id":"b","text":"Not being touched","chemistry_signals":{"spark":3,"depth":3}},{"id":"c","text":"Time zones","chemistry_signals":{"sync":2,"depth":1}},{"id":"d","text":"Worrying we're drifting","chemistry_signals":{"depth":5,"trust":3,"growth":1}}],"depth":3,"tags":["vulnerability","intimacy"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"ldr_deep_010","text":"Describe your partner's hands. From memory.","options":null,"depth":2,"tags":["sensory","intimacy"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_deep_011","text":"What's something you do alone now that used to be yours together?","options":null,"depth":3,"tags":["vulnerability","past"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_deep_012","text":"If you could teleport for one hour tonight, where would you go together?","options":null,"depth":2,"tags":["dreams","sensory"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_deep_013","text":"What's the first thing you'll do when you see each other next?","options":null,"depth":2,"tags":["future","intimacy","sensory"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_deep_014","text":"What do you wish they could see about your daily life?","options":null,"depth":2,"tags":["vulnerability","lifestyle"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_deep_015","text":"How has the distance changed the way you love them?","options":null,"depth":4,"tags":["growth","vulnerability"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_deep_016","text":"What's something you're afraid to say over a screen?","options":null,"depth":4,"tags":["vulnerability","intimacy"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_deep_017","text":"Describe their laugh. Now describe how it makes you feel.","options":null,"depth":2,"tags":["sensory","intimacy"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_deep_018","text":"What keeps you going when the distance feels impossible?","options":[{"id":"a","text":"Knowing it's temporary","chemistry_signals":{"trust":3,"growth":2}},{"id":"b","text":"Remembering us together","chemistry_signals":{"depth":3,"spark":2}},{"id":"c","text":"Choosing them every day","chemistry_signals":{"trust":4,"commitment":2}},{"id":"d","text":"Honestly, stubbornness","chemistry_signals":{"play":2,"depth":2,"trust":1}}],"depth":3,"tags":["vulnerability","commitment"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["ldr"],"follow_up_of":"ldr_deep_009","never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"ldr_dream_019","text":"Build your ideal reunion day. Start from the airport.","options":null,"depth":2,"tags":["dreams","future","sensory"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_dream_020","text":"When this distance ends, what's the first normal thing you want to do together?","options":null,"depth":2,"tags":["future","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":["ldr_dream_019"],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_close_021","text":"One thing to carry from tonight until next time?","options":null,"depth":1,"tags":["commitment","future"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_close_022","text":"Say something to them right now. No filter.","options":null,"depth":3,"tags":["vulnerability","intimacy"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_deep_023","text":"What smell reminds you most of them?","options":null,"depth":2,"tags":["sensory","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_deep_024","text":"Are you the same couple you were before the distance?","options":[{"id":"a","text":"Stronger now","chemistry_signals":{"growth":4,"trust":3}},{"id":"b","text":"Different, not worse","chemistry_signals":{"depth":3,"growth":2}},{"id":"c","text":"Still figuring it out","chemistry_signals":{"depth":3,"trust":2}},{"id":"d","text":"We've lost something","chemistry_signals":{"depth":5,"trust":2,"vulnerability":2}}],"depth":4,"tags":["growth","vulnerability"],"requires_sessions":2,"requires_depth_reached":2,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"ldr_deep_025","text":"What do you dream about when you dream about them?","options":null,"depth":3,"tags":["intimacy","sensory","dreams"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_sharing_026","text":"Show them your view right now. Describe every detail.","options":null,"depth":1,"tags":["sensory","intimacy"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":"ldr_arrival_001","never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_deep_027","text":"What part of their body do you miss holding most?","options":null,"depth":3,"tags":["intimacy","sensory"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_deep_028","text":"What would you whisper to them if they were next to you?","options":null,"depth":3,"tags":["intimacy","vulnerability"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ldr_deep_029","text":"What new side of yourself has the distance revealed?","options":null,"depth":3,"tags":["growth","vulnerability"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ldr_close_030","text":"When is the next time you'll hear their voice after tonight?","options":null,"depth":1,"tags":["future","commitment"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+
+
+    {"id":"ri_disrupt_001","text":"When was the last time you did something spontaneous together?","options":null,"depth":2,"tags":["rediscovery","past"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_disrupt_002","text":"If you were meeting for the first time tonight — would you approach?","options":[{"id":"a","text":"Without hesitation","chemistry_signals":{"spark":5,"trust":2}},{"id":"b","text":"I'd need a push","chemistry_signals":{"depth":2,"play":2}},{"id":"c","text":"They'd approach me","chemistry_signals":{"spark":3,"play":3}}],"depth":2,"tags":["attraction","rediscovery"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"tap"},
+
+    {"id":"ri_disrupt_003","text":"Rate your partner's spontaneity. Scale of couch to skydiving.","options":[{"id":"a","text":"Couch","chemistry_signals":{"play":2,"depth":1}},{"id":"b","text":"Surprise dinner","chemistry_signals":{"spark":2,"sync":2}},{"id":"c","text":"Skydiving","chemistry_signals":{"play":3,"spark":3}}],"depth":1,"tags":["humor","rediscovery"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"ri_disrupt_004","text":"When's the last time your partner genuinely surprised you?","options":null,"depth":2,"tags":["rediscovery","past"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_archaeology_005","text":"What did your partner order on your first date?","options":null,"depth":1,"tags":["past","rediscovery"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_archaeology_006","text":"Describe your partner as they were when you first met. One detail.","options":null,"depth":2,"tags":["past","rediscovery"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_archaeology_007","text":"What song was playing during a moment you'll never forget together?","options":null,"depth":2,"tags":["past","sensory","rediscovery"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_archaeology_008","text":"The first fight. What was it about? Was it worth it?","options":null,"depth":3,"tags":["past","conflict","rediscovery"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_archaeology_009","text":"What nickname did you have for each other early on?","options":null,"depth":1,"tags":["past","playful","rediscovery"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_provoke_010","text":"What's something your partner stopped doing that you secretly miss?","options":null,"depth":3,"tags":["rediscovery","vulnerability","conflict"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_provoke_011","text":"Are you the same person they married? Are they?","options":[{"id":"a","text":"We've both changed","chemistry_signals":{"depth":3,"growth":3}},{"id":"b","text":"I have, they haven't","chemistry_signals":{"depth":3,"conflict":1,"growth":2}},{"id":"c","text":"Core is the same","chemistry_signals":{"trust":3,"sync":2}},{"id":"d","text":"Better versions now","chemistry_signals":{"growth":4,"spark":2}}],"depth":3,"tags":["growth","rediscovery","vulnerability"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"tap"},
+
+    {"id":"ri_provoke_012","text":"What's the last thing your partner said that genuinely surprised you?","options":null,"depth":2,"tags":["rediscovery","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":["ri_disrupt_004"],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_provoke_013","text":"Your partner's most annoying habit — and why you'd miss it?","options":null,"depth":2,"tags":["humor","rediscovery","conflict"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_provoke_014","text":"When was the last time you looked at your partner and felt lucky?","options":null,"depth":2,"tags":["attraction","commitment"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_provoke_015","text":"What question are you afraid to ask your partner?","options":null,"depth":4,"tags":["vulnerability","conflict"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_provoke_016","text":"Have you gotten comfortable? Or comfortable enough?","options":[{"id":"a","text":"Too comfortable","chemistry_signals":{"depth":4,"growth":3}},{"id":"b","text":"Just right","chemistry_signals":{"trust":3,"sync":2}},{"id":"c","text":"Not enough yet","chemistry_signals":{"spark":3,"growth":2}}],"depth":3,"tags":["growth","rediscovery","vulnerability"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"ri_discovery_017","text":"What's something new about your partner from the last year they might not realize?","options":null,"depth":2,"tags":["growth","rediscovery"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_discovery_018","text":"What do you know now about love that you didn't when you started?","options":null,"depth":3,"tags":["growth","vulnerability"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_discovery_019","text":"What would a stranger notice about your partner that you've stopped seeing?","options":null,"depth":2,"tags":["rediscovery","attraction"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_discovery_020","text":"What's one way your partner has grown that makes you proud?","options":null,"depth":2,"tags":["growth","commitment"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_discovery_021","text":"What dream have you both quietly shelved? Should it stay shelved?","options":null,"depth":3,"tags":["dreams","vulnerability","future"],"requires_sessions":1,"requires_depth_reached":2,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_renewal_022","text":"One thing you commit to trying before your next Tonight session.","options":null,"depth":2,"tags":["commitment","future","growth"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_renewal_023","text":"What's one question you want your partner to ask you this week?","options":null,"depth":2,"tags":["vulnerability","future"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_renewal_024","text":"Finish this: The thing that still burns between us is...","options":null,"depth":3,"tags":["attraction","rediscovery","intimacy"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_provoke_025","text":"When was the last time you flirted with your partner? Actually flirted?","options":null,"depth":2,"tags":["attraction","rediscovery"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_provoke_026","text":"What's the most honest thing you can say about your relationship right now?","options":null,"depth":5,"tags":["vulnerability","commitment"],"requires_sessions":2,"requires_depth_reached":3,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_archaeology_027","text":"The moment you knew this was more than a phase?","options":null,"depth":3,"tags":["past","commitment","rediscovery"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"ri_discovery_028","text":"What version of your partner do other people see vs what you see?","options":null,"depth":2,"tags":["rediscovery","values"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_provoke_029","text":"What would your partner say is the one thing they need more of from you?","options":null,"depth":3,"tags":["vulnerability","conflict","growth"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"ri_renewal_030","text":"Look at them. Say the thing you came here to say.","options":null,"depth":4,"tags":["vulnerability","commitment","intimacy"],"requires_sessions":0,"requires_depth_reached":3,"mode_eligible":["reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+
+
+    {"id":"uni_opener_001","text":"What's a deal-breaker you discovered about yourself recently?","options":null,"depth":1,"tags":["values","growth"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date","date_night","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"uni_opener_002","text":"Biggest risk you've taken for love?","options":null,"depth":2,"tags":["vulnerability","past"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date","date_night","ldr","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_play_003","text":"You have one hour left on earth. How do you spend it?","options":[{"id":"a","text":"With someone I love","chemistry_signals":{"depth":3,"trust":3}},{"id":"b","text":"Doing something wild","chemistry_signals":{"spark":3,"play":3}},{"id":"c","text":"Alone, at peace","chemistry_signals":{"depth":4,"trust":1}},{"id":"d","text":"Eating the best meal","chemistry_signals":{"play":3,"sensory":1}}],"depth":2,"tags":["values","vulnerability"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date","date_night","ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"uni_play_004","text":"Truth or dare — but you only get truth tonight.","options":[{"id":"a","text":"Bring it on","chemistry_signals":{"spark":3,"depth":2,"trust":1}},{"id":"b","text":"I'm scared already","chemistry_signals":{"play":2,"depth":2}},{"id":"c","text":"Depends who's asking","chemistry_signals":{"spark":2,"play":2}}],"depth":1,"tags":["playful","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check","first_date","date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"uni_deep_005","text":"What's the kindest thing a stranger has ever done for you?","options":null,"depth":2,"tags":["values","past","vulnerability"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date","date_night","ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_deep_006","text":"What belief did you hold at 20 that you've completely abandoned?","options":null,"depth":2,"tags":["growth","past","values"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date","date_night","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_play_007","text":"Your love language according to your ex vs your actual one?","options":null,"depth":2,"tags":["humor","values","past"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date","date_night","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_deep_008","text":"What's the hardest goodbye you've ever said?","options":null,"depth":3,"tags":["vulnerability","past"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["first_date","date_night","ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_play_009","text":"Parallel universe — different career, different city. What's the life?","options":null,"depth":1,"tags":["dreams","future","playful"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date","date_night","ldr","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"},
+
+    {"id":"uni_deep_010","text":"What's something you've never told anyone sitting across from you?","options":null,"depth":4,"tags":["vulnerability","intimacy"],"requires_sessions":1,"requires_depth_reached":3,"mode_eligible":["date_night","ldr","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_play_011","text":"The person who shaped how you love — who are they?","options":null,"depth":3,"tags":["past","values","vulnerability"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["first_date","date_night","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_opener_012","text":"What's the most romantic thing you believe in?","options":null,"depth":1,"tags":["values","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date","date_night","ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_play_013","text":"Slow dance or dance battle?","options":[{"id":"a","text":"Slow dance","chemistry_signals":{"spark":3,"depth":2}},{"id":"b","text":"Dance battle","chemistry_signals":{"play":4,"spark":2}}],"depth":0,"tags":["playful","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check","first_date","date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"uni_deep_014","text":"What conversation changed your life?","options":null,"depth":3,"tags":["past","values","vulnerability"],"requires_sessions":0,"requires_depth_reached":2,"mode_eligible":["first_date","date_night","ldr","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_play_015","text":"Rain or sunshine energy?","options":[{"id":"a","text":"Rain","chemistry_signals":{"depth":2,"spark":1}},{"id":"b","text":"Sunshine","chemistry_signals":{"play":2,"spark":2}}],"depth":0,"tags":["playful","lifestyle"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check","first_date","date_night"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"uni_deep_016","text":"What do you wish people asked you about more often?","options":null,"depth":2,"tags":["vulnerability","values"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date","date_night","ldr"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_deep_017","text":"What's your relationship with alone time?","options":[{"id":"a","text":"I need it to breathe","chemistry_signals":{"depth":3,"trust":2}},{"id":"b","text":"It makes me restless","chemistry_signals":{"spark":2,"play":1}},{"id":"c","text":"Depends on the week","chemistry_signals":{"sync":2,"depth":1}},{"id":"d","text":"I'm relearning it","chemistry_signals":{"growth":3,"depth":2}}],"depth":1,"tags":["values","lifestyle"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["first_date","date_night","ldr","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"tap"},
+
+    {"id":"uni_play_018","text":"What would your dating profile say if you had to be brutally honest?","options":null,"depth":1,"tags":["humor","vulnerability","attraction"],"requires_sessions":0,"requires_depth_reached":0,"mode_eligible":["vibe_check","first_date"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_deep_019","text":"What's a promise you made to yourself that you've kept?","options":null,"depth":2,"tags":["values","growth"],"requires_sessions":0,"requires_depth_reached":1,"mode_eligible":["first_date","date_night","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":true,"response_type":"text"},
+
+    {"id":"uni_deep_020","text":"What do you need to hear right now that nobody's said?","options":null,"depth":4,"tags":["vulnerability","intimacy"],"requires_sessions":1,"requires_depth_reached":3,"mode_eligible":["date_night","ldr","reignite"],"follow_up_of":null,"never_after":[],"once_per_partner":false,"response_type":"text"}
+
+  ]
+}

@@ -34,6 +34,7 @@ import { compressImage } from './utils/helpers';
 import { PAGE_VARIANTS } from './constants';
 import { useAssetPreloader } from './hooks/useAssetPreloader';
 import { useGameStore } from './store/gameState';
+import { useVibeCheckFlow } from './hooks/useVibeCheckFlow';
 import { PERSONALITY_CONFIGS } from './config/personalityConfigs';
 import { SESSION_ARCS } from './config/sessionArcs';
 import { applyModeTheme } from './config/modeThemes';
@@ -54,6 +55,8 @@ const PlaylistView = lazy(() => import('./components/views/PlaylistView').then(m
 const LoadingView = lazy(() => import('./components/views/LoadingView').then(m => ({ default: m.LoadingView })));
 const LetterView = lazy(() => import('./components/LetterView').then(m => ({ default: m.LetterView })));
 const TextSuggestionView = lazy(() => import('./components/TextSuggestionView').then(m => ({ default: m.TextSuggestionView })));
+const VibeCheckGameView = lazy(() => import('./components/views/VibeCheckGameView').then(m => ({ default: m.VibeCheckGameView })));
+const VibeCheckFlashView = lazy(() => import('./components/views/VibeCheckFlashView').then(m => ({ default: m.VibeCheckFlashView })));
 
 function AppContent() {
   const session = useSession();
@@ -63,6 +66,25 @@ function AppContent() {
   const { aiState: as, aiActions: aa } = useAiActions(session);
 
   const gameStore = useGameStore();
+
+  // Vibe Check game flow orchestrator (bank-driven, no API calls)
+  const { vcState, vcActions } = useVibeCheckFlow(a.setView);
+
+  // Auto-start the Vibe Check game once both players sync. Fires once per session.
+  const vibeCheckStartedRef = useRef(false);
+  useEffect(() => {
+    if (
+      s.isSynced &&
+      gameStore.sessionMode === 'vibe_check' &&
+      s.view !== 'vibeCheckGame' &&
+      s.view !== 'vibeCheckFlash' &&
+      !vibeCheckStartedRef.current
+    ) {
+      vibeCheckStartedRef.current = true;
+      a.setView('vibeCheckGame');
+      vcActions.startGame();
+    }
+  }, [s.isSynced, gameStore.sessionMode, s.view, a, vcActions]);
 
   const handleModeSelect = (mode: ModeId) => {
     gameStore.setSessionMode(mode);
@@ -334,6 +356,20 @@ function AppContent() {
 
             {s.view === 'playlist' && as.playlistData && s.isSynced && (
                 <PlaylistView />
+            )}
+
+            {s.view === 'vibeCheckGame' && s.isSynced && (
+                <VibeCheckGameView vcState={vcState} vcActions={vcActions} />
+            )}
+
+            {s.view === 'vibeCheckFlash' && s.isSynced && (
+                <VibeCheckFlashView
+                  onComplete={() => a.clearSession()}
+                  highlightMoment={vcState.highlightMoment}
+                  questionsAnswered={vcState.questionsAnswered}
+                  matchCount={vcState.matchCount}
+                  elapsedMs={vcState.elapsedMs}
+                />
             )}
 
             {s.view === 'loading' && s.isSynced && (
