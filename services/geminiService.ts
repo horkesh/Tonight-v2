@@ -35,9 +35,33 @@ function pickBankStyleAnchors(category: string, modeId: string, count: number = 
     q.tags.some(t => targetTags.includes(t))
   );
   if (candidates.length === 0) return [];
-  // Shuffle and take first N for variation across calls
   const shuffled = [...candidates].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count).map(q => q.text);
+}
+
+/**
+ * Pull tap-with-options bank questions matching the category + mode as
+ * resilient fallback when AI generation fails or returns nothing. Returns
+ * the shape the existing UI consumes (Question with string[] options).
+ * Falls back further: if no tag-matching question exists for this mode,
+ * any tap-with-options question for the mode will do.
+ */
+function pickBankFallback(category: string, modeId: string, count: number = 3): Question[] {
+  const targetTags = CATEGORY_TO_BANK_TAGS[category] || [];
+  const tapWithOpts = QUESTION_BANK.filter(q => q.mode_eligible.includes(modeId) && q.options && q.options.length >= 2);
+  let candidates = targetTags.length > 0
+    ? tapWithOpts.filter(q => q.tags.some(t => targetTags.includes(t)))
+    : tapWithOpts;
+  if (candidates.length === 0) candidates = tapWithOpts;
+  if (candidates.length === 0) return [];
+  const shuffled = [...candidates].sort(() => Math.random() - 0.5).slice(0, count);
+  return shuffled.map((q, i) => ({
+    id: `${category.toLowerCase()}-bank-${q.id}-${Date.now()}-${i}`,
+    text: q.text,
+    category: category as Question['category'],
+    options: q.options!.map(o => o.text),
+    knowledgeTemplate: `When asked about ${category.toLowerCase()}, they {option}.`,
+  }));
 }
 
 // Schema type constants (replaces @google/genai Type enum — values are identical strings)
@@ -392,10 +416,20 @@ OUTPUT: JSON array of 3 objects. Each has: id (string), category (string "${cate
             }
         }));
         const data = cleanAndParseJSON(response.text, []);
+        if (!Array.isArray(data) || data.length === 0) {
+            // Parse succeeded but no questions came back — fall back to the bank
+            // so the user never hits an empty list mid-date.
+            const fallback = pickBankFallback(category, personalityConfig?.mode ?? 'date_night', 3);
+            if (fallback.length > 0) {
+                console.warn("Question Gen returned empty; using bank fallback.");
+                return fallback;
+            }
+            return [];
+        }
         return data.map((q: any, i: number) => ({ ...q, id: `${category.toLowerCase()}-${Date.now()}-${i}` }));
     } catch (e) {
-        console.error("Question Gen Error", e);
-        return [];
+        console.error("Question Gen Error — falling back to bank:", e);
+        return pickBankFallback(category, personalityConfig?.mode ?? 'date_night', 3);
     }
 };
 

@@ -23,6 +23,7 @@ import {
 import { useSessionState } from './useSessionState';
 import { PLAYLIST_RESULT_LABELS } from '../constants';
 import { useAiStore } from '../store/aiState';
+import { useGameStore } from '../store/gameState';
 import { applyVibeDeltas } from '../utils/helpers';
 import { saveDateToHistory, buildHistoryEntry, extractHighlights } from '../utils/dateHistory';
 import { useProfileStore } from '../store/profileStore';
@@ -78,6 +79,15 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     const self = a.getSelf();
     const partner = a.getPartner();
     if (!self || !partner) return;
+
+    // Gate activities by the mode's allowed list. PERSONALITY_CONFIGS declares
+    // which activities fit each mode's pacing/depth/tone. With no config (null,
+    // legacy flow with no mode selected), allow all activities for back-compat.
+    const personalityConfig = useGameStore.getState().personalityConfig;
+    if (personalityConfig && personalityConfig.activities_allowed.length > 0 && !personalityConfig.activities_allowed.includes(activityId)) {
+      a.triggerFlash("Not available in this mode.", 2500);
+      return;
+    }
 
     a.triggerFlash("Initializing Activity...");
     soundManager.play('activity');
@@ -227,11 +237,14 @@ export function useAiActions(session: ReturnType<typeof useSessionState>) {
     const partnerAvatar = s.partnerPersona.imageUrl;
     const saveHistory = (report: IntelligenceReport) => {
       try {
+        const gs = useGameStore.getState();
         saveDateToHistory(buildHistoryEntry(report, {
           partnerName,
           location: locationTitle,
           vibe: s.vibe,
           chemistry: s.partnerPersona.chemistry,
+          chemistryProfile: gs.chemistry,
+          mode: gs.sessionMode ?? undefined,
           profileId: activeProfileId,
           highlights,
           partnerAvatar,

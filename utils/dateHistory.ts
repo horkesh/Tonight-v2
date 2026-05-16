@@ -1,4 +1,5 @@
 import type { IntelligenceReport, VibeStats, ConversationEntry } from '../types';
+import type { ChemistryProfile } from '../types/chemistry';
 import { VULNERABLE_CATEGORIES } from '../constants';
 
 const HISTORY_KEY = 'tonight_history';
@@ -12,6 +13,8 @@ export interface DateHistoryEntry {
   location: string;
   vibe: VibeStats;
   chemistry: number;
+  chemistryProfile?: ChemistryProfile;
+  mode?: string;
   headline: string;
   summary: string;
   rating: number | null;
@@ -57,6 +60,8 @@ export function buildHistoryEntry(
     location: string;
     vibe: VibeStats;
     chemistry: number;
+    chemistryProfile?: ChemistryProfile;
+    mode?: string;
     profileId?: string;
     highlights?: string[];
     partnerAvatar?: string | null;
@@ -68,6 +73,8 @@ export function buildHistoryEntry(
     location: opts.location,
     vibe: opts.vibe,
     chemistry: opts.chemistry,
+    chemistryProfile: opts.chemistryProfile,
+    mode: opts.mode,
     headline: report.headline,
     summary: report.summary,
     rating: report.partnerRating ?? null,
@@ -78,10 +85,15 @@ export function buildHistoryEntry(
 
 /**
  * Extract conversation highlights — the most revealing/vulnerable moments from a date.
+ * Filters out refused/passed entries since neither carries a real answer.
  */
 export function extractHighlights(conversationLog: ConversationEntry[]): string[] {
   return conversationLog
-    .filter(e => (VULNERABLE_CATEGORIES as readonly string[]).includes(e.category) && e.answer !== '[Refused — took a sip instead]')
+    .filter(e =>
+      (VULNERABLE_CATEGORIES as readonly string[]).includes(e.category) &&
+      e.answer !== '[Refused — took a sip instead]' &&
+      e.answer !== '[Passed]'
+    )
     .slice(-5)
     .map(e => `"${e.questionText}" → "${e.answer}"`);
 }
