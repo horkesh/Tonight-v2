@@ -8,6 +8,8 @@ import { applyVibeDeltas } from '../utils/helpers';
 import { VULNERABLE_CATEGORIES } from '../constants';
 import { getPromptContext } from '../services/prompts/promptContext';
 import { soundManager } from '../services/soundManager';
+import { useGameStore } from '../store/gameState';
+import { applyCategoryToChemistry } from '../services/chemistryEngine';
 
 const VIBE_WEIGHTS: Record<string, Partial<VibeStats>> = {
   'Style': { playful: 10, flirty: 5 },
@@ -250,6 +252,14 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     if (question && VIBE_WEIGHTS[question.category]) {
         const delta = VIBE_WEIGHTS[question.category];
         a.setVibe(v => applyVibeDeltas(v, delta));
+    }
+
+    // Update 6-dim Chemistry alongside legacy vibe (mode-aware future, heuristic today).
+    // Both host and guest run this independently on their own copies — they see the
+    // same Q+A so they converge without P2P sync.
+    if (question) {
+        const setChemistry = useGameStore.getState().setChemistry;
+        setChemistry(prev => applyCategoryToChemistry(prev, question.category));
     }
 
     soundManager.play('answer');

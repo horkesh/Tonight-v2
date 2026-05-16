@@ -180,10 +180,13 @@ export const generateDynamicQuestions = async (
 
     const { conversationLog, round, vibe } = enrichedContext;
 
-    // --- Mode-aware length constraints (fall back to legacy defaults when no mode selected) ---
+    // --- Mode-aware constraints (fall back to legacy defaults when no mode selected) ---
     const personalityConfig = useGameStore.getState().personalityConfig;
     const maxQuestionWords = personalityConfig?.max_question_words ?? 14;
     const maxOptionWords = personalityConfig?.max_option_words ?? 6;
+    const followUpProbability = personalityConfig?.follow_up_probability ?? 0.5;
+    const vulnerabilityCeiling = personalityConfig?.vulnerability_ceiling ?? 1.0;
+    const allowFollowUp = followUpProbability >= 0.2;
 
     // --- Partner's background (career, interests, hobbies) ---
     const partnerBackground = partnerPersona.background
@@ -227,8 +230,10 @@ export const generateDynamicQuestions = async (
       ? `Target's Known Facts: ${partnerPersona.memories.slice(-8).join('; ')}`
       : "";
 
-    // --- Chemistry & escalation ---
+    // --- Chemistry & escalation (capped by mode's vulnerability ceiling) ---
     const chemistry = partnerPersona.chemistry;
+    const ceilingPct = Math.round(vulnerabilityCeiling * 100);
+    const effectiveIntensity = Math.min(chemistry, ceilingPct);
     const dominantVibe = [getDominantVibe(vibe), vibe[getDominantVibe(vibe)]] as const;
 
     // --- Vibe-driven question style ---
@@ -282,10 +287,11 @@ ${conversationBlock}
 
 ESCALATION:
 Chemistry: ${chemistry}% | Round: ${round} | Dominant Energy: ${dominantVibe[0]} (${dominantVibe[1]}%)
-${chemistry < 25 ? 'Low chemistry — be indirect, build safety, earn trust through clever questions.' : ''}
-${chemistry >= 25 && chemistry < 50 ? 'Building chemistry — test boundaries gently, show genuine curiosity about their specific life.' : ''}
-${chemistry >= 50 && chemistry < 75 ? 'Strong chemistry — get personal. Reference specific things they said. Probe deeper into what they revealed.' : ''}
-${chemistry >= 75 ? 'High chemistry — intimate, confrontational, vulnerable. The gloves are off. Ask what nobody else would dare.' : ''}
+${ceilingPct < 100 ? `Mode vulnerability ceiling: ${ceilingPct}% — NEVER escalate beyond this, regardless of chemistry. Effective intensity (chemistry capped by ceiling): ${effectiveIntensity}%.` : ''}
+${effectiveIntensity < 25 ? 'Low intensity — be indirect, build safety, earn trust through clever questions.' : ''}
+${effectiveIntensity >= 25 && effectiveIntensity < 50 ? 'Building intensity — test boundaries gently, show genuine curiosity about their specific life.' : ''}
+${effectiveIntensity >= 50 && effectiveIntensity < 75 ? 'Strong intensity — get personal. Reference specific things they said. Probe deeper into what they revealed.' : ''}
+${effectiveIntensity >= 75 ? 'High intensity — intimate, confrontational, vulnerable. The gloves are off. Ask what nobody else would dare.' : ''}
 
 QUESTION DESIGN RULES:
 Generate exactly 3 questions.
@@ -296,7 +302,7 @@ GOOD: "What scares you more — being known or being forgotten?" (10 words, shar
 BAD: "If you had to choose between following your passion and maintaining financial stability, which would you pick?" (17 words, generic)
 GOOD: "What did you give up that you still miss?" (9 words, lands hard)
 
-Question 1 — FOLLOW-UP: ${conversationLog.length > 0 ? 'Build on something the Target revealed. Reference it in 2-3 words max, then ask the real question.' : 'Strong opener — probe values or self-image. Specific to their background if known.'}
+Question 1 — ${conversationLog.length > 0 && allowFollowUp ? 'FOLLOW-UP: Build on something the Target revealed. Reference it in 2-3 words max, then ask the real question.' : 'OPENER: Strong opener — probe values or self-image. Specific to their background if known. Do NOT reference prior answers.'}
 
 Question 2 — RECIPROCITY: ${userSecrets ? 'The Asker revealed something. Use that asymmetry — "your turn" energy. Keep it tight.' : 'Frame as mutual exploration, not interrogation. Stay brief.'}
 
@@ -393,6 +399,7 @@ export const generateSilentReaction = async (
         model: MODEL_TEXT,
         contents: prompt,
         config: {
+            systemInstruction: getSystemInstruction(),
             responseMimeType: "application/json",
             maxOutputTokens: 200,
             temperature: 0.7,
@@ -700,7 +707,7 @@ Respond with ONLY the observation sentence. No quotes, no preamble.`;
     const result = await callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
-      config: { responseMimeType: 'text/plain', maxOutputTokens: 60, temperature: 0.7 }
+      config: { systemInstruction: getSystemInstruction(), responseMimeType: 'text/plain', maxOutputTokens: 60, temperature: 0.7 }
     });
     return (result.text || '').trim().slice(0, 150);
   } catch {
@@ -732,7 +739,7 @@ Respond as JSON: {"narrative": "...", "imagePrompt": "..."}`;
     const result = await callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
-      config: { responseMimeType: 'application/json', maxOutputTokens: 200, temperature: 0.7 }
+      config: { systemInstruction: getSystemInstruction(), responseMimeType: 'application/json', maxOutputTokens: 200, temperature: 0.7 }
     });
     const text = result.text || '';
     const parsed = cleanAndParseJSON(text, { narrative: '', imagePrompt: currentEnvironmentPrompt });
@@ -752,7 +759,8 @@ export const generateScene = async (
   mode: string = 'Standard',
   promptContext?: PromptContext | null
 ): Promise<Scene> => {
-  const prompt = buildScenePrompt(currentVibe, round, partnerPersona, userPersona, dateContext, previousChoiceText || "", mode, promptContext);
+  const sceneMaxChoiceWords = useGameStore.getState().personalityConfig?.max_option_words ?? 6;
+  const prompt = buildScenePrompt(currentVibe, round, partnerPersona, userPersona, dateContext, previousChoiceText || "", mode, promptContext, sceneMaxChoiceWords);
 
   try {
     const response = await callWithRetry(() => callProxy('/api/gemini/text', {
@@ -995,7 +1003,7 @@ Return JSON array of exactly 8 objects: [{"title": "Song Name", "artist": "Artis
     const result = await callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
-      config: { responseMimeType: 'application/json', maxOutputTokens: 400, temperature: 0.7 }
+      config: { systemInstruction: getSystemInstruction(), responseMimeType: 'application/json', maxOutputTokens: 400, temperature: 0.7 }
     });
     const songs = cleanAndParseJSON(result.text, []);
     if (Array.isArray(songs) && songs.length >= 6) {
@@ -1046,7 +1054,7 @@ Respond as JSON: {"salutation": "short greeting (2-3 words)", "body": "the lette
     const result = await callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
-      config: { responseMimeType: 'application/json', maxOutputTokens: 400, temperature: 0.7 }
+      config: { systemInstruction: getSystemInstruction(), responseMimeType: 'application/json', maxOutputTokens: 400, temperature: 0.7 }
     });
     return cleanAndParseJSON(result.text, { salutation: 'Tonight', body: 'The words escaped before the ink could catch them.', signoff: '—' });
   } catch {
@@ -1081,7 +1089,7 @@ Respond with ONLY the text message. No quotes, no preamble, no explanation.`;
     const result = await callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
-      config: { responseMimeType: 'text/plain', maxOutputTokens: 150, temperature: 0.7 }
+      config: { systemInstruction: getSystemInstruction(), responseMimeType: 'text/plain', maxOutputTokens: 150, temperature: 0.7 }
     });
     return (result.text || '').trim().slice(0, 280);
   } catch {

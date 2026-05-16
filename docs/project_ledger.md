@@ -527,3 +527,46 @@ Follow-up: the system-instruction overlay was telling the model "Max N words per
 - `@vercel/node 3.0.1` major bump still pending.
 - Follow-up probability conflict not yet fixed — inline prompt always asks for Q1 as a follow-up, but `vibe_check` has `follow_up_probability: 0`. Bigger restructure to address.
 - `BankQuestion[]` bank still empty; `selectNextQuestion` still uncalled.
+
+---
+
+## 2026-05-16 — Mode reaches every surface + chemistry computes on answers
+
+Push session: closed every gap between mode selection and the user-facing experience. Mode now shapes Q1 vs. opener choice, escalation ceiling, scene choice length, every relevant Gemini call's system instruction, and a 6-dim ChemistryProfile that updates on every answer.
+
+### Q1 follow-up gating
+- `generateDynamicQuestions` previously forced Q1 to be a follow-up whenever `conversationLog.length > 0`. That conflicted with `vibe_check` (`follow_up_probability: 0`) and `first_date` (0.3) — modes where follow-ups should be rare or absent.
+- Gate added: Q1 is a follow-up only when `conversationLog.length > 0 && followUpProbability >= 0.2`. Otherwise it's a fresh opener with an explicit "Do NOT reference prior answers" rule.
+
+### Vulnerability ceiling cap on escalation
+- The chemistry-based escalation block (`< 25 indirect`, `25-50 gentle`, `50-75 personal`, `>= 75 gloves off`) used raw `chemistry` so a 100%-chemistry `first_date` session would still hit the "gloves off, ask what nobody else would dare" branch — a clear vulnerability_ceiling violation.
+- Added `effectiveIntensity = min(chemistry, ceilingPct)`. Escalation now reads `effectiveIntensity`. An explicit "Mode vulnerability ceiling: N% — NEVER escalate beyond this" line is injected when ceiling < 100. Now `first_date` (ceiling 45%) stops at the "Building chemistry" branch even at 100% raw chemistry; `vibe_check` (ceiling 15%) stays at "Low intensity" always.
+
+### Mode-aware scene choice text
+- `buildScenePrompt` gained an optional `maxChoiceWords` parameter (defaults to 6, preserving prior behavior). `generateScene` reads `personalityConfig?.max_option_words` from the store and threads it through. `vibe_check` (max 3) gets tighter choices; `ldr` (max 10) gets richer ones.
+- Builder stays pure — caller does the store read. Different from the `getSystemInstruction()` pattern but appropriate when the builder is a reusable test target.
+
+### Chemistry profile updates on every answer
+- New `applyCategoryToChemistry(current, category, optionsMatched)` in `services/chemistryEngine.ts`. Heuristic 6-dim deltas keyed by the existing 6 categories (Style/Escape/Preferences/Deep/Intimate/Desire) until a real `BankQuestion[]` bank exists. Each category nudges the dimensions its content actually shapes (e.g., `Desire` → spark+8 / depth+3 / growth+3; `Deep` → depth+8 / trust+5 / growth+3). All values clamped 0-100.
+- Wired into `useQuestionFlow.handleAnswerSelect`. After the legacy vibe delta, the new chemistry profile is updated via `useGameStore.getState().setChemistry(...)`. Both host and guest run this independently against the same Q+A so they converge without P2P sync.
+
+### Mode personality reaches every relevant Gemini call
+- Added `systemInstruction: getSystemInstruction()` to 6 more Gemini calls that previously had no system instruction at all: `generateSilentReaction`, `generatePartnerInsight`, `generateLocationTransition`, `generatePlaylistSongs`, `generateEndOfNightLetter`, `generateFollowUpText`. Mode tone/archetype now color silent reactions, post-round insights, location transitions, the shared playlist, the end-of-night letter, and the follow-up text suggestion.
+- Skipped intentionally: `generateInnerMonologue` (runs every few seconds with 50-token output — the 500-token system instruction overhead per call doesn't pay off), and the image-analysis calls (`analyzeImageAction`, `analyzeUserPhotoForAvatar`, `extractTraitFromInteraction` — these are analysis, not generation, so mode tone doesn't apply).
+
+### Files Changed
+- `services/geminiService.ts` — Q1 gating, vulnerability ceiling cap, scene maxChoiceWords plumbing, 6 systemInstruction additions
+- `services/prompts/gamePrompts.ts` — `buildScenePrompt` now accepts `maxChoiceWords`
+- `services/chemistryEngine.ts` — `applyCategoryToChemistry` heuristic deltas
+- `hooks/useQuestionFlow.ts` — chemistry update wired into `handleAnswerSelect`
+
+### Verification
+- `npx tsc --noEmit`: clean
+- `npm test`: 35/35 passing
+- `npm run build`: succeeds (6s, 1011 KiB PWA precache)
+
+### Open items
+- `@vercel/node 3.0.1` bump still pending.
+- `chemistry` (the new ChemistryProfile) is computed but invisible to user and unread by AI prompts. Next push: surface it (UI debug HUD or feed back into question prompt as additional signal alongside legacy `partnerPersona.chemistry`).
+- `computeMetaMetrics` (trajectory/surprise/balance/unlock_rate) still uncalled — needs a `chemistryHistory: number[]` field in gameState to feed `computeTrajectory`.
+- `BankQuestion[]` bank still empty.

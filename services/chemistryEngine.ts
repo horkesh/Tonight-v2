@@ -6,6 +6,39 @@ const SIGNAL_WEIGHT = 3;
 const SYNC_BONUS = 5;
 const CLAMP = (v: number) => Math.max(0, Math.min(100, v));
 
+/**
+ * Heuristic chemistry deltas keyed by the existing 6-category question system.
+ * Used until a real BankQuestion bank with per-option chemistry_signals exists.
+ * Each category nudges the chemistry dimensions that the category's content
+ * actually shapes (e.g., 'Desire' lights up spark, 'Deep' surfaces depth + trust).
+ */
+const CATEGORY_DELTAS: Record<string, Partial<Pick<ChemistryProfile, 'spark' | 'depth' | 'play' | 'sync' | 'growth' | 'trust'>>> = {
+  Style:       { play: 5, spark: 3 },
+  Escape:      { growth: 5, depth: 3, play: 2 },
+  Preferences: { trust: 5, sync: 3 },
+  Deep:        { depth: 8, trust: 5, growth: 3 },
+  Intimate:    { spark: 5, trust: 5, depth: 3 },
+  Desire:      { spark: 8, depth: 3, growth: 3 },
+};
+
+export function applyCategoryToChemistry(
+  current: ChemistryProfile,
+  category: string,
+  optionsMatched: boolean = false,
+): ChemistryProfile {
+  const deltas = CATEGORY_DELTAS[category];
+  if (!deltas) return current;
+  const next = { ...current };
+  if (deltas.spark)  next.spark  = CLAMP(next.spark  + deltas.spark);
+  if (deltas.depth)  next.depth  = CLAMP(next.depth  + deltas.depth);
+  if (deltas.play)   next.play   = CLAMP(next.play   + deltas.play);
+  if (deltas.sync)   next.sync   = CLAMP(next.sync   + deltas.sync);
+  if (deltas.growth) next.growth = CLAMP(next.growth + deltas.growth);
+  if (deltas.trust)  next.trust  = CLAMP(next.trust  + deltas.trust);
+  if (optionsMatched) next.sync = CLAMP(next.sync + SYNC_BONUS);
+  return next;
+}
+
 export function applyAnswerToChemistry(
   current: ChemistryProfile,
   hostOption: QuestionOption,

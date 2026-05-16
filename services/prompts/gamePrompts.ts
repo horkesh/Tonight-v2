@@ -10,7 +10,8 @@ export const buildScenePrompt = (
   dateContext: DateContext | null,
   lastChoiceText: string,
   activityId?: string,
-  promptContext?: PromptContext | null
+  promptContext?: PromptContext | null,
+  maxChoiceWords: number = 6
 ): string => {
   const locationDesc = dateContext?.location
     ? `Location: ${dateContext.location.title} - ${dateContext.location.description}. Atmosphere: ${dateContext.location.environmentPrompt}`
@@ -48,7 +49,7 @@ export const buildScenePrompt = (
   basePrompt += `
     Provide 3 distinct choices for the User to react or respond.
     Each choice should have:
-    - text: The action/dialogue (max 6 words).
+    - text: The action/dialogue (max ${maxChoiceWords} words).
     - vibeEffect: How it shifts the vibe stats (e.g., +10 flirty).
 
     Output JSON format:
