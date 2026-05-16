@@ -196,16 +196,6 @@ export function useSessionState() {
     clearToastRequest: () => {
         broadcasting.rawSetters.setIncomingToastRequest(false);
     },
-    completeOnboarding: (age: string, height: string, style: string) => {
-        broadcasting.setUserPersona(prev => ({
-            ...prev,
-            age,
-            height,
-            styleId: style,
-            isProfileComplete: true,
-        }));
-        broadcasting.setView('hub');
-    },
     confirmGuestProfile: (name: string, background: string) => {
         presence.setGuestProfileConfirmed(true);
         if (name) {

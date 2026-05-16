@@ -396,3 +396,65 @@ Three-agent parallel review of all components, hooks/stores, and services/utils.
 
 ### Verification
 - `npx tsc --noEmit`: 0 errors (only pre-existing env type defs)
+
+---
+
+## 2026-05-16 — Branch sync, React types, onboarding removal
+
+Local main was 29 commits behind `origin/main` with substantial uncommitted WIP (mode-driven personality system, chemistry engine, session arcs, memory/wrap types). Synced main, isolated WIP onto `feature/personality-modes`, fixed a latent React typing gap, and removed the dead onboarding flow.
+
+### Sync recovery
+- Stashed 11 modified-tracked + 11 untracked files. OneDrive held a handle on `config/`, so `git stash -u` saved the entry but left the tracked working tree dirty. Recovered with `git checkout -- .` → `git pull --ff-only` → `git stash pop`. `App.tsx` auto-merged cleanly with no conflict markers.
+
+### React typing (latent bug)
+- `@types/react` and `@types/react-dom` were never installed. Functional components and the JSX runtime worked because `@vitejs/plugin-react` handles JSX transformation without types, but class components like `LazyChunkErrorBoundary` had implicit `any` for `this.props`.
+- Installed `@types/react@^19` + `@types/react-dom@^19` as devDependencies. 3 `LazyChunkErrorBoundary` `this.props` errors fixed. Surfaced 5 latent WIP errors in `App.tsx`:
+  - `a.handleDrinkAction()` — referenced by `useDeviceSensors.onPour` and `handleToastComplete`, no implementation.
+  - `a.clearToastRequest()` — referenced after `s.incomingToastRequest`, no implementation.
+  - `a.completeOnboarding` — referenced as `OnboardingView.onComplete`, no implementation.
+  - `s.clinkActive` — used to render the clink overlay; managed in `useBroadcastingState` but not surfaced through `useSessionState`'s state object.
+
+### WIP isolation
+- Created `feature/personality-modes` carrying the mode-driven personality system: `ModeSelectView`, `PERSONALITY_CONFIGS`, `SESSION_ARCS`, `modeThemes`, `modeSounds`, `personaStyles`, `chemistryEngine`, `questionSelector`, and new types (`personality`, `chemistry`, `memory`, `sessionArc`, `questions`, `wrap`).
+- Checkpoint commit `8908bf9` (29 files, +1315/-80). Main returned to clean at `f64513d`.
+
+### Session actions added (`hooks/useSessionState.ts`)
+- `handleDrinkAction(): boolean` — sets `clinkActive` true for 1s, increments sip via `setSipLevel`, broadcasts `TRIGGER_CLINK`, vibrates `[100, 30, 100]`. Returns `isSynced` so the device-sensor "pour" gesture only flashes "Sip Detected" when actually connected.
+- `clearToastRequest()` — flips `incomingToastRequest` off after the host accepts a toast invite.
+- Exposed `clinkActive` on the `state` object (it already lived in `useBroadcastingState`, just unsurfaced).
+
+### Onboarding flow removed
+- `OnboardingView` was a 3-step age/height/style form that was never reachable: `startApp` routes `setup → hub` directly and nothing ever set `view === 'onboarding'`.
+- The "style" free-text field was superseded by mode-selection via `PERSONALITY_CONFIGS`.
+- Removed: lazy import + render block in `App.tsx`, `'onboarding'` literal from `AppView` in `types.ts`, `completeOnboarding` action stub in `useSessionState.ts`, and the `components/views/OnboardingView.tsx` file itself.
+
+### Files Changed (feature branch)
+**Modified**
+- `App.tsx` — `handleModeSelect`, onboarding render-block + lazy-import removed
+- `components/IntelligenceBriefing.tsx`, `constants.ts`, `services/geminiService.ts`
+- `services/prompts/{gamePrompts, narrativePrompts, promptContext}.ts`
+- `hooks/useBroadcastingState.ts`
+- `hooks/useSessionState.ts` — new actions, `clinkActive` exposed
+- `store/{gameState, presenceState}.ts`
+- `package.json`, `package-lock.json` — `@types/react@^19`, `@types/react-dom@^19`
+- `types.ts` — `AppView` dropped `'onboarding'`
+
+**Added (mode system, WIP infra)**
+- `components/views/ModeSelectView.tsx`
+- `config/{modeSounds, modeThemes, personaStyles, personalityConfigs, sessionArcs}.ts`
+- `services/{chemistryEngine, questionSelector}.ts`
+- `services/prompts/personalityPrompt.ts`
+- `types/{chemistry, memory, personality, questions, sessionArc, wrap}.ts`
+
+**Deleted**
+- `components/views/OnboardingView.tsx`
+
+### Verification
+- `npx tsc --noEmit`: 0 errors
+- `npm test`: 35/35 passing
+- `npm run dev`: not yet verified in browser
+
+### Open items
+- `npm audit` reports 21 vulnerabilities (1 critical) — not yet investigated.
+- New `modeSelect → setup → hub` flow not yet exercised end-to-end in a real session.
+- Mode-driven personality + chemistry engine + question selector ship as WIP infrastructure — not yet wired into `useAiActions` / `useQuestionFlow`.

@@ -44,7 +44,6 @@ import { SetupView } from './components/views/SetupView';
 import { ModeSelectView } from './components/views/ModeSelectView';
 import { SyncWaitScreen } from './components/views/SyncWaitScreen';
 
-const OnboardingView = lazy(() => import('./components/views/OnboardingView').then(m => ({ default: m.OnboardingView })));
 const HubView = lazy(() => import('./components/views/HubView').then(m => ({ default: m.HubView })));
 const QuestionView = lazy(() => import('./components/views/QuestionView').then(m => ({ default: m.QuestionView })));
 const RatingView = lazy(() => import('./components/views/RatingView').then(m => ({ default: m.RatingView })));
@@ -297,10 +296,6 @@ function AppContent() {
                     status={s.connectionStatus}
                     isConnected={s.isConnected}
                  />
-            )}
-
-            {s.view === 'onboarding' && s.isSynced && (
-                <OnboardingView onComplete={a.completeOnboarding} />
             )}
 
             {s.view === 'hub' && s.isSynced && (

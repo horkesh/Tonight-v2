@@ -61,6 +61,8 @@
     Do instead: `saveProfile()` and `saveVenue()` return `false` on quota errors. Show an error to the user; don't assume success.
 17. **[2026-03-18] Prefer transform animations over layout properties**
     Do instead: animate `scaleX`/`scaleY`/`opacity`/`translate` instead of `width`/`height`/`top`/`left`. Layout properties trigger expensive reflow.
+18. **[2026-05-16] `@types/react` + `@types/react-dom` must be in devDependencies**
+    Do instead: keep both installed at the React major (v19). Without them, functional components and the JSX runtime keep compiling via `@vitejs/plugin-react`, but class components silently lose `this.props` typing (`React.Component<P,S>` becomes a JS class). If you see `Property 'props' does not exist` on an error boundary, suspect missing React types before suspecting the boundary code.
 
 ## Shell & Environment
 1. **[2026-03-12] This is a Windows machine with bash shell**
@@ -69,6 +71,8 @@
    Do instead: check `vite.config.ts` for server configuration before assuming defaults.
 3. **[2026-03-12] Deployed on Vercel (free tier)**
    Do instead: push to `main` to deploy. Environment variables (GEMINI_API_KEY) are set in Vercel dashboard, not committed.
+4. **[2026-05-16] OneDrive can leave `git stash`/`reset` half-done — verify with `git status`**
+   Do instead: after `git stash -u`, `git checkout`, or `git reset` in this repo, run `git status` to confirm the working tree actually reverted. OneDrive's file-watching can hold open handles and cause `failed to remove <dir>: Permission denied`. The stash entry is created, but the tracked working tree may still show modifications. Recovery: `git checkout -- .` to drop the redundant working-tree changes (they're safe in the stash), then continue.
 
 ## Working Style
 1. **[2026-03-12] Keep changes grounded in the real codebase**
@@ -79,3 +83,5 @@
    Do instead: read `.claude/napkin.md` at session start and update it during the same slice whenever a reusable rule becomes clearer.
 4. **[2026-03-12] Ledger updates are part of every fix session**
    Do instead: after landing fixes or making decisions, append a dated entry to `docs/project_ledger.md` before ending the session.
+5. **[2026-05-16] Big WIP belongs on a feature branch, not main**
+   Do instead: if a session's work spans new types, new services, new views, and >10 modified+untracked files, commit it to `feature/<name>` rather than letting it pile up on `main`. OneDrive sync and aborted git ops here make uncommitted state lossy; a branch makes the work atomic and recoverable.
