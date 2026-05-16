@@ -2,6 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../context/SessionContext';
+import { useGameStore } from '../store/gameState';
+
+const MODE_LABELS: Record<string, string> = {
+  date_night: 'Date Night',
+  first_date: 'First Date',
+  ldr: 'Long Distance',
+  reignite: 'Reignite',
+};
 
 interface PresenceBarProps {
   onHome: () => void;
@@ -11,6 +19,8 @@ interface PresenceBarProps {
 export const PresenceBar: React.FC<PresenceBarProps> = ({ onHome, onEditSelf }) => {
   const { state } = useSession();
   const { users, round, isConnected } = state;
+  const sessionMode = useGameStore(s => s.sessionMode);
+  const modeLabel = sessionMode ? MODE_LABELS[sessionMode] : null;
   const [showEditHint, setShowEditHint] = useState(true);
   const [tapFeedback, setTapFeedback] = useState(false);
 
@@ -112,18 +122,32 @@ export const PresenceBar: React.FC<PresenceBarProps> = ({ onHome, onEditSelf }) 
           >
             <span className="font-serif italic text-xl text-white/90 hover:text-white transition-colors">Tonight</span>
           </button>
-          <AnimatePresence>
-            {partner?.status === 'choosing' && (
-              <motion.span
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="text-[8px] uppercase tracking-widest text-amber-400/80 font-black absolute -bottom-4 whitespace-nowrap"
-              >
-                Partner is choosing...
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {/* Mode label sits under the title; "Partner is choosing" supersedes it transiently. */}
+          <div className="absolute -bottom-4 whitespace-nowrap pointer-events-none">
+            <AnimatePresence mode="wait">
+              {partner?.status === 'choosing' ? (
+                <motion.span
+                  key="choosing"
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="text-[8px] uppercase tracking-widest text-amber-400/80 font-black"
+                >
+                  Partner is choosing...
+                </motion.span>
+              ) : modeLabel ? (
+                <motion.span
+                  key="mode"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-[8px] uppercase tracking-widest text-white/25 font-black"
+                >
+                  {modeLabel}
+                </motion.span>
+              ) : null}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Partner Avatar (How you see them) */}

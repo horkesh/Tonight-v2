@@ -228,7 +228,18 @@ export function renderDateHistoryBlock(history: DateHistoryEntry[]): string {
 
   const summaries = history.slice(0, 5).map((h, i) => {
     const date = new Date(h.timestamp).toLocaleDateString();
-    let entry = `Date ${i + 1} (${date}): ${h.location}. Chemistry: ${h.chemistry}%. "${h.headline}" — ${h.summary}`;
+    const modeBit = h.mode ? ` [${h.mode}]` : '';
+    let entry = `Date ${i + 1} (${date})${modeBit}: ${h.location}. Chemistry: ${h.chemistry}%. "${h.headline}" — ${h.summary}`;
+    if (h.chemistryProfile) {
+      const cp = h.chemistryProfile;
+      const dims = [
+        ['spark', cp.spark], ['depth', cp.depth], ['play', cp.play],
+        ['sync', cp.sync], ['growth', cp.growth], ['trust', cp.trust],
+      ] as const;
+      const top = [...dims].sort((a, b) => b[1] - a[1])[0];
+      const trajBit = cp.trajectory ? `, trajectory ${cp.trajectory}` : '';
+      entry += `\n  Chemistry profile: top dimension ${top[0]} (${top[1]}/100)${trajBit}.`;
+    }
     if (h.highlights && h.highlights.length > 0) {
       entry += `\n  Key moments: ${h.highlights.join(' | ')}`;
     }
