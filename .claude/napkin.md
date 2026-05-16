@@ -79,6 +79,8 @@
    Do instead: after `git stash -u`, `git checkout`, or `git reset` in this repo, run `git status` to confirm the working tree actually reverted. OneDrive's file-watching can hold open handles and cause `failed to remove <dir>: Permission denied`. The stash entry is created, but the tracked working tree may still show modifications. Recovery: `git checkout -- .` to drop the redundant working-tree changes (they're safe in the stash), then continue.
 5. **[2026-05-16] `npm audit` can report misleading "fixes" — check the suggested version is actually newer**
    Do instead: when `npm audit` says `fixAvailable: { version: 'X', isSemVerMajor: true }`, verify X > what's installed. For `@vercel/node`, audit suggested 3.0.1 while we were already on 5.8.2 — `npm audit fix --force` would have downgraded us. The remaining vulns were unpatched-upstream in 5.x transitives, not actually fixable. Don't run `npm audit fix --force` without checking the proposed versions first.
+6. **[2026-05-16] Use bank questions as voice anchors for AI generation in Date Night**
+   Do instead: when adding new AI question/scene/activity prompts for Date Night, pull 2-3 matching questions from `data/questionBank.json` and inject them into the prompt as STYLE ANCHORS (mode_eligible filter + tag-cluster mapping from the existing 6-category UI). The bank holds hand-curated voice; the AI matches it instead of drifting into generic AI-speak. Don't have the AI copy bank questions verbatim — direct it to match the register. `pickBankStyleAnchors()` in `services/geminiService.ts` is the reference implementation.
 
 ## Working Style
 1. **[2026-03-12] Keep changes grounded in the real codebase**

@@ -12,6 +12,33 @@ import {
   buildLocationImagePrompt
 } from "./prompts/gamePrompts";
 import { renderFullContextBlock, renderLightweightContext } from "./prompts/promptContext";
+import { QUESTION_BANK } from "../data/loadQuestionBank";
+
+// Maps the existing 6-category UI choices to BankQuestion tag clusters.
+// Used to pull hand-written bank questions that match the user's category
+// pick, then injected into the AI prompt as style anchors so AI-generated
+// questions match the curated voice instead of drifting into generic AI-speak.
+const CATEGORY_TO_BANK_TAGS: Record<string, string[]> = {
+  Style:       ['playful', 'lifestyle', 'attraction'],
+  Escape:      ['past', 'future', 'dreams'],
+  Preferences: ['values', 'sync', 'commitment', 'lifestyle'],
+  Deep:        ['values', 'vulnerability', 'growth', 'past'],
+  Intimate:    ['intimacy', 'attraction', 'vulnerability'],
+  Desire:      ['attraction', 'intimacy', 'sensory'],
+};
+
+function pickBankStyleAnchors(category: string, modeId: string, count: number = 3): string[] {
+  const targetTags = CATEGORY_TO_BANK_TAGS[category] || [];
+  if (targetTags.length === 0) return [];
+  const candidates = QUESTION_BANK.filter(q =>
+    q.mode_eligible.includes(modeId) &&
+    q.tags.some(t => targetTags.includes(t))
+  );
+  if (candidates.length === 0) return [];
+  // Shuffle and take first N for variation across calls
+  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count).map(q => q.text);
+}
 
 // Schema type constants (replaces @google/genai Type enum — values are identical strings)
 const T = {
@@ -188,6 +215,14 @@ export const generateDynamicQuestions = async (
     const vulnerabilityCeiling = personalityConfig?.vulnerability_ceiling ?? 1.0;
     const allowFollowUp = followUpProbability >= 0.2;
 
+    // --- Curated bank style anchors (3 hand-written questions from the bank
+    // matching mode + category). Injected as voice examples so AI generations
+    // match the curated style instead of drifting into generic AI-speak.
+    const styleAnchors = pickBankStyleAnchors(category, personalityConfig?.mode ?? 'date_night', 3);
+    const styleAnchorBlock = styleAnchors.length > 0
+      ? `\nSTYLE ANCHORS (hand-written questions for this mode + category — match this voice, brevity, and provocation. Do NOT copy these; generate new questions in the same register):\n${styleAnchors.map(q => `- "${q}"`).join('\n')}\n`
+      : '';
+
     // --- Partner's background (career, interests, hobbies) ---
     const partnerBackground = partnerPersona.background
       ? `Target's Background: ${partnerPersona.background}`
@@ -292,7 +327,7 @@ ${effectiveIntensity < 25 ? 'Low intensity — be indirect, build safety, earn t
 ${effectiveIntensity >= 25 && effectiveIntensity < 50 ? 'Building intensity — test boundaries gently, show genuine curiosity about their specific life.' : ''}
 ${effectiveIntensity >= 50 && effectiveIntensity < 75 ? 'Strong intensity — get personal. Reference specific things they said. Probe deeper into what they revealed.' : ''}
 ${effectiveIntensity >= 75 ? 'High intensity — intimate, confrontational, vulnerable. The gloves are off. Ask what nobody else would dare.' : ''}
-
+${styleAnchorBlock}
 QUESTION DESIGN RULES:
 Generate exactly 3 questions.
 
@@ -428,7 +463,8 @@ export const generateIntelligenceReport = async (
   dateContext: DateContext | null,
   promptContext?: PromptContext | null
 ): Promise<IntelligenceReport> => {
-  const prompt = buildIntelligenceReportPrompt(vibe, partner, rating, dateContext, promptContext);
+  const reportMode = useGameStore.getState().personalityConfig?.mode ?? null;
+  const prompt = buildIntelligenceReportPrompt(vibe, partner, rating, dateContext, promptContext, reportMode);
 
   try {
     const response = await callWithRetry(() => callProxy('/api/gemini/text', {

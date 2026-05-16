@@ -148,7 +148,8 @@ export const QuestionView: React.FC<QuestionViewProps> = ({ selfId }) => {
                     {opt}
                     </button>
                 ))}
-                <button onClick={() => qActions.handleRefuse(false)} className="mt-4 p-9 rounded-full border border-rose-500/40 text-rose-500 hover:bg-rose-500 hover:text-white text-[12px] tracking-[0.4em] uppercase font-black transition-all">Refuse & Sip 🥃</button>
+                <button onClick={() => qActions.handlePass(false)} className="mt-4 p-9 rounded-full border border-white/10 text-white/30 hover:bg-white/5 hover:text-white/60 text-[12px] tracking-[0.4em] uppercase font-black transition-all">Pass</button>
+                <button onClick={() => qActions.handleRefuse(false)} className="mt-2 p-9 rounded-full border border-rose-500/40 text-rose-500 hover:bg-rose-500 hover:text-white text-[12px] tracking-[0.4em] uppercase font-black transition-all">Refuse & Sip 🥃</button>
                 </div>
             ) : (
                 <WaitingForAnswer onTimeout={() => {

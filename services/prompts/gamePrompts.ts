@@ -69,7 +69,8 @@ export const buildIntelligenceReportPrompt = (
   partner: PersonaState,
   rating: number,
   dateContext: DateContext | null,
-  promptContext?: PromptContext | null
+  promptContext?: PromptContext | null,
+  mode?: string | null
 ): string => {
   let contextBlock = '';
   if (promptContext) {
@@ -85,8 +86,14 @@ export const buildIntelligenceReportPrompt = (
     }
   }
 
+  const reportFraming = mode === 'reignite'
+    ? `Generate a "Reconnaissance Report" — a rediscovery dossier about someone you already love but are seeing with fresh eyes. Tone: challenging, surprising, tender. Frame discoveries as things you forgot or never knew about this person. The publicationName should be something like "The Rediscovery Files" or a creative equivalent.`
+    : mode === 'ldr'
+    ? `Generate a "Distance Dispatch" — a love letter disguised as an intelligence report from across the miles. Tone: intimate, longing, hopeful. The publicationName should be something like "The Long-Distance Dossier" or a creative equivalent.`
+    : `Generate a "Post-Date Intelligence Report". Keep it sharp and direct.`;
+
   return `
-    Generate a "Post-Date Intelligence Report". Keep it sharp and direct. Max 30 words per field.
+    ${reportFraming} Max 30 words per field.
 
     Subject: The Partner
     Date Context: ${dateContext?.location?.title || "Unknown Location"}

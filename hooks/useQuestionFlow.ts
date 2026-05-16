@@ -162,6 +162,33 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
     a.setView('hub');
   };
 
+  // Softer alternative to handleRefuse: skip a question without the sip penalty
+  // or "refused/respecting the boundary" framing. Just "not this one, move on."
+  const handlePass = (isBot = false) => {
+    const question = s.activeQuestion;
+    if (question) {
+      const newEntry: ConversationEntry = {
+        round: s.round,
+        category: question.category,
+        questionText: question.text,
+        answer: "[Passed]",
+        ...getLogLabels(isBot),
+      };
+      a.setConversationLog(prev => [...prev, newEntry].slice(-20));
+    }
+
+    if (!isBot) {
+      a.sendFlash("Passed on this one.", 2500);
+      showFlash("No pressure. Moving on.");
+    } else {
+      showFlash("Partner passed. No worries.", 2500);
+    }
+
+    a.setQuestionState(null, null);
+    resetCategory();
+    a.setView('hub');
+  };
+
   const handleAnswerSelect = (opt: string, isBot = false) => {
     const updateTarget = isBot ? a.setPartnerPersona : a.setUserPersona;
     const imageTarget = isBot ? 'partner' : 'self';
@@ -288,6 +315,7 @@ export function useQuestionFlow(session: ReturnType<typeof useSessionState>) {
         handleCategorySelect,
         handleQuestionSelect,
         handleRefuse,
+        handlePass,
         handleAnswerSelect,
         showFlash,
         resetCategory

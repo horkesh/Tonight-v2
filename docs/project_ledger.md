@@ -656,3 +656,46 @@ Follow-up port from Tonight Commercial: the `qrEntry` view + room deep-link pars
 - `RecapCard.tsx`, `TherapistSummary.tsx`, `VaultPrompt.tsx` — post-report-phase extensions in Commercial. Blocked: they import `@firetold/studio` which is a Commercial-only workspace package. Porting requires rewriting their export/share surface to drop that dep.
 - `structured_date` mode — still no bank questions for it.
 - `@vercel/node` major bump: **closed as not actionable.** We're already on the latest `@vercel/node@5.8.2`. The remaining 9 audit findings (undici, minimatch, path-to-regexp, etc.) want `fixAvailable: { version: '3.0.1', isSemVerMajor: true }` — but 3.0.1 is *older* than what we have; `npm audit fix --force` would downgrade us, not patch us. These are unfixed vulnerabilities in 5.x's transitive deps awaiting upstream patches. No action needed from this repo.
+
+---
+
+## 2026-05-16 — Revert Vibe Check, port real Date Night improvements from Enterprise
+
+Course correction. Vibe Check is the commercial product's signature 5-min flow; this is the personal Date Night app, where Vibe Check doesn't belong. Reverted the Vibe-Check-specific UI/flow and kept the general-purpose pieces that benefit Date Night.
+
+### Revert (commit `52a5b6b`)
+- Deleted `VibeCheckGameView.tsx`, `VibeCheckFlashView.tsx`, `QREntryView.tsx`, `useVibeCheckFlow.ts`.
+- Removed Vibe Check card from `ModeSelectView`.
+- Removed App.tsx hook call, room id state, QR-guest auto-setup effect, auto-start effect, `handleModeSelect` vibe_check branch, view routes for `vibeCheckGame`/`vibeCheckFlash`/`qrEntry`.
+- `AppView` dropped `vibeCheckGame`, `vibeCheckFlash`, `qrEntry`.
+- `NetworkMessage` dropped `SYNC_VIBE_CHECK_ANSWER`.
+- Kept (general-purpose, benefits Date Night): the 200-question bank in `data/`, `useChemistry`, `useSessionArc`, the chemistry engine improvements, `SYNC_CHEMISTRY_UPDATE`, `SYNC_ARC_PHASE_CHANGE`.
+
+### Real Date Night improvements
+
+**1. Style anchors from the bank**
+Curated bank questions matching the user's category are now injected into the AI question prompt as voice exemplars. Maps the 6 UI categories (Style/Escape/Preferences/Deep/Intimate/Desire) to BankQuestion tag clusters, pulls 3 random matching questions for the active mode, and prepends them with: *"STYLE ANCHORS (hand-written questions for this mode + category — match this voice, brevity, and provocation. Do NOT copy these; generate new questions in the same register)"*. This is a new pattern not in Commercial — Commercial uses the bank only in their Vibe Check flow. The personal app gets curated voice quality across every Date Night question generation.
+
+**2. Mode-aware intelligence report framing**
+Ported from Commercial. `buildIntelligenceReportPrompt` now takes a `mode` parameter and switches the report's framing/publication name:
+- `reignite` → *"Reconnaissance Report"* (rediscovery dossier; tone: challenging, surprising, tender; publication: "The Rediscovery Files")
+- `ldr` → *"Distance Dispatch"* (love letter disguised as report; tone: intimate, longing, hopeful; publication: "The Long-Distance Dossier")
+- everything else (including `date_night`) → current *"Post-Date Intelligence Report"* — unchanged
+- `generateIntelligenceReport` reads `personalityConfig.mode` from the store and passes it through (matches the napkin rule of services reading mode from store at call time).
+
+**3. `handlePass` action + Pass button**
+Ported from Commercial's `useQuestionFlow`. Softer than `handleRefuse`: no sip penalty, no "refused/respecting the boundary" framing. Logs `[Passed]`, flashes *"Passed on this one."*, moves on. Wired into `QuestionView` as a subtle outline button above the existing `Refuse & Sip 🥃`. Two-tier opt-out: "just not this one" vs. "I'm dodging this and will sip on it."
+
+### Diffs reviewed but deferred
+- `useBroadcastingState` adds `broadcastModeSelect` / `broadcastChemistryUpdate` / `broadcastArcPhaseChange` and the `useNetworkSync` companion handlers. Skipped — none of these have a consumer in the Date Night flow today (chemistry computes identically on both sides via the same Q+A, no arc-phase-advance code, mode is host-only state).
+- `profileStore.therapistLink` — Commercial-only (TherapistSummary feature blocked on `@firetold/studio`).
+- `useSessionLifecycle` — ours is actually ahead of Commercial (preserves uploaded avatars, comments on the avatar pipeline).
+
+### Files Changed
+- Removed: `components/views/{VibeCheckGameView,VibeCheckFlashView,QREntryView}.tsx`, `hooks/useVibeCheckFlow.ts`
+- Modified: `App.tsx`, `types.ts`, `components/views/ModeSelectView.tsx`, `components/views/QuestionView.tsx`, `services/geminiService.ts`, `services/prompts/gamePrompts.ts`, `hooks/useQuestionFlow.ts`
+
+### Verification
+- `npx tsc --noEmit`: clean
+- `npm test`: 35/35 passing
+- `npm run build`: succeeds (24 precache entries, ~1011 KiB — back to pre-Vibe-Check size)
