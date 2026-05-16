@@ -731,3 +731,35 @@ After the Enterprise port + revert, pushed through another four sub-slices that 
 
 ### What I'd flag as the genuine completion line
 Every Enterprise improvement I could identify that benefits Date Night and isn't blocked on `@firetold/studio` has been ported. Anything beyond this point is new feature work (e.g., wiring `useSessionArc` phase advancement, building a chemistry HUD), not Enterprise-derivative. The branch `feature/personality-modes` is ready to merge to `main` when you're ready.
+
+---
+
+## 2026-05-16 — Land: merge, deploy, branch cleanup
+
+Closing the session.
+
+### Merge + push
+- `feature/personality-modes` fast-forward merged into `main`. 16 commits, 42 files changed, +3062 / -757 lines. Net new top-level directories: `data/` (question bank), `config/` (mode configs); expanded `types/` subdirectory.
+- Final commit on the branch: `f099f1e` (docs: bring CLAUDE.md current with modes/personality system + napkin rule).
+- `git push origin main` triggered a Vercel production deploy.
+
+### Vercel deploy verified
+- Vercel project: `tonight-v2` (`prj_DnZEodDJGC59V2ZaCyIqiuA5gYRz`).
+- Production deployment: `dpl_9SVJWmN2EXF91XcJtRTYJZYTj29o`, state `READY`, target `production`, commit `f099f1e`.
+- Production URL (branch alias): `https://tonight-v2-git-main-haris-projects-2de2fa69.vercel.app`.
+- Inspector: `https://vercel.com/haris-projects-2de2fa69/tonight-v2/9SVJWmN2EXF91XcJtRTYJZYTj29o`.
+- Every preview deploy from the feature branch also went `READY` — no build regressions from the bank-as-JSON-import, new lazy-loaded views, or any of the new types/config layer.
+- Used the `claude.ai_Vercel` MCP toolset to verify (the Vercel CLI isn't installed locally).
+
+### Cleanup
+- `feature/personality-modes` deleted locally (`git branch -d`) and on origin (`git push origin --delete`). Branch was fully merged so the safe `-d` flag was used.
+- Two old `claude/*` branches remain on origin from earlier sessions — untouched, can be cleaned up in a future session if desired.
+
+### End-of-session repo state
+- `main` clean, in sync with `origin/main` at `f099f1e`.
+- Tests: 35/35 green at merge time.
+- Build: 24 PWA precache entries, ~1100 KiB.
+- Production deploy live and verified.
+
+### Untested
+- Real two-device session of the merged Date Night flow. All preview/prod builds succeeded but no human has played a session on the new code yet. Watch for: AI fallback behavior (bank kicks in if `generateDynamicQuestions` fails), mode label visibility in PresenceBar, mode/trajectory line in IntelligenceBriefing, Pass button behavior, activity gating in first_date / ldr / reignite modes.
