@@ -1,5 +1,5 @@
 
-export type AppView = 'modeSelect' | 'setup' | 'hub' | 'activity' | 'question' | 'loading' | 'rating' | 'twoTruths' | 'finishSentence' | 'playlist' | 'vibeCheckGame' | 'vibeCheckFlash';
+export type AppView = 'modeSelect' | 'setup' | 'hub' | 'activity' | 'question' | 'loading' | 'rating' | 'twoTruths' | 'finishSentence' | 'playlist' | 'vibeCheckGame' | 'vibeCheckFlash' | 'qrEntry';
 
 export interface User {
   id: string;

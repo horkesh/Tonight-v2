@@ -57,6 +57,7 @@ const LetterView = lazy(() => import('./components/LetterView').then(m => ({ def
 const TextSuggestionView = lazy(() => import('./components/TextSuggestionView').then(m => ({ default: m.TextSuggestionView })));
 const VibeCheckGameView = lazy(() => import('./components/views/VibeCheckGameView').then(m => ({ default: m.VibeCheckGameView })));
 const VibeCheckFlashView = lazy(() => import('./components/views/VibeCheckFlashView').then(m => ({ default: m.VibeCheckFlashView })));
+const QREntryView = lazy(() => import('./components/views/QREntryView').then(m => ({ default: m.QREntryView })));
 
 function AppContent() {
   const session = useSession();
@@ -69,6 +70,33 @@ function AppContent() {
 
   // Vibe Check game flow orchestrator (bank-driven, no API calls)
   const { vcState, vcActions } = useVibeCheckFlow(a.setView);
+
+  // Room id used by the Vibe Check QR flow. Pulled from URL if present
+  // (guest arriving via scan), otherwise generated fresh for the host.
+  const [vibeCheckRoomId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('room') || `vc-${Math.random().toString(36).slice(2, 8)}`;
+  });
+
+  // Detect guest arrival via QR: URL has both ?room and ?mode=vibe_check.
+  const [isQRGuest] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return !!params.get('room') && params.get('mode') === 'vibe_check';
+  });
+
+  // If guest arrived via QR, set up Vibe Check mode in the store and route to qrEntry.
+  // The name form on qrEntry then triggers startApp(false), which connects P2P.
+  useEffect(() => {
+    if (isQRGuest) {
+      gameStore.setSessionMode('vibe_check');
+      gameStore.setPersonalityConfig(PERSONALITY_CONFIGS['vibe_check']);
+      gameStore.setSessionArc({ ...SESSION_ARCS['vibe_check'] });
+      gameStore.setSessionStatus('connecting');
+      applyModeTheme('vibe_check');
+      a.setView('qrEntry');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-start the Vibe Check game once both players sync. Fires once per session.
   const vibeCheckStartedRef = useRef(false);
@@ -92,7 +120,22 @@ function AppContent() {
     gameStore.setSessionArc({ ...SESSION_ARCS[mode] });
     gameStore.setSessionStatus('setup');
     applyModeTheme(mode);
-    a.setView('setup');
+
+    if (mode === 'vibe_check') {
+      // Host starts P2P immediately so the guest can connect when they scan.
+      // startApp routes to 'hub' internally; override to 'qrEntry' right after.
+      a.startApp(
+        { name: 'Host', sex: '', age: '', desc: '' },
+        { name: 'Guest', sex: '', age: '', desc: '' },
+        null,
+        null,
+        vibeCheckRoomId,
+        true,
+      );
+      a.setView('qrEntry');
+    } else {
+      a.setView('setup');
+    }
   };
 
   const [postReportPhase, setPostReportPhase] = useState<'briefing' | 'letter' | 'text' | null>(null);
@@ -302,12 +345,31 @@ function AppContent() {
                 <ModeSelectView onSelectMode={handleModeSelect} />
             )}
 
+            {s.view === 'qrEntry' && (
+                <QREntryView
+                  isHost={!isQRGuest}
+                  roomId={vibeCheckRoomId}
+                  onHostReady={() => {}}
+                  onGuestJoin={(name) => {
+                    const guestData = { name, sex: '', age: '', desc: '' };
+                    a.startApp(
+                      null,
+                      guestData,
+                      null,
+                      null,
+                      vibeCheckRoomId,
+                      false,
+                    );
+                  }}
+                />
+            )}
+
             {s.view === 'setup' && (
                 <SetupView onStart={a.startApp} />
             )}
 
             {/* Sync Blocking State for Guests — Clean loading, escape hatches appear after delay */}
-            {(s.view as string) !== 'setup' && (s.view as string) !== 'modeSelect' && !s.isSynced && (
+            {(s.view as string) !== 'setup' && (s.view as string) !== 'modeSelect' && (s.view as string) !== 'qrEntry' && !s.isSynced && (
                  <SyncWaitScreen
                     onRetry={() => {
                         qa.showFlash("Retrying Connection...");

@@ -619,3 +619,40 @@ The user pointed at a sibling repo at `~/Documents/Personal/Enterprise/Tonight C
 - Vibe Check uses the existing `setup` flow as a bridge. If we want the no-signup QR experience, port `QrEntryView` + room-deep-link query parsing in a follow-up.
 - The new flow needs a real two-device session to validate end-to-end (single browser tab can verify the views render, but not P2P sync behavior).
 - `useNetworkSync.ts` doesn't have handlers for the 3 new message types — `useVibeCheckFlow` listens directly via `p2p.onData()` and the inbound types fall through useNetworkSync's switch. Works today; could be tidied later if useNetworkSync grows exhaustive checking.
+
+---
+
+## 2026-05-16 — QR Entry flow for Vibe Check ("no signup needed" delivered)
+
+Follow-up port from Tonight Commercial: the `qrEntry` view + room deep-link parsing. The Vibe Check card on `ModeSelectView` says "Quick-fire chemistry test. No signup needed." — previously a lie because vibe_check still routed through `setup → sync`. Now it's literally true.
+
+### Flow
+
+- **Host** picks `Vibe Check` on `ModeSelectView` → `handleModeSelect` immediately calls `startApp` with placeholder host/guest data (name 'Host', empty fields) and a fresh `vc-<6char>` room id, then overrides view to `qrEntry`. The host sees a QR code that encodes `<origin><path>?room=<id>&mode=vibe_check`.
+- **Guest** scans the QR. Their URL has the room + mode params. The new `isQRGuest` state detects this on mount and the new `useEffect` sets `sessionMode='vibe_check'`, applies the theme, and routes to `qrEntry`. The guest sees a single name input (no account, no profile fields).
+- Guest submits the name → `QREntryView.onGuestJoin(name)` calls `a.startApp(null, {name,...}, null, null, vibeCheckRoomId, false)` and P2P connects.
+- Both synced → the existing `vibeCheckStartedRef` effect fires → view becomes `vibeCheckGame` → `vcActions.startGame()`. 200-question bank, 5-minute timer, chemistry tracking, wrap on time-up.
+
+### Changes
+- New: `components/views/QREntryView.tsx` (169 lines, uses `qrcode.react` which was already a dep).
+- `types.ts` — `AppView` gained `'qrEntry'`.
+- `App.tsx`:
+  - Lazy import for `QREntryView`.
+  - `vibeCheckRoomId` state (URL or random).
+  - `isQRGuest` state (URL params).
+  - Guest auto-setup `useEffect` (one-shot on mount).
+  - `handleModeSelect` — for `vibe_check`, runs `startApp` immediately and overrides view to `qrEntry` (other modes still route to `setup`).
+  - `qrEntry` view route added before `setup`.
+  - `SyncWaitScreen` condition adds `view !== 'qrEntry'` so the QR shows instead of a sync spinner pre-connection.
+
+### Verification
+- `npx tsc --noEmit`: clean
+- `npm test`: 35/35
+- `npm run build`: succeeds (PWA precache 1108 KiB / 27 entries)
+- End-to-end QR scan still requires two devices to verify.
+
+### What's still deferred
+- `PhaseIndicator.tsx` — visualizes arc phase progression. Self-contained, easy port.
+- `RecapCard.tsx`, `TherapistSummary.tsx`, `VaultPrompt.tsx` — post-report-phase extensions; touch existing post-report flow.
+- `structured_date` mode — still no bank questions for it.
+- `@vercel/node` major bump.
