@@ -28,14 +28,6 @@ const MODE_CARDS: ModeCardData[] = [
     available: true,
   },
   {
-    id: 'vibe_check',
-    name: 'Vibe Check',
-    tagline: 'Quick-fire chemistry test. No signup needed.',
-    icon: '\u26A1', // lightning
-    durationLabel: '5-10 min',
-    available: true,
-  },
-  {
     id: 'first_date',
     name: 'First Date',
     tagline: 'Warm, curious, gradual discovery.',

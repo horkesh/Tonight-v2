@@ -1,5 +1,5 @@
 
-export type AppView = 'modeSelect' | 'setup' | 'hub' | 'activity' | 'question' | 'loading' | 'rating' | 'twoTruths' | 'finishSentence' | 'playlist' | 'vibeCheckGame' | 'vibeCheckFlash' | 'qrEntry';
+export type AppView = 'modeSelect' | 'setup' | 'hub' | 'activity' | 'question' | 'loading' | 'rating' | 'twoTruths' | 'finishSentence' | 'playlist';
 
 export interface User {
   id: string;
@@ -188,7 +188,6 @@ export type NetworkMessage =
   | { type: 'SYNC_LAST_CHOICE'; payload: string }
   | { type: 'SYNC_CHEMISTRY_UPDATE'; payload: import('./types/chemistry').ChemistryProfile }
   | { type: 'SYNC_ARC_PHASE_CHANGE'; payload: number }
-  | { type: 'SYNC_VIBE_CHECK_ANSWER'; payload: { userId: string; optionId: string; questionId: string } }
   | { type: 'REQUEST_SYNC'; payload?: never }
   | { type: 'PING'; payload?: never }
   | { type: 'PONG'; payload?: never };
