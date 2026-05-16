@@ -77,6 +77,8 @@
    Do instead: push to `main` to deploy. Environment variables (GEMINI_API_KEY) are set in Vercel dashboard, not committed.
 4. **[2026-05-16] OneDrive can leave `git stash`/`reset` half-done — verify with `git status`**
    Do instead: after `git stash -u`, `git checkout`, or `git reset` in this repo, run `git status` to confirm the working tree actually reverted. OneDrive's file-watching can hold open handles and cause `failed to remove <dir>: Permission denied`. The stash entry is created, but the tracked working tree may still show modifications. Recovery: `git checkout -- .` to drop the redundant working-tree changes (they're safe in the stash), then continue.
+5. **[2026-05-16] `npm audit` can report misleading "fixes" — check the suggested version is actually newer**
+   Do instead: when `npm audit` says `fixAvailable: { version: 'X', isSemVerMajor: true }`, verify X > what's installed. For `@vercel/node`, audit suggested 3.0.1 while we were already on 5.8.2 — `npm audit fix --force` would have downgraded us. The remaining vulns were unpatched-upstream in 5.x transitives, not actually fixable. Don't run `npm audit fix --force` without checking the proposed versions first.
 
 ## Working Style
 1. **[2026-03-12] Keep changes grounded in the real codebase**

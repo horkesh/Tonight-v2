@@ -652,7 +652,7 @@ Follow-up port from Tonight Commercial: the `qrEntry` view + room deep-link pars
 - End-to-end QR scan still requires two devices to verify.
 
 ### What's still deferred
-- `PhaseIndicator.tsx` — visualizes arc phase progression. Self-contained, easy port.
-- `RecapCard.tsx`, `TherapistSummary.tsx`, `VaultPrompt.tsx` — post-report-phase extensions; touch existing post-report flow.
+- `PhaseIndicator.tsx` — visualizes arc phase progression. Self-contained, but its display names only cover `structured_date`'s phases; other modes use different names. Limited UX value without extending its phase-name map.
+- `RecapCard.tsx`, `TherapistSummary.tsx`, `VaultPrompt.tsx` — post-report-phase extensions in Commercial. Blocked: they import `@firetold/studio` which is a Commercial-only workspace package. Porting requires rewriting their export/share surface to drop that dep.
 - `structured_date` mode — still no bank questions for it.
-- `@vercel/node` major bump.
+- `@vercel/node` major bump: **closed as not actionable.** We're already on the latest `@vercel/node@5.8.2`. The remaining 9 audit findings (undici, minimatch, path-to-regexp, etc.) want `fixAvailable: { version: '3.0.1', isSemVerMajor: true }` — but 3.0.1 is *older* than what we have; `npm audit fix --force` would downgrade us, not patch us. These are unfixed vulnerabilities in 5.x's transitive deps awaiting upstream patches. No action needed from this repo.
