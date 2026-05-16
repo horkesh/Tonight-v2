@@ -497,3 +497,33 @@ Follow-up to the morning session: cleared most of the npm audit findings, then t
 - `@vercel/node 3.0.1` major bump still pending (covers remaining 9 high-severity vulns).
 - New flow still not exercised end-to-end in a real session.
 - Chemistry engine, question selector, session arc phase advancement, and wrap_type rendering remain unwired — these are still scaffolding waiting on either a real `BankQuestion[]` bank or a deliberate decision to integrate without one.
+
+---
+
+## 2026-05-16 — Reconcile question prompt with mode word limits + dev smoke
+
+Follow-up: the system-instruction overlay was telling the model "Max N words per question" via the personality config, but the inline prompt in `generateDynamicQuestions` still hardcoded `Each question MUST be 6-14 words`. Inline guidance tends to win over earlier system instructions, so the mode overlay was being diluted. This makes the inline rules pull the same direction as the overlay.
+
+### Change
+- `services/geminiService.ts` — `generateDynamicQuestions` now reads `personalityConfig` from the game store and derives `maxQuestionWords` and `maxOptionWords`. The inline prompt's hardcoded "6-14 words" and "2-6 words" are now `at most ${maxQuestionWords}` and `at most ${maxOptionWords}`. Falls back to the legacy 14/6 defaults when no mode is active — preserves prior behavior for sessions that skip mode selection.
+- New direct import of `useGameStore` in `geminiService.ts` (matches the `getPromptContext`/`getSystemInstruction` pattern of services reading from store at call time).
+- Scene generator (`buildScenePrompt`) not touched — its hardcoded "max 6 words" choice text is universally short across modes and the system overlay already steers tone there.
+
+### Dev smoke
+- `npm run dev` boots Vite in 680ms with no errors.
+- HMR routes for `App.tsx`, `ModeSelectView.tsx`, `services/geminiService.ts`, `services/prompts/personalityPrompt.ts`, `store/gameState.ts` all transform and serve cleanly.
+- Full browser-side interaction not verified (no partner session) — boot-level confirmation only.
+
+### Files Changed
+- `services/geminiService.ts` — store import + length-rule reconciliation
+
+### Verification
+- `npx tsc --noEmit`: clean
+- `npm test`: 35/35 passing
+- `npm run build`: succeeds
+- `npm run dev`: boots clean
+
+### Open items unchanged
+- `@vercel/node 3.0.1` major bump still pending.
+- Follow-up probability conflict not yet fixed — inline prompt always asks for Q1 as a follow-up, but `vibe_check` has `follow_up_probability: 0`. Bigger restructure to address.
+- `BankQuestion[]` bank still empty; `selectNextQuestion` still uncalled.

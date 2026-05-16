@@ -2,6 +2,7 @@
 import { Scene, VibeStats, PersonaState, IntelligenceReport, Question, DateContext, DateLocation, DateVibe, ConversationEntry, TwoTruthsData, FinishSentenceData, NarrativeSuggestion, PlaylistData, LetterData } from "../types";
 import type { PromptContext } from "../types/profiles";
 import { getSystemInstruction } from "./prompts/personalityPrompt";
+import { useGameStore } from "../store/gameState";
 import { buildNarrativePrompt } from "./prompts/narrativePrompts";
 import { getDominantVibe } from "../utils/helpers";
 import {
@@ -179,6 +180,11 @@ export const generateDynamicQuestions = async (
 
     const { conversationLog, round, vibe } = enrichedContext;
 
+    // --- Mode-aware length constraints (fall back to legacy defaults when no mode selected) ---
+    const personalityConfig = useGameStore.getState().personalityConfig;
+    const maxQuestionWords = personalityConfig?.max_question_words ?? 14;
+    const maxOptionWords = personalityConfig?.max_option_words ?? 6;
+
     // --- Partner's background (career, interests, hobbies) ---
     const partnerBackground = partnerPersona.background
       ? `Target's Background: ${partnerPersona.background}`
@@ -284,7 +290,7 @@ ${chemistry >= 75 ? 'High chemistry — intimate, confrontational, vulnerable. T
 QUESTION DESIGN RULES:
 Generate exactly 3 questions.
 
-CRITICAL LENGTH RULE: Each question MUST be 6-14 words. Short. Punchy. Direct. No preamble, no "If you could..." or "Would you say that..." padding. Cut every unnecessary word. Think of how a confident person asks something across a candlelit table — not a therapist reading from a clipboard.
+CRITICAL LENGTH RULE: Each question MUST be at most ${maxQuestionWords} words. Short. Punchy. Direct. No preamble, no "If you could..." or "Would you say that..." padding. Cut every unnecessary word. Think of how a confident person asks something across a candlelit table — not a therapist reading from a clipboard.
 BAD: "Given what you shared earlier about your relationship with vulnerability, how would you describe the way you handle emotional conflict?" (25 words, clinical)
 GOOD: "What scares you more — being known or being forgotten?" (10 words, sharp)
 BAD: "If you had to choose between following your passion and maintaining financial stability, which would you pick?" (17 words, generic)
@@ -297,7 +303,7 @@ Question 2 — RECIPROCITY: ${userSecrets ? 'The Asker revealed something. Use t
 Question 3 — FRESH THREAD: Entirely new territory. ${partnerPersona.background ? `Specific to them (${partnerPersona.background.slice(0, 60)}), not generic.` : 'Unexpected. Reveals character.'}
 
 ANSWER OPTIONS: Each question gets exactly 3 options.
-- Each option: 2-6 words, emotionally DISTINCT, psychologically REVEALING
+- Each option: at most ${maxOptionWords} words, emotionally DISTINCT, psychologically REVEALING
 - BAD options: "Yes / No / Maybe" or "Always / Sometimes / Never"
 - GOOD options: "Only when I'm afraid / Never again / Every single time" or "I'd lie about it / I'd run / I'd lean in closer"
 - Options should force the answerer to CHOOSE who they are — each option reveals something different about their character.
