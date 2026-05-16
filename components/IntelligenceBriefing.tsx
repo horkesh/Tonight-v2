@@ -11,6 +11,12 @@ interface IntelligenceBriefingProps {
   onClose: () => void;
 }
 
+const truncateWords = (text: string, maxWords: number): string => {
+  const words = text.split(/\s+/);
+  if (words.length <= maxWords) return text;
+  return words.slice(0, maxWords).join(' ') + '...';
+};
+
 const VibeBar: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => (
   <div className="flex items-center gap-3">
     <span className="text-[9px] uppercase tracking-widest font-black w-24 text-right opacity-50">{label}</span>
@@ -145,13 +151,13 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
 
                 {/* Lede */}
                 <p className="text-base font-serif italic text-white/70 leading-relaxed mb-6 first-letter:text-3xl first-letter:font-black first-letter:text-rose-400 first-letter:float-left first-letter:mr-2 first-letter:leading-[0.8]">
-                  {report.lede}
+                  {truncateWords(report.lede, 20)}
                 </p>
 
                 {/* Summary with redacted effect */}
                 <div className="mb-6">
                   <p className="text-sm text-white/50 leading-relaxed font-mono">
-                    {report.summary}
+                    {truncateWords(report.summary, 40)}
                   </p>
                 </div>
 
@@ -166,7 +172,7 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
                       <VibeBar label="Comfortable" value={vibeStats.comfortable} color="bg-amber-500" />
                     </div>
                   ) : (
-                    <p className="text-sm font-serif italic text-white/40">"{report.vibeAnalysis}"</p>
+                    <p className="text-sm font-serif italic text-white/40">"{truncateWords(report.vibeAnalysis, 30)}"</p>
                   )}
                 </div>
 
@@ -198,7 +204,7 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
                 {report.closingThought && (
                   <div className="border-t border-white/5 pt-5 mb-4">
                     <p className="text-sm font-serif italic text-white/40 text-center leading-relaxed">
-                      "{report.closingThought}"
+                      "{truncateWords(report.closingThought, 30)}"
                     </p>
                   </div>
                 )}

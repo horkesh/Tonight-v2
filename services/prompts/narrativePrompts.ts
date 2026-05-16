@@ -2,7 +2,7 @@
 import { VibeStats, ConversationEntry } from '../../types';
 import type { PromptContext } from '../../types/profiles';
 import { getDominantVibe } from '../../utils/helpers';
-import { renderFullContextBlock } from './promptContext';
+import { renderLightweightContext } from './promptContext';
 
 export function buildNarrativePrompt(
   round: number,
@@ -16,7 +16,7 @@ export function buildNarrativePrompt(
 
   let conversationBlock = '';
   if (conversationLog.length > 0) {
-    const formatted = conversationLog.slice(-10).map(e =>
+    const formatted = conversationLog.slice(-8).map(e =>
       `[R${e.round}, ${e.category}] "${e.questionText}" -> "${e.answer}"`
     ).join('\n');
     conversationBlock = `\nRECENT CONVERSATION:\n${formatted}`;
@@ -25,7 +25,7 @@ export function buildNarrativePrompt(
   const arcPhase = round <= 2 ? 'Opening' : round <= 5 ? 'Building' : round <= 7 ? 'Deepening' : 'Climax';
 
   return `
-You are the narrative director of "Tonight" — a premium two-person virtual date experience.
+You are the narrative director of "Tonight" — a two-person virtual date experience. Be terse and direct.
 
 CURRENT STATE:
 Round: ${round} | Phase: ${arcPhase}
@@ -48,15 +48,15 @@ AVAILABLE ACTIONS:
 
 ${round >= 8 ? 'IMPORTANT: Round 8+. Suggest wrapping up with the rating/report flow. Set suggestedAction to "activity" with suggestedActivity "morning_edition".' : ''}
 
-${promptContext ? `\nDEEP PARTNER INTELLIGENCE:\n${renderFullContextBlock(promptContext)}\nUse this to personalize the suggestion and transition narrative.\n` : ''}
+${promptContext ? `\nCONTEXT: ${renderLightweightContext(promptContext)}\n` : ''}
 
 TASK: Suggest the single best next action for this moment in the date.
 
-TRANSITION NARRATIVE: Write a 1-2 sentence cinematic transition that sets the mood for the next moment. Max 25 words. First person plural or atmospheric. Examples:
-- "The ice has barely melted. Time to see what's underneath."
-- "Something shifted in the last answer. Follow that thread."
-- "The silence says more than the words did. Go deeper."
+TRANSITION NARRATIVE: EXACTLY 1-2 sentences. Max 20 words. Punchy and direct. Examples:
+- "The ice has barely melted. Time to dig."
+- "Something shifted. Follow that thread."
+- "The silence says more than the words did."
 
-OUTPUT: JSON with suggestedAction ("question" or "activity"), suggestedCategory (if question — one of: Style, Escape, Preferences, Deep, Intimate, Desire), suggestedActivity (if activity — one of: twoTruths, finishSentence, truth), reasoning (1 sentence why), transitionNarrative (cinematic text).
+OUTPUT: JSON with suggestedAction ("question" or "activity"), suggestedCategory (if question — one of: Style, Escape, Preferences, Deep, Intimate, Desire), suggestedActivity (if activity — one of: twoTruths, finishSentence, truth), reasoning (1 sentence why), transitionNarrative (terse text).
 `;
 }

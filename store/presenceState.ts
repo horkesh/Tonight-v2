@@ -2,9 +2,10 @@ import { create } from 'zustand';
 import { User, PersonaState } from '../types';
 
 export const INITIAL_PERSONA: PersonaState = {
-  traits: [], memories: [], secrets: [], imageUrl: null, lastGeneratedRound: 0, isGenerating: false, 
+  traits: [], memories: [], secrets: [], imageUrl: null, lastGeneratedRound: 0, isGenerating: false,
   revealProgress: 0, chemistry: 0, drunkFactor: 0, appearance: "",
-  isProfileComplete: false
+  isProfileComplete: false,
+  styleId: 'noir',
 };
 
 export interface PresenceState {

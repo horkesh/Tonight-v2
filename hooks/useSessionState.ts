@@ -138,6 +138,7 @@ export function useSessionState() {
     activePersonaTab,
     hasSeenArrivalOverlay: presence.hasSeenArrivalOverlay,
     isHost: sessionInfo?.isHost ?? false,
+    clinkActive: broadcasting.clinkActive,
   };
 
   const actions = {
@@ -184,6 +185,27 @@ export function useSessionState() {
         presence.setArrivalEvent(null);
         presence.setHasSeenArrivalOverlay(true);
     }, [presence.setArrivalEvent, presence.setHasSeenArrivalOverlay]),
+    handleDrinkAction: () => {
+        broadcasting.rawSetters.setClinkActive(true);
+        setTimeout(() => broadcasting.rawSetters.setClinkActive(false), 1000);
+        broadcasting.setSipLevel(prev => prev + 1);
+        p2p.send({ type: 'TRIGGER_CLINK', payload: null });
+        if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
+        return isSynced;
+    },
+    clearToastRequest: () => {
+        broadcasting.rawSetters.setIncomingToastRequest(false);
+    },
+    completeOnboarding: (age: string, height: string, style: string) => {
+        broadcasting.setUserPersona(prev => ({
+            ...prev,
+            age,
+            height,
+            styleId: style,
+            isProfileComplete: true,
+        }));
+        broadcasting.setView('hub');
+    },
     confirmGuestProfile: (name: string, background: string) => {
         presence.setGuestProfileConfirmed(true);
         if (name) {

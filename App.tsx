@@ -33,9 +33,15 @@ import { compressImage } from './utils/helpers';
 
 import { PAGE_VARIANTS } from './constants';
 import { useAssetPreloader } from './hooks/useAssetPreloader';
+import { useGameStore } from './store/gameState';
+import { PERSONALITY_CONFIGS } from './config/personalityConfigs';
+import { SESSION_ARCS } from './config/sessionArcs';
+import { applyModeTheme } from './config/modeThemes';
+import type { ModeId } from './types/personality';
 
-// Views — SetupView is eager (initial screen), rest are lazy-loaded
+// Views — SetupView and ModeSelectView are eager (initial screens), rest are lazy-loaded
 import { SetupView } from './components/views/SetupView';
+import { ModeSelectView } from './components/views/ModeSelectView';
 import { SyncWaitScreen } from './components/views/SyncWaitScreen';
 
 const OnboardingView = lazy(() => import('./components/views/OnboardingView').then(m => ({ default: m.OnboardingView })));
@@ -56,6 +62,17 @@ function AppContent() {
 
   const { qState: qs, qActions: qa } = useQuestionFlow(session);
   const { aiState: as, aiActions: aa } = useAiActions(session);
+
+  const gameStore = useGameStore();
+
+  const handleModeSelect = (mode: ModeId) => {
+    gameStore.setSessionMode(mode);
+    gameStore.setPersonalityConfig(PERSONALITY_CONFIGS[mode]);
+    gameStore.setSessionArc({ ...SESSION_ARCS[mode] });
+    gameStore.setSessionStatus('setup');
+    applyModeTheme(mode);
+    a.setView('setup');
+  };
 
   const [postReportPhase, setPostReportPhase] = useState<'briefing' | 'letter' | 'text' | null>(null);
   const [sharedDraft, setSharedDraft] = useState('');
@@ -211,7 +228,7 @@ function AppContent() {
     <div className="min-h-screen pb-40 overflow-x-hidden selection:bg-rose-500/30">
       <TouchLayer />
       
-      {s.view !== 'setup' && s.isSynced && (
+      {s.view !== 'setup' && s.view !== 'modeSelect' && s.isSynced && (
         <>
           <PresenceBar 
             onHome={() => a.setView('hub')} 
@@ -260,12 +277,16 @@ function AppContent() {
         <LazyChunkErrorBoundary>
         <Suspense fallback={<LazyFallback />}>
           <AnimatePresence mode="wait">
+            {s.view === 'modeSelect' && (
+                <ModeSelectView onSelectMode={handleModeSelect} />
+            )}
+
             {s.view === 'setup' && (
                 <SetupView onStart={a.startApp} />
             )}
 
             {/* Sync Blocking State for Guests — Clean loading, escape hatches appear after delay */}
-            {(s.view as string) !== 'setup' && !s.isSynced && (
+            {(s.view as string) !== 'setup' && (s.view as string) !== 'modeSelect' && !s.isSynced && (
                  <SyncWaitScreen
                     onRetry={() => {
                         qa.showFlash("Retrying Connection...");
@@ -329,7 +350,7 @@ function AppContent() {
       </main>
 
       {/* Conditionally Render ActionDock - Hides in Setup or Syncing */}
-      {s.view !== 'setup' && s.isSynced && (
+      {s.view !== 'setup' && s.view !== 'modeSelect' && s.isSynced && (
           <ActionDock 
             onReact={(e) => a.triggerReaction(e)} 
             onCamera={() => { setCameraType('general'); setCameraOpen(true); }} 

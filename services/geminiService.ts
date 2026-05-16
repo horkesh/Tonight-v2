@@ -12,7 +12,7 @@ import {
   buildAvatarPrompt,
   buildLocationImagePrompt
 } from "./prompts/gamePrompts";
-import { renderFullContextBlock } from "./prompts/promptContext";
+import { renderFullContextBlock, renderLightweightContext } from "./prompts/promptContext";
 
 // Schema type constants (replaces @google/genai Type enum — values are identical strings)
 const T = {
@@ -97,7 +97,7 @@ const getVibeInstruction = (vibe: VibeStats): string => {
   const dominantKey = getDominantVibe(vibe);
   const intensity = vibe[dominantKey];
 
-  if (intensity < 30) return "The night is young. A cool, detached sophistication hangs in the air.";
+  if (intensity < 30) return "The night is young. Cool, detached energy.";
 
   switch (dominantKey) {
     case 'flirty':
@@ -109,7 +109,7 @@ const getVibeInstruction = (vibe: VibeStats): string => {
     case 'comfortable':
       return `Warm and Intimate (${intensity}%). A shared quiet understanding. The guard is down.`;
     default:
-      return "Modern Noir. Shadows and light. A game of cat and mouse.";
+      return "Noir energy. Cat and mouse.";
   }
 };
 
@@ -141,7 +141,8 @@ const generateImageWithGemini = async (prompt: string, aspectRatio: "1:1" | "16:
       contents: prompt,
       config: {
         responseModalities: ["TEXT", "IMAGE"],
-        imageConfig: { aspectRatio }
+        imageConfig: { aspectRatio },
+        temperature: 0.7,
       }
     }));
     return imageData;
@@ -193,7 +194,7 @@ export const generateDynamicQuestions = async (
     // --- Full conversation history (both sides, chronological) ---
     let conversationBlock = "";
     if (conversationLog.length > 0) {
-      const formatted = conversationLog.slice(-15).map(e => {
+      const formatted = conversationLog.slice(-8).map(e => {
         const asker = e.askedBy === 'user' ? 'Asker' : 'Target';
         const answerer = e.answeredBy === 'user' ? 'Asker' : 'Target';
         return `[Round ${e.round}, ${e.category}] ${asker} asked: "${e.questionText}" -> ${answerer}: "${e.answer}"`;
@@ -235,7 +236,7 @@ export const generateDynamicQuestions = async (
       'Velvet Elegance': 'Sophisticated, unhurried, tasteful. Questions about refinement, desires whispered not shouted, the art of restraint.',
     };
     const vibeTitle = dateContext?.vibe?.title || '';
-    const vibeStyle = vibeStyleMap[vibeTitle] || 'Cinematic noir. Elegant but incisive.';
+    const vibeStyle = vibeStyleMap[vibeTitle] || 'Sharp, direct, punchy.';
 
     // --- Location-aware subject shaping ---
     const locationSubjectMap: Record<string, string> = {
@@ -307,7 +308,7 @@ KNOWLEDGE TEMPLATE: A sentence with {option} placeholder that captures psycholog
 - BAD: "They chose {option}" or "Their answer was {option}"
 - GOOD: "When cornered emotionally, they {option}" or "Their relationship with control: {option}" or "Faced with honesty about desire, they {option}"
 
-${promptContext ? `\nDEEP PARTNER INTELLIGENCE:\n${renderFullContextBlock(promptContext)}\n\nUse the deep profile to:\n- Shape questions around her specific interests, career, and personality\n- Reference her zodiac traits in Intimate/Flirty questions\n- Frame questions to highlight what impresses her about the host\n- Use pre-date intel for callback questions ("Earlier you mentioned...")\n- Shape Preferences questions around her love language\n- Gate physical suggestion cues based on her physical comfort level\n` : ''}
+${promptContext ? `\nCONTEXT: ${renderLightweightContext(promptContext)}\n` : ''}
 CATEGORY FLAVOR for "${category}":
 ${{
   'Style': 'Surface-level but diagnostic. How they present themselves reveals what they want the world to see — and what they hide. Taste as a window into psychology.',
@@ -327,6 +328,8 @@ OUTPUT: JSON array of 3 objects. Each has: id (string), category (string "${cate
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
+                maxOutputTokens: 300,
+                temperature: 0.7,
                 responseSchema: {
                     type: T.ARRAY,
                     items: {
@@ -353,16 +356,14 @@ OUTPUT: JSON array of 3 objects. Each has: id (string), category (string "${cate
 export const generateInnerMonologue = async (vibe: VibeStats, activity: string): Promise<string> => {
   const vibeContext = getVibeInstruction(vibe);
   const prompt = `
-    Context: A sophisticated adult on a virtual date.
-    Current Vibe: ${vibeContext}.
-    Task: Generate a fleeting, unsaid thought they have right now.
-    Constraint: Max 6 words. First person. Lowercase. Noir style.
+    Context: Adult on a virtual date. Vibe: ${vibeContext}.
+    Task: Fleeting unsaid thought. Max 6 words. First person. Lowercase.
   `;
   try {
     const response = await callWithRetry(() => callProxy('/api/gemini/text', {
       model: MODEL_TEXT,
       contents: prompt,
-      config: { responseMimeType: 'text/plain' }
+      config: { responseMimeType: 'text/plain', maxOutputTokens: 50, temperature: 0.7 }
     }));
     return response.text?.trim() || "reading the silence...";
   } catch (e) {
@@ -388,6 +389,8 @@ export const generateSilentReaction = async (
         contents: prompt,
         config: {
             responseMimeType: "application/json",
+            maxOutputTokens: 200,
+            temperature: 0.7,
             responseSchema: {
                 type: T.OBJECT,
                 properties: {
@@ -422,6 +425,8 @@ export const generateIntelligenceReport = async (
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
+        maxOutputTokens: 500,
+        temperature: 0.7,
         responseSchema: REPORT_SCHEMA,
       },
     }));
@@ -462,7 +467,7 @@ export const generateTwoTruthsOneLie = async (
 
   let conversationBlock = "";
   if (conversationLog.length > 0) {
-    const formatted = conversationLog.slice(-12).map(e => {
+    const formatted = conversationLog.slice(-8).map(e => {
       const asker = e.askedBy === 'user' ? 'Asker' : 'Target';
       const answerer = e.answeredBy === 'user' ? 'Asker' : 'Target';
       return `[${e.category}] ${asker} asked: "${e.questionText}" -> ${answerer}: "${e.answer}"`;
@@ -509,6 +514,8 @@ OUTPUT: JSON with "statements" array of exactly 3 objects, each with "text" (str
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
+        maxOutputTokens: 150,
+        temperature: 0.7,
         responseSchema: {
           type: T.OBJECT,
           properties: {
@@ -572,7 +579,7 @@ export const generateFinishSentence = async (
 
   let conversationBlock = "";
   if (conversationLog.length > 0) {
-    const formatted = conversationLog.slice(-12).map(e => {
+    const formatted = conversationLog.slice(-8).map(e => {
       return `[${e.category}] Q: "${e.questionText}" -> A: "${e.answer}"`;
     }).join('\n');
     conversationBlock = `\nCONVERSATION HISTORY:\n${formatted}`;
@@ -629,6 +636,8 @@ OUTPUT: JSON with "sentence" (string ending in "...") and "options" (array of ex
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
+        maxOutputTokens: 200,
+        temperature: 0.7,
         responseSchema: {
           type: T.OBJECT,
           properties: {
@@ -664,7 +673,7 @@ export const generatePartnerInsight = async (
   const traits = partnerPersona.traits.join(', ') || 'unknown';
   const secrets = partnerPersona.secrets.slice(-3).join('; ') || 'none revealed';
   const memories = partnerPersona.memories.slice(-5).join('; ') || 'none yet';
-  const recentAnswers = conversationLog.slice(-5).map(e =>
+  const recentAnswers = conversationLog.slice(-8).map(e =>
     `[${e.category}] "${e.questionText}" → "${e.answer}"`
   ).join('\n');
 
@@ -683,9 +692,12 @@ ${promptContext ? `PARTNER PROFILE: ${promptContext.profile?.name || 'Unknown'},
 Respond with ONLY the observation sentence. No quotes, no preamble.`;
 
   try {
-    const result = await callProxy('/api/gemini/text', { prompt });
-    const text = typeof result === 'string' ? result : result?.text || result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return text.trim().slice(0, 150);
+    const result = await callProxy('/api/gemini/text', {
+      model: MODEL_TEXT,
+      contents: prompt,
+      config: { responseMimeType: 'text/plain', maxOutputTokens: 60, temperature: 0.7 }
+    });
+    return (result.text || '').trim().slice(0, 150);
   } catch {
     return '';
   }
@@ -697,23 +709,27 @@ export const generateLocationTransition = async (
   conversationLog: ConversationEntry[],
   currentEnvironmentPrompt: string
 ): Promise<{ narrative: string; imagePrompt: string }> => {
-  const recentAnswers = conversationLog.slice(-3).map(e =>
+  const recentAnswers = conversationLog.slice(-8).map(e =>
     `[${e.category}] "${e.answer}"`
   ).join(', ');
 
   const dominant = getDominantVibe(vibe);
 
-  const prompt = `You are a cinematographer directing a date scene. The current setting: "${currentEnvironmentPrompt}". The mood is ${dominant} (playful=${vibe.playful}, flirty=${vibe.flirty}, deep=${vibe.deep}, comfortable=${vibe.comfortable}). Round ${round}. Recent answers: ${recentAnswers}.
+  const prompt = `You direct a date scene. Setting: "${currentEnvironmentPrompt}". Mood: ${dominant} (playful=${vibe.playful}, flirty=${vibe.flirty}, deep=${vibe.deep}, comfortable=${vibe.comfortable}). Round ${round}. Recent: ${recentAnswers}.
 
 Write TWO things:
-1. "narrative": A short atmospheric transition line (max 10 words). Something that could appear as a subtitle in a film. Examples: "The bartender dims the lights." "Rain starts against the window."
-2. "imagePrompt": An updated environment description for image generation. Keep the same location but shift the atmosphere to match the current mood. Max 30 words.
+1. "narrative": Terse transition line. Max 10 words. Examples: "The bartender dims the lights." "Rain starts."
+2. "imagePrompt": Updated environment description. Same location, shifted atmosphere. Max 30 words.
 
 Respond as JSON: {"narrative": "...", "imagePrompt": "..."}`;
 
   try {
-    const result = await callProxy('/api/gemini/text', { prompt });
-    const text = typeof result === 'string' ? result : result?.text || '';
+    const result = await callProxy('/api/gemini/text', {
+      model: MODEL_TEXT,
+      contents: prompt,
+      config: { responseMimeType: 'application/json', maxOutputTokens: 200, temperature: 0.7 }
+    });
+    const text = result.text || '';
     const parsed = cleanAndParseJSON(text, { narrative: '', imagePrompt: currentEnvironmentPrompt });
     return { narrative: parsed.narrative || '', imagePrompt: parsed.imagePrompt || currentEnvironmentPrompt };
   } catch {
@@ -740,6 +756,8 @@ export const generateScene = async (
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
+        maxOutputTokens: 200,
+        temperature: 0.7,
         responseSchema: {
           type: T.OBJECT,
           properties: {
@@ -809,6 +827,8 @@ export const extractTraitFromInteraction = async (question: string, answer: stri
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
+            maxOutputTokens: 200,
+            temperature: 0.7,
             responseSchema: {
                 type: T.OBJECT,
                 properties: { trait: { type: T.STRING } }
@@ -850,6 +870,8 @@ export const analyzeImageAction = async (
       },
       config: {
         responseMimeType: "application/json",
+        maxOutputTokens: 200,
+        temperature: 0.7,
         responseSchema: {
           type: T.OBJECT,
           properties: {
@@ -885,7 +907,7 @@ export const generateAbstractAvatar = async (traits: string[], revealProgress: n
 
 export const generateReactionImage = async (persona: PersonaState, reactionType: string): Promise<string> => {
   const desc = persona.appearance || "Cinematic noir character";
-  const prompt = `Cinematic reaction shot of ${desc}. Action/Mood: ${reactionType}. Dark noir lighting.`;
+  const prompt = `Reaction shot of ${desc}. Action/Mood: ${reactionType}. Dark moody lighting.`;
   const img = await generateImageWithGemini(prompt, "4:3");
   return img || "";
 };
@@ -913,6 +935,8 @@ export const generateNarrativeSuggestion = async (
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
+        maxOutputTokens: 250,
+        temperature: 0.7,
         responseSchema: {
           type: T.OBJECT,
           properties: {
@@ -954,7 +978,7 @@ export const generatePlaylistSongs = async (
   const location = dateContext?.location?.title || 'a night out';
   const partnerTraits = partnerPersona.traits.join(', ') || 'mysterious';
   const userTraits = userPersona.traits.join(', ') || 'unknown';
-  const recentTopics = conversationLog.slice(-5).map(e => e.category).join(', ');
+  const recentTopics = conversationLog.slice(-8).map(e => e.category).join(', ');
 
   const prompt = `Generate a playlist of 8 songs for a date night. The setting: ${location}. The mood is ${dominant}. Partner traits: ${partnerTraits}. Host traits: ${userTraits}. Recent conversation topics: ${recentTopics || 'getting to know each other'}.
 
@@ -963,9 +987,12 @@ Mix genres. Include recognizable songs that evoke emotion. Each song should feel
 Return JSON array of exactly 8 objects: [{"title": "Song Name", "artist": "Artist Name", "vibe": "one-word mood descriptor"}]`;
 
   try {
-    const result = await callProxy('/api/gemini/text', { prompt });
-    const text = typeof result === 'string' ? result : result?.text || '';
-    const songs = cleanAndParseJSON(text, []);
+    const result = await callProxy('/api/gemini/text', {
+      model: MODEL_TEXT,
+      contents: prompt,
+      config: { responseMimeType: 'application/json', maxOutputTokens: 400, temperature: 0.7 }
+    });
+    const songs = cleanAndParseJSON(result.text, []);
     if (Array.isArray(songs) && songs.length >= 6) {
       return { songs: songs.slice(0, 8) };
     }
@@ -1011,9 +1038,12 @@ PARTNER TRAITS: ${partnerPersona.traits.join(', ') || 'still emerging'}
 Respond as JSON: {"salutation": "short greeting (2-3 words)", "body": "the letter text", "signoff": "short sign-off (1-3 words)"}`;
 
   try {
-    const result = await callProxy('/api/gemini/text', { prompt });
-    const text = typeof result === 'string' ? result : result?.text || '';
-    return cleanAndParseJSON(text, { salutation: 'Tonight', body: 'The words escaped before the ink could catch them.', signoff: '—' });
+    const result = await callProxy('/api/gemini/text', {
+      model: MODEL_TEXT,
+      contents: prompt,
+      config: { responseMimeType: 'application/json', maxOutputTokens: 400, temperature: 0.7 }
+    });
+    return cleanAndParseJSON(result.text, { salutation: 'Tonight', body: 'The words escaped before the ink could catch them.', signoff: '—' });
   } catch {
     return { salutation: 'Tonight', body: 'The words escaped before the ink could catch them.', signoff: '—' };
   }
@@ -1028,7 +1058,7 @@ export const generateFollowUpText = async (
   promptContext?: PromptContext | null
 ): Promise<string> => {
   const partnerName = promptContext?.profile?.name || 'them';
-  const highlights = conversationLog.slice(-5).map(e =>
+  const highlights = conversationLog.slice(-8).map(e =>
     `Q: "${e.questionText}" A: "${e.answer}"`
   ).join('\n');
 
@@ -1043,9 +1073,12 @@ ${highlights || 'a memorable evening'}
 Respond with ONLY the text message. No quotes, no preamble, no explanation.`;
 
   try {
-    const result = await callProxy('/api/gemini/text', { prompt });
-    const text = typeof result === 'string' ? result : result?.text || '';
-    return text.trim().slice(0, 280);
+    const result = await callProxy('/api/gemini/text', {
+      model: MODEL_TEXT,
+      contents: prompt,
+      config: { responseMimeType: 'text/plain', maxOutputTokens: 150, temperature: 0.7 }
+    });
+    return (result.text || '').trim().slice(0, 280);
   } catch {
     return 'I had a great time tonight.';
   }
@@ -1074,6 +1107,8 @@ export const analyzeUserPhotoForAvatar = async (base64Image: string, hint?: stri
       },
       config: {
         responseMimeType: "application/json",
+        maxOutputTokens: 200,
+        temperature: 0.7,
         responseSchema: {
           type: T.OBJECT,
           properties: {

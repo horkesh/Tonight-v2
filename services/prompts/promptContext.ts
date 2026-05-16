@@ -2,6 +2,7 @@ import type { PromptContext, PartnerProfile, VenueProfile, DateConfig } from '..
 import type { DateHistoryEntry } from '../../utils/dateHistory';
 import { getHistoryForProfile } from '../../utils/dateHistory';
 import { useProfileStore } from '../../store/profileStore';
+import { HOST_PROFILE } from '../../constants';
 
 const ZODIAC_TRAITS: Record<string, string> = {
   aries: 'bold, competitive, passionate, impatient',
@@ -237,6 +238,37 @@ export function renderDateHistoryBlock(history: DateHistoryEntry[]): string {
   const instructions = `\nThis is a RETURNING partner. Reference specific moments from past dates — "Last time you said...", "Remember when...". Build on established inside jokes and emotional threads. Show that the AI remembers and the connection has continuity.`;
 
   return `${header}\n${summaries.join('\n')}${instructions}`;
+}
+
+/**
+ * Lightweight context (~50 tokens) for calls that don't need full profile detail.
+ * Used by: questions, narrative suggestion, inner monologue, partner insight.
+ */
+export function renderLightweightContext(ctx: PromptContext): string {
+  const parts: string[] = [];
+
+  // Host name
+  parts.push(`Host: ${HOST_PROFILE.name}`);
+
+  // Guest name + top 3 traits/interests
+  const p = ctx.profile;
+  const guestLine = [`Guest: ${p.name}`];
+  if (p.personalityTraits.length > 0) guestLine.push(p.personalityTraits.slice(0, 3).join(', '));
+  else if (p.interests.length > 0) guestLine.push(p.interests.slice(0, 3).join(', '));
+  parts.push(guestLine.join(' — '));
+
+  // Relationship context (one line)
+  if (p.relationshipHistory && p.relationshipHistory !== 'prefer_not_say') {
+    const rel = p.relationshipHistory.replace(/_/g, ' ');
+    parts.push(`Relationship: ${rel}`);
+  }
+
+  // Current vibe summary
+  if (ctx.config.dateArc) {
+    parts.push(`Arc: ${ctx.config.dateArc.replace(/_/g, ' ')}`);
+  }
+
+  return parts.join('. ') + '.';
 }
 
 /**

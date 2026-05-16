@@ -1,5 +1,5 @@
 
-export type AppView = 'setup' | 'onboarding' | 'hub' | 'activity' | 'question' | 'loading' | 'rating' | 'twoTruths' | 'finishSentence' | 'playlist';
+export type AppView = 'modeSelect' | 'setup' | 'onboarding' | 'hub' | 'activity' | 'question' | 'loading' | 'rating' | 'twoTruths' | 'finishSentence' | 'playlist';
 
 export interface User {
   id: string;
@@ -94,6 +94,7 @@ export interface PersonaState {
   age?: string;
   height?: string;
   isProfileComplete: boolean;
+  styleId: string;
 }
 
 export interface IntelligenceReport {

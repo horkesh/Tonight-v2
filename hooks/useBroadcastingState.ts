@@ -9,7 +9,7 @@ export function useBroadcastingState(
   presence: PresenceState
 ) {
   // --- Local UI State ---
-  const [view, setViewState] = useState<AppView>('setup');
+  const [view, setViewState] = useState<AppView>('modeSelect');
   const [clinkActive, setClinkActive] = useState(false);
   const [lastChoiceText, setLastChoiceTextState] = useState<string>("");
   const [latestReaction, setLatestReaction] = useState<{ content: string; timestamp: number; duration?: number } | null>(null);

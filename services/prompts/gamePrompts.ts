@@ -1,6 +1,6 @@
 import { DateContext, DateLocation, DateVibe, PersonaState, User, VibeStats, ConversationEntry } from '../../types';
 import type { PromptContext } from '../../types/profiles';
-import { renderFullContextBlock } from './promptContext';
+import { renderLightweightContext } from './promptContext';
 
 export const buildScenePrompt = (
   vibe: VibeStats,
@@ -22,8 +22,8 @@ export const buildScenePrompt = (
   const userDesc = `User: ${user.appearance || "You"}. Traits: ${user.traits.join(", ")}.`;
 
   let basePrompt = `
-    You are the narrator of an interactive, cinematic social game for two people on a date.
-    Create a short, immersive scene (max 3 sentences) that advances their interaction.
+    You are the narrator of an interactive social game for two people on a date.
+    Create a terse scene. EXACTLY 1-2 sentences. Max 25 words.
 
     Context:
     ${locationDesc}
@@ -35,7 +35,7 @@ export const buildScenePrompt = (
   `;
 
   if (promptContext) {
-    basePrompt += `\n\n${renderFullContextBlock(promptContext)}\n`;
+    basePrompt += `\n\nCONTEXT: ${renderLightweightContext(promptContext)}\n`;
   }
 
   if (activityId) {
@@ -85,7 +85,7 @@ export const buildIntelligenceReportPrompt = (
   }
 
   return `
-    Generate a "Post-Date Intelligence Report" in the style of a high-end lifestyle magazine or a spy dossier.
+    Generate a "Post-Date Intelligence Report". Keep it sharp and direct. Max 30 words per field.
 
     Subject: The Partner
     Date Context: ${dateContext?.location?.title || "Unknown Location"}
@@ -203,7 +203,7 @@ export const buildFinishSentencePrompt = (
 
 export const buildAvatarPrompt = (traits: string[], context: string): string => {
   const traitList = traits.length > 0 ? traits.join(", ") : "mysterious, enigmatic";
-  return `Abstract artistic portrait avatar. Subject: ${context}. Personality: ${traitList}. Style: Minimalist geometric forms, cinematic noir lighting, moody desaturated color palette, high-end digital art, dramatic shadows and highlights, sophisticated composition. No text or words.`;
+  return `Abstract artistic portrait avatar. Subject: ${context}. Personality: ${traitList}. Style: Minimalist geometric forms, dark moody lighting, desaturated color palette, dramatic shadows. No text or words.`;
 };
 
 export const buildLocationImagePrompt = (
@@ -212,5 +212,5 @@ export const buildLocationImagePrompt = (
   userAppearance: string,
   partnerAppearance: string
 ): string => {
-  return `Cinematic scene at ${location.title} - ${location.description}. ${location.environmentPrompt}. Atmosphere: ${vibe.title} - ${vibe.description}. Two people: 1) ${userAppearance} 2) ${partnerAppearance}. Style: Cinematic, photorealistic, 8k, atmospheric lighting, first-person or over-the-shoulder perspective, intimate. No text or words.`;
+  return `Scene at ${location.title} - ${location.description}. ${location.environmentPrompt}. Atmosphere: ${vibe.title} - ${vibe.description}. Two people: 1) ${userAppearance} 2) ${partnerAppearance}. Style: Photorealistic, atmospheric lighting, intimate perspective. No text or words.`;
 };
