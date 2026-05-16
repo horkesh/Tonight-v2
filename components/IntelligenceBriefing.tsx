@@ -2,6 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IntelligenceReport, VibeStats } from '../types';
+import { useGameStore } from '../store/gameState';
 // @ts-ignore
 import html2canvas from 'html2canvas';
 
@@ -10,6 +11,20 @@ interface IntelligenceBriefingProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const MODE_LABELS_REPORT: Record<string, string> = {
+  date_night: 'Date Night',
+  first_date: 'First Date',
+  ldr: 'Long Distance',
+  reignite: 'Reignite',
+};
+
+const TRAJECTORY_LABELS: Record<string, string> = {
+  ascending: 'Rising',
+  plateauing: 'Steady',
+  oscillating: 'Volatile',
+  declining: 'Cooling',
+};
 
 const truncateWords = (text: string, maxWords: number): string => {
   const words = text.split(/\s+/);
@@ -36,8 +51,13 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
   const contentRef = useRef<HTMLDivElement>(null);
   const shareTargetRef = useRef<HTMLDivElement>(null);
   const [showShareTarget, setShowShareTarget] = useState(false);
+  const sessionMode = useGameStore(s => s.sessionMode);
+  const chemistryProfile = useGameStore(s => s.chemistry);
 
   if (!report) return null;
+
+  const modeLabel = sessionMode ? MODE_LABELS_REPORT[sessionMode] : null;
+  const trajectoryLabel = chemistryProfile?.trajectory ? TRAJECTORY_LABELS[chemistryProfile.trajectory] : null;
 
   // Parse vibeAnalysis for bar display if it's JSON-like
   let vibeStats: VibeStats | null = null;
@@ -136,6 +156,13 @@ export const IntelligenceBriefing: React.FC<IntelligenceBriefingProps> = ({ repo
                     <span>CASE {caseNumber}</span>
                     <span>{report.date}</span>
                   </div>
+                  {(modeLabel || trajectoryLabel) && (
+                    <div className="flex justify-center gap-2 text-[8px] uppercase tracking-[0.4em] font-black text-white/30 mb-3">
+                      {modeLabel && <span>{modeLabel}</span>}
+                      {modeLabel && trajectoryLabel && <span className="text-white/15">·</span>}
+                      {trajectoryLabel && <span>Trajectory: {trajectoryLabel}</span>}
+                    </div>
+                  )}
                   <div className="text-center">
                     <span className="inline-block px-4 py-1.5 border border-rose-500/30 rounded text-[9px] uppercase tracking-[0.4em] font-black text-rose-400/70 mb-4">
                       Intelligence Briefing

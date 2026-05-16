@@ -699,3 +699,35 @@ Ported from Commercial's `useQuestionFlow`. Softer than `handleRefuse`: no sip p
 - `npx tsc --noEmit`: clean
 - `npm test`: 35/35 passing
 - `npm run build`: succeeds (24 precache entries, ~1011 KiB — back to pre-Vibe-Check size)
+
+---
+
+## 2026-05-16 — Date Night polish push: resilience, gating, history depth, UI surfacing
+
+After the Enterprise port + revert, pushed through another four sub-slices that round out Date Night.
+
+### Resilience
+- `pickBankFallback(category, mode, count)` in `services/geminiService.ts` returns tap-with-options bank questions matching the user's category + active mode, formatted as `Question[]`. Wired into `generateDynamicQuestions` for both empty-response and exception paths. The user never hits an empty question list mid-date — the 200-question bank is the safety net.
+
+### Mode gating
+- `handleActivitySelect` in `hooks/useAiActions.ts` now checks `personalityConfig.activities_allowed`. date_night allows all (twoTruths/finishSentence/playlist) so no behavior change; first_date allows only twoTruths; reignite allows only finishSentence; ldr allows finishSentence + playlist. Refuses with a flash if blocked. Legacy sessions (no config) keep allowing all.
+
+### History depth
+- `DateHistoryEntry` gained optional `chemistryProfile?: ChemistryProfile` and `mode?: string`. `buildHistoryEntry` accepts both; the `useAiActions` caller reads from the game store and passes them through. Future Date Nights with returning partners now see the full 6-dim trajectory across sessions, not just a single chemistry %.
+- `extractHighlights` filter extended to drop `[Passed]` answers alongside the existing refusal filter — neither carries a real answer worth highlighting.
+- `renderDateHistoryBlock` in `services/prompts/promptContext.ts` now includes the mode tag and (when available) a "top dimension X (N/100), trajectory ascending|plateauing|oscillating|declining" line per past date. AI generations for a returning partner inherit longitudinal signal.
+
+### UI surfacing
+- `PresenceBar`: small uppercase tracking-widest mode label ("Date Night", "First Date", "Long Distance", "Reignite") under the "Tonight" header. Subtle (text-white/25). Defers to the existing "Partner is choosing..." overlay when relevant.
+- `IntelligenceBriefing`: a centered "Mode · Trajectory: Rising/Steady/Volatile/Cooling" line in the case-number header, between the CASE line and the headline. Reads `sessionMode` and `chemistry.trajectory` from the store. Shows up only when either field is set.
+
+### Files Changed
+- Modified: `services/geminiService.ts`, `hooks/useAiActions.ts`, `utils/dateHistory.ts`, `services/prompts/promptContext.ts`, `components/PresenceBar.tsx`, `components/IntelligenceBriefing.tsx`
+
+### Verification (after each sub-slice)
+- `npx tsc --noEmit`: clean
+- `npm test`: 35/35
+- `npm run build`: green
+
+### What I'd flag as the genuine completion line
+Every Enterprise improvement I could identify that benefits Date Night and isn't blocked on `@firetold/studio` has been ported. Anything beyond this point is new feature work (e.g., wiring `useSessionArc` phase advancement, building a chemistry HUD), not Enterprise-derivative. The branch `feature/personality-modes` is ready to merge to `main` when you're ready.
